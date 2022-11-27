@@ -1,4 +1,4 @@
-import {Translator} from "../Translator";
+import {Translator} from "../translator";
 
 export class AlertsRoot {
   status: number;
