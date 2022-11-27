@@ -93,7 +93,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           const cities = await batumi.getCitiesList()
           let text = "Cities with upcoming alerts:\n"
           for (let city of Array.from(cities.values()).sort()) {
-            text += `[${city}] /upcoming_${city} \n`
+            text += `${city} /upcoming_${city} \n`
           }
 
           context.send(text)
@@ -105,7 +105,7 @@ telegram.updates.on(UpdateType.Message, async context => {
         const taskId = Number.parseInt(text.replace("/alert_", ""));
         const alertFromId = await batumi.getAlertFromId(taskId);
         if (!alertFromId) {
-          context.send(`Cannot find alert with id ${alertFromId}`)
+          context.send(`Cannot find alert with id ${taskId}`)
           return
         }
         const formatSingleAlert = await alertFromId.formatSingleAlert();

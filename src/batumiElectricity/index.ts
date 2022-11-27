@@ -1,7 +1,7 @@
 import axios from "axios";
 import {Alert, AlertsRoot, CitiesRoot, City} from "./types";
 import {Translator} from "../translator";
-import {TwoWayMap} from "../common/TwoWayMap";
+import {TwoWayMap} from "../common/twoWayMap";
 
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
