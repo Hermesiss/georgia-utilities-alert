@@ -1,3 +1,5 @@
+import {Translator} from "../Translator";
+
 export class AlertsRoot {
   status: number;
   data: Array<Alert>;
@@ -32,6 +34,7 @@ export class Alert {
   }
 
   private static timeFormatOptions: Intl.DateTimeFormatOptions = {hour: "numeric", minute: "2-digit", hour12: false};
+  private static dayFormatOptions: Intl.DateTimeFormatOptions = {hour: "numeric", minute: "2-digit", hour12: false};
 
   public getPlanEmoji() {
     switch (this.planType) {
@@ -39,6 +42,15 @@ export class Alert {
         return "⚙️"
       case PlanType.Unplanned:
         return "⚠️"
+    }
+  }
+
+  public getPlanText(){
+    switch (this.planType) {
+      case PlanType.Planned:
+        return "Planned"
+      case PlanType.Unplanned:
+        return "Emergency"
     }
   }
 
@@ -50,10 +62,20 @@ export class Alert {
     return this.endDate.toLocaleTimeString("en-US", Alert.timeFormatOptions)
   }
 
-  public formatSingleAlert(): string {
-    return `${this.taskName}\n` +
-      `Region: ${this.regionName}\n` +
-      `Area: ${this.disconnectionArea}` //TODO date
+  public async formatSingleAlert(): Promise<string> {
+    const taskNote = await Translator.getTranslation(this.taskNote)
+    const taskName = await Translator.getTranslation(this.taskName)
+    const taskCaption = await Translator.getTranslation(this.scName)
+    const regionName = await Translator.getTranslation(this.regionName)
+    const disconnectionArea = await Translator.getTranslation(this.disconnectionArea)
+    const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
+
+    return `${this.getPlanEmoji()}${planText} *[${taskCaption}]* ${taskName}\n\n` +
+      `*Start:* ${this.disconnectionDate}\n\n` +
+      `*End:* ${this.reconnectionDate}\n\n` +
+      `*Region:* ${regionName}\n\n` +
+      `*Area:* ${disconnectionArea}\n\n` + //TODO date
+      taskNote
   }
 
   private init(): void {

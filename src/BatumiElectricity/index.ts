@@ -6,14 +6,15 @@ export class BatumiElectricityParser {
   public citiesUrl = "https://my.energo-pro.ge/owback/get/cities"
 
   private cities = new Map<string, City>()
-  private alerts = new Map<number, Alert>()
+  private alertsById = new Map<number, Alert>()
+  private alertsByDate = new Map<string, Array<Alert>>()
   private alertsLastFetch: Date | null = null
 
   private alertsFetchIntervalMs = 1000;
 
-  public async getAlertFromId(id: number): Promise<Alert | undefined>{
+  public async getAlertFromId(id: number): Promise<Alert | undefined> {
     await this.fetchAlerts()
-    return this.alerts.get(id)
+    return this.alertsById.get(id)
   }
 
   public getEnCityName(geoName: string): string {
@@ -43,7 +44,7 @@ export class BatumiElectricityParser {
 
     const targetDateString = date.toDateString();
 
-    for (let [id, alert] of this.alerts) {
+    for (let [id, alert] of this.alertsById) {
       if (alert.startDate.toDateString() === targetDateString) {
         todayAlerts.push(alert)
       }
@@ -53,7 +54,8 @@ export class BatumiElectricityParser {
 
   private async fetchAlerts() {
     if (this.alertsLastFetch === null || Date.now() - this.alertsLastFetch.getTime() > this.alertsFetchIntervalMs) {
-      this.alerts.clear()
+      this.alertsById.clear()
+      this.alertsByDate.clear()
       this.alertsLastFetch = new Date()
 
       const json = await axios.get<AlertsRoot>(this.alertsUrl)
@@ -61,8 +63,26 @@ export class BatumiElectricityParser {
 
       for (let alertData of data) {
         const alert = Alert.from(alertData);
-        this.alerts.set(alert.taskId, alert)
+        this.alertsById.set(alert.taskId, alert)
+        const day = alert.startDate.toDateString()
+        if (!this.alertsByDate.has(day)) {
+          this.alertsByDate.set(day, new Array<Alert>())
+        }
+        this.alertsByDate.get(day)?.push(alert)
       }
     }
+  }
+
+  async getUpcomingDays(): Promise<Array<Date>> {
+    await this.fetchAlerts()
+    const today = new Date(new Date().toDateString())
+    const dates = new Array<Date>()
+    for (let [dateString, alerts] of this.alertsByDate) {
+      const date = new Date(dateString)
+      if (date.getTime() >= today.getTime()) {
+        dates.push(date)
+      }
+    }
+    return dates.sort((x, y) => x.getTime() - y.getTime())
   }
 }
