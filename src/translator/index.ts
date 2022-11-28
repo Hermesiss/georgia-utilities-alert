@@ -11,6 +11,6 @@ export class Translator {
       this.translations.set(phrase, result)
     }
 
-    return result.translation || phrase
+    return result?.translation || phrase
   }
 }

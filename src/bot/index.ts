@@ -46,14 +46,14 @@ async function getAlertsForDate(date: Date, caption: string, cityGe : string|nul
 telegram.updates.on(UpdateType.Message, async context => {
   const text = context.text;
 
-  console.log(`Message from ${context.from?.username}`)
+  console.log(`Message from ${context.from?.id} ${context.from?.username}`)
 
   if (text) {
     if (context.text?.startsWith('/')) {
       console.log(`Command ${context.text}`)
       switch (text) {
         case "/start":
-          context.send(`Let's start!\nMy commands: /today\n/tomorrow\n/upcoming\n/cities\n`)
+          context.send(`Let's start!\nMy commands:\n/today\n/tomorrow\n/upcoming\n/cities\n`)
           return
         case "/today": {
           const date = new Date();

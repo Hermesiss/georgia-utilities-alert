@@ -6,6 +6,7 @@
   "scripts": {
     "build-and-start": "npm run build && npm run start",
     "build": "npx tsc",
+    "postinstall": "npx tsc",
     "start": "node dist/bot/index.js",
     "start:dev:bot": "concurrently \"npx tsc --watch\" \"nodemon -q dist/bot/index.js\""
   },
