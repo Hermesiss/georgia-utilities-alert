@@ -43,12 +43,16 @@ async function getAlertsForDate(date: Date, caption: string, cityGe: string | nu
 
   let text = `${caption}\n`
 
-  for (let [region, alerts] of regions) {
-    text += `${region}\n`
-    for (let alert of alerts) {
-      text += `${alert.getPlanEmoji()} ${alert.formatStartTime()} - ${alert.formatEndTime()} /alert_${alert.taskId}\n`
+  if (regions.size == 0) {
+    text += "No alerts"
+  } else {
+    for (let [region, alerts] of regions) {
+      text += `${region}\n`
+      for (let alert of alerts) {
+        text += `${alert.getPlanEmoji()} ${alert.formatStartTime()} - ${alert.formatEndTime()} /alert_${alert.taskId}\n`
+      }
+      text += "\n"
     }
-    text += "\n"
   }
 
   return text

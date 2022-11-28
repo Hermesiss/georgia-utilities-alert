@@ -97,7 +97,7 @@ export class Alert {
       `*Start:* ${this.disconnectionDate}\n\n` +
       `*End:* ${this.reconnectionDate}\n\n` +
       `*Region:* ${regionName}\n\n` +
-      `*Area:*\n${areas}\n\n` + //TODO date
+      `*Area:*\n${areas}\n` +
       taskNote
   }
 
