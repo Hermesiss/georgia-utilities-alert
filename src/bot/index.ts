@@ -3,8 +3,19 @@ import {Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
 import {Translator} from "../translator";
 import {Alert} from "../batumiElectricity/types";
+import express, {Express, Request, Response} from 'express';
 
 dotenv.config();
+
+const app: Express = express();
+const port = process.env.PORT || 8000;
+
+app.get('/', (req: Request, res: Response) => {
+  res.send('Georgia Utilities Alert');
+});
+
+app.listen(port, () => {
+});
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -13,7 +24,7 @@ if (!token) throw new Error("No telegram token in .env")
 const telegram = Telegram.fromToken(token)
 const batumi = new BatumiElectricityParser();
 
-async function getAlertsForDate(date: Date, caption: string, cityGe : string|null = null) {
+async function getAlertsForDate(date: Date, caption: string, cityGe: string | null = null) {
   const alerts = await batumi.getAlertsFromDay(date)
   let regions = new Map<string, Array<Alert>>()
   for (let alert of alerts) {
@@ -113,7 +124,7 @@ telegram.updates.on(UpdateType.Message, async context => {
         return
       }
 
-      if (text.startsWith("/upcoming_")){
+      if (text.startsWith("/upcoming_")) {
         const cityEn = text.replace("/upcoming_", "")
         const cities = await batumi.getCitiesList();
         const cityGe = cities.revGet(cityEn)
