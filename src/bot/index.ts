@@ -1,9 +1,10 @@
 import dotenv from 'dotenv';
-import {Telegram, UpdateType} from 'puregram'
+import {RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
-import {Translator} from "../translator";
 import {Alert} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
+import {MessageContext} from "puregram/lib/contexts/message";
+import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ if (!token) throw new Error("No telegram token in .env")
 
 const telegram = Telegram.fromToken(token)
 const batumi = new BatumiElectricityParser();
+batumi.fetchAlerts().then(() => console.log("Initial alerts fetch complete"))
 
 async function getAlertsForDate(date: Date, caption: string, cityGe: string | null = null) {
   const alerts = await batumi.getAlertsFromDay(date)
@@ -30,7 +32,7 @@ async function getAlertsForDate(date: Date, caption: string, cityGe: string | nu
   for (let alert of alerts) {
     if (cityGe && alert.scName !== cityGe) continue
 
-    const region = await Translator.getTranslation(alert.scName)
+    const region = alert.scName
     if (!regions.has(region)) {
       regions.set(region, new Array<Alert>())
     }
@@ -58,6 +60,24 @@ async function getAlertsForDate(date: Date, caption: string, cityGe: string | nu
   return text
 }
 
+async function sendUpcoming(context: MessageContext, cityEn: string) {
+  await context.sendChatAction("typing")
+  const cities = await batumi.getCitiesList();
+  const cityGe = cities.revGet(cityEn)
+  const upcomingDays: Array<Date> = await batumi.getUpcomingDays(cityGe)
+  if (upcomingDays.length == 0) {
+    await context.send(`No upcoming alerts for ${cityEn}`)
+    return
+  }
+
+  for (let date of upcomingDays) {
+    const caption = `Alerts for ${date.toDateString()}`
+    const s = await getAlertsForDate(date, caption, cityGe);
+    await context.send(s)
+    await new Promise(r => setTimeout(r, 300))
+  }
+}
+
 telegram.updates.on(UpdateType.Message, async context => {
   const text = context.text;
 
@@ -68,9 +88,11 @@ telegram.updates.on(UpdateType.Message, async context => {
       console.log(`Command ${context.text}`)
       switch (text) {
         case "/start":
-          context.send(`Let's start!\nMy commands:\n/today\n/tomorrow\n/upcoming\n/cities\n`)
+          context.send(`Let's start!\nMy commands:\n/today\n/tomorrow\n/upcoming\n/cities\n`,
+            {reply_markup: new RemoveKeyboard(),})
           return
         case "/today": {
+          context.sendChatAction("typing")
           const date = new Date();
           const caption = "Today's alerts:"
           const s = await getAlertsForDate(date, caption);
@@ -78,6 +100,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           return
         }
         case "/tomorrow": {
+          context.sendChatAction("typing")
           const today = new Date()
           let tomorrow = new Date()
           tomorrow.setDate(today.getDate() + 1)
@@ -88,35 +111,52 @@ telegram.updates.on(UpdateType.Message, async context => {
         }
 
         case "/upcoming": {
+          context.sendChatAction("typing")
           const upcomingDays: Array<Date> = await batumi.getUpcomingDays()
 
           if (upcomingDays.length == 0) {
-            context.send("No upcoming alerts")
+            await context.send("No upcoming alerts")
             return
           }
 
           for (let date of upcomingDays) {
             const caption = `Alerts for ${date.toDateString()}`
             const s = await getAlertsForDate(date, caption);
-            context.send(s)
+            await context.send(s)
             await new Promise(r => setTimeout(r, 300))
           }
-
           return
         }
         case "/cities": {
+          context.sendChatAction("typing")
           const cities = await batumi.getCitiesList()
           let text = "Cities with upcoming alerts:\n"
-          for (let city of Array.from(cities.values()).sort()) {
+          const citiesSorted = Array.from(cities.values()).sort();
+          for (let city of citiesSorted) {
             text += `${city} /upcoming_${city} \n`
           }
 
-          context.send(text)
+          let kb: TelegramKeyboardButton[][] = []
+
+          for (let i = 0; i < citiesSorted.length; i++) {
+            const colCount = 3
+            const row = Math.floor(i / colCount)
+            const column = i % colCount
+            if (!kb[row]) {
+              kb[row] = []
+            }
+            kb[row][column] = {text: `/upcoming_${citiesSorted[i]}`,}
+          }
+
+          await context.send(text,
+            //{reply_markup: {keyboard: kb, one_time_keyboard: true, resize_keyboard: true}}
+          )
           return
         }
       }
 
       if (text.startsWith("/alert_")) {
+        context.sendChatAction("typing")
         const taskId = Number.parseInt(text.replace("/alert_", ""));
         const alertFromId = await batumi.getAlertFromId(taskId);
         if (!alertFromId) {
@@ -130,23 +170,7 @@ telegram.updates.on(UpdateType.Message, async context => {
 
       if (text.startsWith("/upcoming_")) {
         const cityEn = text.replace("/upcoming_", "")
-        const cities = await batumi.getCitiesList();
-        const cityGe = cities.revGet(cityEn)
-
-        const upcomingDays: Array<Date> = await batumi.getUpcomingDays(cityGe)
-
-        if (upcomingDays.length == 0) {
-          context.send(`No upcoming alerts for ${cityEn}`)
-          return
-        }
-
-        for (let date of upcomingDays) {
-          const caption = `Alerts for ${date.toDateString()}`
-          const s = await getAlertsForDate(date, caption, cityGe);
-          context.send(s)
-          await new Promise(r => setTimeout(r, 300))
-        }
-
+        await sendUpcoming(context, cityEn);
         return
       }
     } else {
@@ -155,8 +179,18 @@ telegram.updates.on(UpdateType.Message, async context => {
   } else {
     console.log("Not a text")
   }
-
-  context.send(`Here random number: ${Math.random()}`);
 })
+
+//// Set commands
+const commands = [
+  {command: "today", description: "All today warnings"},
+  {command: "tomorrow", description: "All tomorrow warnings"},
+  {command: "upcoming", description: "All upcoming alerts grouped by day"},
+  {command: "cities", description: "All cities with upcoming alerts"},
+];
+
+telegram.api.setMyCommands({
+  commands
+}).then(value => console.log("Set my commands", value, commands))
 
 telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))

@@ -1,16 +1,14 @@
 import axios from "axios";
 import {Alert, AlertsRoot, CitiesRoot, City} from "./types";
-import {Translator} from "../translator";
 import {TwoWayMap} from "../common/twoWayMap";
 
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
-  public citiesUrl = "https://my.energo-pro.ge/owback/get/cities"
 
-  private cities = new Map<string, City>()
   private alertsById = new Map<number, Alert>()
   private alertsByDate = new Map<string, Array<Alert>>()
   private alertsLastFetch: Date | null = null
+  private alertsFetching = false
 
   private alertsFetchIntervalMs = 1000;
 
@@ -21,24 +19,8 @@ export class BatumiElectricityParser {
     return this.alertsById.get(id)
   }
 
-  public getEnCityName(geoName: string): string {
-    const city = this.cities.get(geoName);
-    if (city)
-      return city.name
-    else return geoName
-  }
-
   constructor() {
-    this.getCities().then()
-  }
 
-  private async getCities() {
-    const json = await axios.get<CitiesRoot>(this.citiesUrl)
-    const {status, data} = json.data
-    for (let cityData of data) {
-      const city = City.from(cityData);
-      this.cities.set(city.nameGe, city)
-    }
   }
 
   public async getAlertsFromDay(date: Date): Promise<Array<Alert>> {
@@ -56,8 +38,16 @@ export class BatumiElectricityParser {
     return todayAlerts.sort((x, y) => x.startDate.getTime() - y.startDate.getTime() || x.endDate.getTime() - y.endDate.getTime())
   }
 
-  private async fetchAlerts() {
+  public async fetchAlerts() {
+    if (this.alertsFetching) {
+      while (this.alertsFetching) {
+        await new Promise(r => setTimeout(r, 300))
+      }
+
+      return
+    }
     if (this.alertsLastFetch === null || Date.now() - this.alertsLastFetch.getTime() > this.alertsFetchIntervalMs) {
+      this.alertsFetching = true
       this.alertsById.clear()
       this.alertsByDate.clear()
       this.alertsLastFetch = new Date()
@@ -65,8 +55,11 @@ export class BatumiElectricityParser {
       const json = await axios.get<AlertsRoot>(this.alertsUrl)
       const {status, data} = json.data
 
-      for (let alertData of data) {
-        const alert = Alert.from(alertData);
+      for (let i = 0; i < data.length; i++) {
+        const alertData = data[i]
+
+        const alert = await Alert.from(alertData);
+
         this.alertsById.set(alert.taskId, alert)
         const day = alert.startDate.toDateString()
         if (!this.alertsByDate.has(day)) {
@@ -74,6 +67,10 @@ export class BatumiElectricityParser {
         }
         this.alertsByDate.get(day)?.push(alert)
       }
+
+      this.alertsFetching = false
+
+      Alert.printTranslations()
     }
   }
 
@@ -116,8 +113,9 @@ export class BatumiElectricityParser {
     }
 
     for (let city of cities) {
-      const eng = await Translator.getTranslation(city)
-      this.geoEngCities.add(city, eng)
+      //const eng = await Translator.getTranslation(city)
+      //this.geoEngCities.add(city, eng)
+      this.geoEngCities.add(city, city)
     }
 
     return this.geoEngCities

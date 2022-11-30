@@ -1,4 +1,11 @@
 import {Translator} from "../translator";
+import cities from "./cities.json";
+import districts from "./districts.json";
+
+const citiesMap = new Map(Object.entries(cities))
+const newCitiesMap = new Map()
+const districtsMap = new Map(Object.entries(districts))
+const newDistrictsMap = new Map()
 
 export class AlertsRoot {
   status: number;
@@ -50,9 +57,17 @@ export class Alert {
 
   areaTree: AreaTree = new AreaTree("Root")
 
-  static from(from: Alert): Alert {
+  static printTranslations() {
+    if (newDistrictsMap.size > 0)
+      console.log("=== NEW TRANSLATED DISTRICTS\n", JSON.stringify(Object.fromEntries(newDistrictsMap)))
+
+    if (newCitiesMap.size > 0)
+      console.log("=== NEW TRANSLATED CITIES\n", JSON.stringify(Object.fromEntries(newCitiesMap)))
+  }
+
+  static async from(from: Alert): Promise<Alert> {
     const result = Object.assign(new Alert(), from)
-    result.init()
+    await result.init()
     return result
   }
 
@@ -88,12 +103,12 @@ export class Alert {
   public async formatSingleAlert(): Promise<string> {
     const taskNote = await Translator.getTranslation(this.taskNote)
     const taskName = await Translator.getTranslation(this.taskName)
-    const taskCaption = await Translator.getTranslation(this.scName)
+    //const taskCaption = await Translator.getTranslation(this.scName)
     const regionName = await Translator.getTranslation(this.regionName)
     const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
     const areas = await this.formatAreas(this.areaTree);
 
-    return `${this.getPlanEmoji()}${planText} *[${taskCaption}]* ${taskName}\n\n` +
+    return `${this.getPlanEmoji()}${planText} *[${this.scName}]* ${taskName}\n\n` +
       `*Start:* ${this.disconnectionDate}\n\n` +
       `*End:* ${this.reconnectionDate}\n\n` +
       `*Region:* ${regionName}\n\n` +
@@ -106,7 +121,7 @@ export class Alert {
     if (level > 5) return text
 
     if (level != 0) {
-      const translatedName = await Translator.getTranslation(areaTree.name)
+      const translatedName = areaTree.name
       text += `${"    ".repeat(level - 1)}${translatedName}\n`;
     }
     for (let [name, area] of areaTree.children) {
@@ -117,7 +132,7 @@ export class Alert {
     return text
   }
 
-  private init(): void {
+  private async init(): Promise<void> {
     this.startDate = new Date(this.disconnectionDate)
     this.endDate = new Date(this.reconnectionDate)
 
@@ -125,11 +140,27 @@ export class Alert {
 
     const areas = this.disconnectionArea.split(',')
 
+    let cityTranslate = citiesMap.get(this.scName)
+    if (!cityTranslate) {
+      cityTranslate = await Translator.getTranslation(this.scName)
+      newCitiesMap.set(this.scName, cityTranslate)
+    }
+
+    this.scName = cityTranslate
+
     for (let area of areas) {
       const sub = area.split("/")
       let tree = this.areaTree
       for (let i = 0; i < sub.length; i++) {
-        const item = sub[i].trim()
+        let item = sub[i].trim()
+        const translated = citiesMap.get(item) || districtsMap.get(item)
+        if (translated) {
+          item = translated
+        } else {
+          const translation = await Translator.getTranslation(item);
+          newDistrictsMap.set(item, translation)
+          item = translation
+        }
         const existingTree = tree.get(item)
         if (!existingTree) {
           const childTree = new AreaTree(item)
