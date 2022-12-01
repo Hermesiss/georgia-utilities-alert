@@ -1,11 +1,26 @@
 import {Translator} from "../translator";
 import cities from "./cities.json";
 import districts from "./districts.json";
+import {IOriginalAlert} from "../mongo/originalAlert";
+import {HydratedDocument} from "mongoose";
 
 const citiesMap = new Map(Object.entries(cities))
 const newCitiesMap = new Map()
 const districtsMap = new Map(Object.entries(districts))
 const newDistrictsMap = new Map()
+
+export class AlertDiff {
+  oldAlert: Alert | null;
+  newAlert: Alert;
+  translatedAlert: Alert
+  diffs = new Array<DiffElement>()
+}
+
+export class DiffElement {
+  property: string
+  from: string
+  to: string
+}
 
 export class AlertsRoot {
   status: number;
@@ -41,7 +56,7 @@ export class AreaTree {
 export class Alert {
   taskId: number;
   taskName: string;
-  taskNote: string;
+  taskNote?: string;
   scEffectedCustomers: string;
   disconnectionArea: string;
   regionName: string;
@@ -66,9 +81,30 @@ export class Alert {
   }
 
   static async from(from: Alert): Promise<Alert> {
-    const result = Object.assign(new Alert(), from)
+    const result = Object.assign(new Alert(), {...from})
     await result.init()
     return result
+  }
+
+  static async fromOriginal(original: HydratedDocument<IOriginalAlert>, init = true): Promise<Alert> {
+    let res = new Alert();
+
+    res.taskId = original.taskId
+    res.taskName = original.taskName
+    res.taskNote = original.taskNote
+    res.scEffectedCustomers = original.scEffectedCustomers
+    res.disconnectionArea = original.disconnectionArea
+    res.regionName = original.regionName
+    res.scName = original.scName
+    res.disconnectionDate = original.disconnectionDate
+    res.reconnectionDate = original.reconnectionDate
+    res.dif = original.dif
+    res.taskType = original.taskType
+
+    if (init)
+      await res.init()
+
+    return res
   }
 
   private static timeFormatOptions: Intl.DateTimeFormatOptions = {hour: "numeric", minute: "2-digit", hour12: false};
@@ -101,9 +137,8 @@ export class Alert {
   }
 
   public async formatSingleAlert(): Promise<string> {
-    const taskNote = await Translator.getTranslation(this.taskNote)
+    const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) : ""
     const taskName = await Translator.getTranslation(this.taskName)
-    //const taskCaption = await Translator.getTranslation(this.scName)
     const regionName = await Translator.getTranslation(this.regionName)
     const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
     const areas = await this.formatAreas(this.areaTree);
@@ -132,7 +167,7 @@ export class Alert {
     return text
   }
 
-  private async init(): Promise<void> {
+  async init(): Promise<void> {
     this.startDate = new Date(this.disconnectionDate)
     this.endDate = new Date(this.reconnectionDate)
 
@@ -140,13 +175,22 @@ export class Alert {
 
     const areas = this.disconnectionArea.split(',')
 
-    let cityTranslate = citiesMap.get(this.scName)
-    if (!cityTranslate) {
-      cityTranslate = await Translator.getTranslation(this.scName)
-      newCitiesMap.set(this.scName, cityTranslate)
+    const scNames = this.scName.split("/")
+
+    const scNamesTranslated = new Array<string>()
+
+    //Merged alerts have several cities in format "City A / City B / City C"
+    for (let n of scNames) {
+      const nTrimmed = n.trim();
+      let nTranslate = citiesMap.get(nTrimmed)
+      if (!nTranslate) {
+        nTranslate = await Translator.getTranslation(nTrimmed)
+        newCitiesMap.set(nTrimmed, nTranslate)
+      }
+      scNamesTranslated.push(nTranslate)
     }
 
-    this.scName = cityTranslate
+    this.scName = scNamesTranslated.join(" / ") //TODO add cities to Alert
 
     for (let area of areas) {
       const sub = area.split("/")
@@ -171,6 +215,38 @@ export class Alert {
         }
       }
     }
+  }
+
+  /**
+   * Get difference between two alerts
+   * @param oldAlert
+   * @param newAlert
+   */
+  static getDiff(oldAlert: Alert, newAlert: Alert): Array<DiffElement> {
+    const diff = new Array<DiffElement>()
+
+    type ObjectKey = keyof Alert;
+
+    const getLine = (propName: ObjectKey): void => {
+      if (oldAlert[propName] !== newAlert[propName]) {
+        diff.push({property: propName, from: `${oldAlert[propName]}`, to: `${newAlert[propName]}`})
+      }
+    }
+
+    getLine("scName");
+    getLine("disconnectionArea");
+    getLine("disconnectionDate");
+    getLine("reconnectionDate");
+    getLine("taskNote");
+    getLine("taskType");
+    getLine("regionName");
+
+    //dif and scEffectedCustomers are constantly changing and are useless for now
+    //(getLine("dif"));
+    //(getLine("scEffectedCustomers"));
+
+
+    return diff;
   }
 }
 

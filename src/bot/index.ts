@@ -1,30 +1,77 @@
 import dotenv from 'dotenv';
 import {RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
-import {Alert} from "../batumiElectricity/types";
+import {Alert, AlertDiff} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
+import * as mongoose from "mongoose";
+import cron from 'node-cron'
 
 dotenv.config();
 
-const app: Express = express();
 const port = process.env.PORT || 8000;
-
-app.get('/', (req: Request, res: Response) => {
-  res.send('Georgia Utilities Alert');
-});
-
-app.listen(port, () => {
-});
-
+const ownerId = process.env.TELEGRAM_OWNER_ID;
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
 if (!token) throw new Error("No telegram token in .env")
 
-const telegram = Telegram.fromToken(token)
-const batumi = new BatumiElectricityParser();
-batumi.fetchAlerts().then(() => console.log("Initial alerts fetch complete"))
+let telegram: Telegram = Telegram.fromToken(token)
+let batumi: BatumiElectricityParser;
+
+async function sendNewAlertsToOwner(newAlerts: Array<AlertDiff>) {
+  if (newAlerts.length == 0) {
+    await sendToOwner("No new alerts")
+  } else {
+    for (let newAlert of newAlerts) {
+      let text: string
+      if (newAlert.oldAlert == null) {
+        text = `New alert! ${newAlert.translatedAlert.scName} /alert_${newAlert.translatedAlert.taskId}`;
+      } else if (newAlert.diffs.length > 0) {
+        const diffPrint = JSON.stringify(newAlert.diffs)
+        text = `Changed alert ${newAlert.translatedAlert.scName} /alert_${newAlert.translatedAlert.taskId}\n${diffPrint}`
+      } else {
+        //something is wrong
+        text = `¯\\_(ツ)_/¯ /alert_${newAlert.translatedAlert.taskId}`;
+      }
+      await sendToOwner(text)
+    }
+  }
+}
+
+const run = async () => {
+  const mongoConnectString = process.env.MONGODB_CONNECT_STRING;
+
+  if (!mongoConnectString) {
+    throw new Error("MONGODB_CONNECT_STRING env variable is missing")
+  }
+
+  await mongoose.connect(mongoConnectString)
+
+  const app: Express = express();
+
+  app.get('/', (req: Request, res: Response) => {
+    res.send('Georgia Utilities Alert');
+  });
+
+  app.listen(port, () => {
+  });
+
+  batumi = new BatumiElectricityParser();
+  let newAlerts: Array<AlertDiff> = await batumi.fetchAlerts(true)
+
+  await sendNewAlertsToOwner(newAlerts);
+
+  telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
+
+  //run every 10 minutes
+  cron.schedule("*/10 * * * *", async () => {
+    newAlerts = await batumi.fetchAlerts(true)
+
+    await sendNewAlertsToOwner(newAlerts);
+  })
+}
+
 
 async function getAlertsForDate(date: Date, caption: string, cityGe: string | null = null) {
   const alerts = await batumi.getAlertsFromDay(date)
@@ -64,6 +111,10 @@ async function sendUpcoming(context: MessageContext, cityCommand: string) {
   await context.sendChatAction("typing")
   const cities = await batumi.getCitiesList();
   const city = cities.revGet(cityCommand)
+  if (!city) {
+    await context.send(`No alerts for ${cityCommand}`)
+    return
+  }
   const upcomingDays: Array<Date> = await batumi.getUpcomingDays(city)
   if (upcomingDays.length == 0) {
     await context.send(`No upcoming alerts for ${cityCommand}`)
@@ -76,6 +127,11 @@ async function sendUpcoming(context: MessageContext, cityCommand: string) {
     await context.send(s)
     await new Promise(r => setTimeout(r, 300))
   }
+}
+
+async function sendToOwner(text: string) {
+  if (!ownerId) return
+  await telegram.api.sendMessage({chat_id: ownerId, text: text})
 }
 
 telegram.updates.on(UpdateType.Message, async context => {
@@ -169,8 +225,8 @@ telegram.updates.on(UpdateType.Message, async context => {
       }
 
       if (text.startsWith("/upcoming_")) {
-        const cityEn = text.replace("/upcoming_", "")
-        await sendUpcoming(context, cityEn);
+        const cityCommand = text.replace("/upcoming_", "")
+        await sendUpcoming(context, cityCommand);
         return
       }
     } else {
@@ -181,7 +237,7 @@ telegram.updates.on(UpdateType.Message, async context => {
   }
 })
 
-//// Set commands
+// Set commands
 const commands = [
   {command: "today", description: "All today warnings"},
   {command: "tomorrow", description: "All tomorrow warnings"},
@@ -193,4 +249,4 @@ telegram.api.setMyCommands({
   commands
 }).then(value => console.log("Set my commands", value, commands))
 
-telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
+run().then()

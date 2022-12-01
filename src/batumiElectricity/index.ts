@@ -1,6 +1,8 @@
 import axios from "axios";
-import {Alert, AlertsRoot, CitiesRoot, City} from "./types";
+import {Alert, AlertDiff, AlertsRoot} from "./types";
 import {TwoWayMap} from "../common/twoWayMap";
+import {IOriginalAlert, OriginalAlert} from "../mongo/originalAlert";
+import {HydratedDocument} from "mongoose";
 
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
@@ -10,7 +12,7 @@ export class BatumiElectricityParser {
   private alertsLastFetch: Date | null = null
   private alertsFetching = false
 
-  private alertsFetchIntervalMs = 1000;
+  private alertsFetchIntervalMs = 15 * 60 * 1000;
 
   /**
    * Key - normal ENG city name, value - modified for commands
@@ -42,15 +44,16 @@ export class BatumiElectricityParser {
     return todayAlerts.sort((x, y) => x.startDate.getTime() - y.startDate.getTime() || x.endDate.getTime() - y.endDate.getTime())
   }
 
-  public async fetchAlerts() {
+  public async fetchAlerts(force: boolean = false): Promise<Array<AlertDiff>> {
+    const newAlerts = new Array<AlertDiff>()
     if (this.alertsFetching) {
       while (this.alertsFetching) {
         await new Promise(r => setTimeout(r, 300))
       }
-
-      return
+      return newAlerts
     }
-    if (this.alertsLastFetch === null || Date.now() - this.alertsLastFetch.getTime() > this.alertsFetchIntervalMs) {
+    if (force || this.alertsLastFetch === null || Date.now() - this.alertsLastFetch.getTime() > this.alertsFetchIntervalMs) {
+      console.time("fetchAlert")
       this.alertsFetching = true
       this.alertsById.clear()
       this.alertsByDate.clear()
@@ -59,23 +62,128 @@ export class BatumiElectricityParser {
       const json = await axios.get<AlertsRoot>(this.alertsUrl)
       const {status, data} = json.data
 
-      for (let i = 0; i < data.length; i++) {
-        const alertData = data[i]
+      /**
+       * Get list of duplicated taskId's
+       * @param arr
+       */
+      const getDuplicates = (arr: Array<Alert>): Array<number> => {
+        const set = new Set<number>();
+        const result = new Set<number>();
+        for (let alert of arr) {
+          let size = set.size
+          set.add(alert.taskId)
+          if (size == set.size) {
+            result.add(alert.taskId)
+          }
+        }
+        return Array.from(result)
+      }
+
+      // Get duplicated taskId's
+      const duplicateElements = getDuplicates(data);
+
+      // Get all non-duplicated tasks
+      const filteredData = data.filter(x => !duplicateElements.includes(x.taskId))
+
+      /**
+       * Get list of unique values
+       * @param arr
+       */
+      const getUnique = <T>(arr: Array<T>): Array<T> => {
+        const s = new Set<T>()
+        arr.forEach(x => s.add(x))
+        return Array.from(s)
+      }
+
+      /**
+       * Get list of unique values of specific property
+       * @param arr
+       * @param prop
+       */
+      const getUniqueProp = <T, P>(arr: Array<T>, prop: keyof T): Array<P> => {
+        const s = new Set<P>()
+        return getUnique(arr.filter(x => typeof x !== 'undefined').map(x => x[prop] as P))
+      }
+
+      /**
+       * Merge several Alerts
+       * @param alerts
+       */
+      const mergeObjects = (alerts: Array<Alert>): Alert => {
+        const result = new Alert()
+
+        result.taskId = alerts[0].taskId
+        result.taskType = alerts[0].taskType
+        result.scName = getUniqueProp<Alert, string>(alerts, "scName").join(" / ")
+        result.regionName = getUniqueProp<Alert, string>(alerts, "regionName").join(", ")
+        result.taskNote = getUniqueProp<Alert, string>(alerts, "taskNote").join("\n")
+        result.disconnectionDate = alerts[0].disconnectionDate
+        result.reconnectionDate = alerts[0].reconnectionDate
+        result.disconnectionArea = getUniqueProp<Alert, string>(alerts, "disconnectionArea").join(",")
+        result.taskName = getUniqueProp<Alert, string>(alerts, "taskName").join(". ")
+
+        return result
+      }
+
+      //Merge all duplicated tasks and add to filtered list
+      for (let duplicateTaskId of duplicateElements) {
+        const elements = data.filter(x => x.taskId == duplicateTaskId)
+        const merged = mergeObjects(elements)
+        filteredData.push(merged)
+      }
+
+      for (let i = 0; i < filteredData.length; i++) {
+        let diff = new AlertDiff();
+        const alertData = filteredData[i]
+
+        let original: HydratedDocument<IOriginalAlert> | null
+          = await OriginalAlert.findOne({taskId: alertData.taskId}).exec()
+        if (!original) {
+          //this is new alert
+          diff.newAlert = alertData
+          original = new OriginalAlert({...alertData})
+          await original.save()
+        } else {
+          //alert already exists...
+          diff.oldAlert = await Alert.fromOriginal(original, false)
+          diff.diffs = Alert.getDiff(diff.oldAlert, alertData)
+          if (diff.diffs.length > 0) {
+            //...and there are some changes
+            console.log("Diff", diff.diffs)
+            diff.newAlert = alertData
+            console.log("Change from", original)
+            await original.update({...alertData})
+            console.log("Change to", original)
+          }
+
+          await diff.oldAlert.init()
+        }
 
         const alert = await Alert.from(alertData);
 
         this.alertsById.set(alert.taskId, alert)
+
+        //add to alertsByDate
         const day = alert.startDate.toDateString()
         if (!this.alertsByDate.has(day)) {
           this.alertsByDate.set(day, new Array<Alert>())
         }
         this.alertsByDate.get(day)?.push(alert)
+
+        //push to newAlerts
+        if (!diff.oldAlert || diff.diffs.length > 0) {
+          diff.translatedAlert = alert
+          newAlerts.push(diff)
+        }
       }
 
       this.alertsFetching = false
 
       Alert.printTranslations()
+      console.timeEnd("fetchAlert")
     }
+
+    return newAlerts
   }
 
   async getUpcomingDays(cityGe: string | null = null): Promise<Array<Date>> {
@@ -96,8 +204,8 @@ export class BatumiElectricityParser {
     return dates.sort((x, y) => x.getTime() - y.getTime())
   }
 
-  /*
-  @return Two way map, key - geo city, value - eng city
+  /**
+   * @return Two Way Map. Key - normal ENG city name, value - modified for commands
    */
   async getCitiesList(): Promise<TwoWayMap<string, string>> {
     await this.fetchAlerts()
@@ -117,9 +225,7 @@ export class BatumiElectricityParser {
     }
 
     for (let city of cities) {
-      //const eng = await Translator.getTranslation(city)
-      //this.citiesTwoWayMap.add(city, eng)
-      const commandCity = city.replace(/[- /]/g,'_');
+      const commandCity = city.replace(/[- /]/g, '_');
       this.citiesTwoWayMap.add(city, commandCity)
     }
 
