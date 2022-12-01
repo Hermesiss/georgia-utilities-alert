@@ -12,7 +12,11 @@ export class BatumiElectricityParser {
 
   private alertsFetchIntervalMs = 1000;
 
-  private geoEngCities = new TwoWayMap<string, string>()
+  /**
+   * Key - normal ENG city name, value - modified for commands
+   * @private
+   */
+  private citiesTwoWayMap = new TwoWayMap<string, string>()
 
   public async getAlertFromId(id: number): Promise<Alert | undefined> {
     await this.fetchAlerts()
@@ -97,7 +101,7 @@ export class BatumiElectricityParser {
    */
   async getCitiesList(): Promise<TwoWayMap<string, string>> {
     await this.fetchAlerts()
-    this.geoEngCities.clear()
+    this.citiesTwoWayMap.clear()
     const today = new Date(new Date().toDateString())
     const cities = new Set<string>()
     for (let [dateString, alerts] of this.alertsByDate) {
@@ -114,10 +118,11 @@ export class BatumiElectricityParser {
 
     for (let city of cities) {
       //const eng = await Translator.getTranslation(city)
-      //this.geoEngCities.add(city, eng)
-      this.geoEngCities.add(city, city)
+      //this.citiesTwoWayMap.add(city, eng)
+      const commandCity = city.replace(/[- /]/g,'_');
+      this.citiesTwoWayMap.add(city, commandCity)
     }
 
-    return this.geoEngCities
+    return this.citiesTwoWayMap
   }
 }

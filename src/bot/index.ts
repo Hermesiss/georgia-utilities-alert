@@ -60,19 +60,19 @@ async function getAlertsForDate(date: Date, caption: string, cityGe: string | nu
   return text
 }
 
-async function sendUpcoming(context: MessageContext, cityEn: string) {
+async function sendUpcoming(context: MessageContext, cityCommand: string) {
   await context.sendChatAction("typing")
   const cities = await batumi.getCitiesList();
-  const cityGe = cities.revGet(cityEn)
-  const upcomingDays: Array<Date> = await batumi.getUpcomingDays(cityGe)
+  const city = cities.revGet(cityCommand)
+  const upcomingDays: Array<Date> = await batumi.getUpcomingDays(city)
   if (upcomingDays.length == 0) {
-    await context.send(`No upcoming alerts for ${cityEn}`)
+    await context.send(`No upcoming alerts for ${cityCommand}`)
     return
   }
 
   for (let date of upcomingDays) {
     const caption = `Alerts for ${date.toDateString()}`
-    const s = await getAlertsForDate(date, caption, cityGe);
+    const s = await getAlertsForDate(date, caption, city);
     await context.send(s)
     await new Promise(r => setTimeout(r, 300))
   }
@@ -133,7 +133,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           let text = "Cities with upcoming alerts:\n"
           const citiesSorted = Array.from(cities.values()).sort();
           for (let city of citiesSorted) {
-            text += `${city} /upcoming_${city} \n`
+            text += `${cities.revGet(city)} /upcoming_${city} \n`
           }
 
           let kb: TelegramKeyboardButton[][] = []
