@@ -57,13 +57,13 @@ export class Alert {
   taskId: number;
   taskName: string;
   taskNote?: string;
-  scEffectedCustomers: string;
+  scEffectedCustomers?: string;
   disconnectionArea: string;
   regionName: string;
   scName: string;
   disconnectionDate: string;
   reconnectionDate: string;
-  dif: string;
+  dif?: string;
   taskType: string;
 
   startDate: Date;
