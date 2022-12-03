@@ -9,6 +9,7 @@ export class BatumiElectricityParser {
 
   private alertsById = new Map<number, Alert>()
   private alertsByDate = new Map<string, Array<Alert>>()
+  private alertsByCity = new Map<string, Array<Alert>>()
   private alertsLastFetch: Date | null = null
   private alertsFetching = false
 
@@ -44,6 +45,62 @@ export class BatumiElectricityParser {
     return todayAlerts.sort((x, y) => x.startDate.getTime() - y.startDate.getTime() || x.endDate.getTime() - y.endDate.getTime())
   }
 
+  /**
+   * Get list of duplicated taskId's
+   * @param arr
+   */
+  private static getDuplicates(arr: Array<Alert>): Array<number> {
+    const set = new Set<number>();
+    const result = new Set<number>();
+    for (let alert of arr) {
+      let size = set.size
+      set.add(alert.taskId)
+      if (size == set.size) {
+        result.add(alert.taskId)
+      }
+    }
+    return Array.from(result)
+  }
+
+  /**
+   * Get list of unique values
+   * @param arr
+   */
+  private static getUnique<T>(arr: Array<T>): Array<T> {
+    const s = new Set<T>()
+    arr.forEach(x => s.add(x))
+    return Array.from(s)
+  }
+
+  /**
+   * Get list of unique values of specific property
+   * @param arr
+   * @param prop
+   */
+  private static getUniqueProp<T, P>(arr: Array<T>, prop: keyof T): Array<P> {
+    return this.getUnique(arr.filter(x => typeof x !== 'undefined').map(x => x[prop] as P))
+  }
+
+  /**
+   * Merge several Alerts
+   * @param alerts
+   */
+  private static mergeObjects(alerts: Array<Alert>): Alert {
+    const result = new Alert()
+
+    result.taskId = alerts[0].taskId
+    result.taskType = alerts[0].taskType
+    result.scName = this.getUniqueProp<Alert, string>(alerts, "scName").join(" / ")
+    result.regionName = this.getUniqueProp<Alert, string>(alerts, "regionName").join(", ")
+    result.taskNote = this.getUniqueProp<Alert, string>(alerts, "taskNote").join("\n")
+    result.disconnectionDate = alerts[0].disconnectionDate
+    result.reconnectionDate = alerts[0].reconnectionDate
+    result.disconnectionArea = this.getUniqueProp<Alert, string>(alerts, "disconnectionArea").join(",")
+    result.taskName = this.getUniqueProp<Alert, string>(alerts, "taskName").join(". ")
+
+    return result
+  }
+
   public async fetchAlerts(force: boolean = false): Promise<Array<AlertDiff>> {
     const newAlerts = new Array<AlertDiff>()
     if (this.alertsFetching) {
@@ -57,84 +114,32 @@ export class BatumiElectricityParser {
       this.alertsFetching = true
       this.alertsById.clear()
       this.alertsByDate.clear()
+      this.alertsByCity.clear()
       this.alertsLastFetch = new Date()
 
       const json = await axios.get<AlertsRoot>(this.alertsUrl)
       const {status, data} = json.data
 
-      /**
-       * Get list of duplicated taskId's
-       * @param arr
-       */
-      const getDuplicates = (arr: Array<Alert>): Array<number> => {
-        const set = new Set<number>();
-        const result = new Set<number>();
-        for (let alert of arr) {
-          let size = set.size
-          set.add(alert.taskId)
-          if (size == set.size) {
-            result.add(alert.taskId)
-          }
-        }
-        return Array.from(result)
-      }
-
       // Get duplicated taskId's
-      const duplicateElements = getDuplicates(data);
+      const duplicateElements = BatumiElectricityParser.getDuplicates(data);
 
       // Get all non-duplicated tasks
       const filteredData = data.filter(x => !duplicateElements.includes(x.taskId))
 
-      /**
-       * Get list of unique values
-       * @param arr
-       */
-      const getUnique = <T>(arr: Array<T>): Array<T> => {
-        const s = new Set<T>()
-        arr.forEach(x => s.add(x))
-        return Array.from(s)
-      }
-
-      /**
-       * Get list of unique values of specific property
-       * @param arr
-       * @param prop
-       */
-      const getUniqueProp = <T, P>(arr: Array<T>, prop: keyof T): Array<P> => {
-        const s = new Set<P>()
-        return getUnique(arr.filter(x => typeof x !== 'undefined').map(x => x[prop] as P))
-      }
-
-      /**
-       * Merge several Alerts
-       * @param alerts
-       */
-      const mergeObjects = (alerts: Array<Alert>): Alert => {
-        const result = new Alert()
-
-        result.taskId = alerts[0].taskId
-        result.taskType = alerts[0].taskType
-        result.scName = getUniqueProp<Alert, string>(alerts, "scName").join(" / ")
-        result.regionName = getUniqueProp<Alert, string>(alerts, "regionName").join(", ")
-        result.taskNote = getUniqueProp<Alert, string>(alerts, "taskNote").join("\n")
-        result.disconnectionDate = alerts[0].disconnectionDate
-        result.reconnectionDate = alerts[0].reconnectionDate
-        result.disconnectionArea = getUniqueProp<Alert, string>(alerts, "disconnectionArea").join(",")
-        result.taskName = getUniqueProp<Alert, string>(alerts, "taskName").join(". ")
-
-        return result
-      }
-
       //Merge all duplicated tasks and add to filtered list
       for (let duplicateTaskId of duplicateElements) {
         const elements = data.filter(x => x.taskId == duplicateTaskId)
-        const merged = mergeObjects(elements)
+        const merged = BatumiElectricityParser.mergeObjects(elements)
         filteredData.push(merged)
       }
-
+      const fetchAlertsText = "Fetch alerts: ";
+      process.stdout.write(fetchAlertsText + "_".repeat(filteredData.length));
+      process.stdout.cursorTo(fetchAlertsText.length);
       for (let i = 0; i < filteredData.length; i++) {
         let diff = new AlertDiff();
         const alertData = filteredData[i]
+
+        process.stdout.write("*");
 
         let original: HydratedDocument<IOriginalAlert> | null
           = await OriginalAlert.findOne({taskId: alertData.taskId}).exec()
@@ -149,11 +154,8 @@ export class BatumiElectricityParser {
           diff.diffs = Alert.getDiff(diff.oldAlert, alertData)
           if (diff.diffs.length > 0) {
             //...and there are some changes
-            console.log("Diff", diff.diffs)
             diff.newAlert = alertData
-            console.log("Change from", original)
             await original.update({...alertData})
-            console.log("Change to", original)
           }
 
           await diff.oldAlert.init()
@@ -176,7 +178,7 @@ export class BatumiElectricityParser {
           newAlerts.push(diff)
         }
       }
-
+      process.stdout.write("\n");
       this.alertsFetching = false
 
       Alert.printTranslations()
@@ -186,14 +188,17 @@ export class BatumiElectricityParser {
     return newAlerts
   }
 
-  async getUpcomingDays(cityGe: string | null = null): Promise<Array<Date>> {
+  async getUpcomingDays(cityName: string | null = null): Promise<Array<Date>> {
     await this.fetchAlerts()
+    console.log("Search alerts for city", cityName)
     const today = new Date(new Date().toDateString())
     const dates = new Array<Date>()
     for (let [dateString, alerts] of this.alertsByDate) {
       const date = new Date(dateString)
-      if (cityGe !== null) {
-        alerts = alerts.filter(x => x.scName === cityGe)
+
+      if (cityName !== null) {
+        //Show only alerts for selected city
+        alerts = alerts.filter(x => x.citiesList.has(cityName))
       }
 
       if (alerts.length == 0) continue
@@ -217,9 +222,17 @@ export class BatumiElectricityParser {
 
       if (date.getTime() >= today.getTime()) {
         for (let alert of alerts) {
-          if (!cities.has(alert.scName)) {
-            cities.add(alert.scName)
-          }
+          alert.citiesList.forEach(value => {
+            cities.add(value);
+
+            let arr = this.alertsByCity.get(value)
+            if (!arr) {
+              arr = new Array<Alert>()
+              this.alertsByCity.set(value, arr)
+            }
+
+            arr.push(alert)
+          })
         }
       }
     }
@@ -230,5 +243,9 @@ export class BatumiElectricityParser {
     }
 
     return this.citiesTwoWayMap
+  }
+
+  getAlertCount(cityName: string): number | undefined{
+    return this.alertsByCity.get(cityName)?.length
   }
 }

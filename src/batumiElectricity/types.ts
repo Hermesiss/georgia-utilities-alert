@@ -71,6 +71,7 @@ export class Alert {
   planType: PlanType
 
   areaTree: AreaTree = new AreaTree("Root")
+  citiesList = new Set<string>()
 
   static printTranslations() {
     if (newDistrictsMap.size > 0)
@@ -138,6 +139,7 @@ export class Alert {
 
   public async formatSingleAlert(): Promise<string> {
     const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) : ""
+    const cities = Array.from(this.citiesList).join(", ");
     const taskName = await Translator.getTranslation(this.taskName)
     const regionName = await Translator.getTranslation(this.regionName)
     const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
@@ -147,6 +149,7 @@ export class Alert {
       `*Start:* ${this.disconnectionDate}\n\n` +
       `*End:* ${this.reconnectionDate}\n\n` +
       `*Region:* ${regionName}\n\n` +
+      `*Cities:* ${cities}\n\n` +
       `*Area:*\n${areas}\n` +
       taskNote
   }
@@ -175,36 +178,28 @@ export class Alert {
 
     const areas = this.disconnectionArea.split(',')
 
-    const scNames = this.scName.split("/")
-
-    const scNamesTranslated = new Array<string>()
-
-    //Merged alerts have several cities in format "City A / City B / City C"
-    for (let n of scNames) {
-      const nTrimmed = n.trim();
-      let nTranslate = citiesMap.get(nTrimmed)
-      if (!nTranslate) {
-        nTranslate = await Translator.getTranslation(nTrimmed)
-        newCitiesMap.set(nTrimmed, nTranslate)
-      }
-      scNamesTranslated.push(nTranslate)
-    }
-
-    this.scName = scNamesTranslated.join(" / ") //TODO add cities to Alert
+    const citiesArr = Array.from(citiesMap)
 
     for (let area of areas) {
       const sub = area.split("/")
       let tree = this.areaTree
       for (let i = 0; i < sub.length; i++) {
         let item = sub[i].trim()
-        const translated = citiesMap.get(item) || districtsMap.get(item)
+        let translated = citiesMap.get(item)
         if (translated) {
-          item = translated
+          if (i == 0 && citiesArr.some(x => item.includes(x[0]))) {
+            this.citiesList.add(translated)
+          }
         } else {
-          const translation = await Translator.getTranslation(item);
-          newDistrictsMap.set(item, translation)
-          item = translation
+          translated = districtsMap.get(item)
         }
+
+        if (!translated) {
+          translated = await Translator.getTranslation(item);
+          newDistrictsMap.set(item, translated)
+        }
+
+        item = translated
         const existingTree = tree.get(item)
         if (!existingTree) {
           const childTree = new AreaTree(item)
@@ -215,6 +210,22 @@ export class Alert {
         }
       }
     }
+
+    const scNames = this.scName.split("/")
+
+    //Merged alerts have several cities in format "City A / City B / City C"
+    for (let n of scNames) {
+      const nTrimmed = n.trim();
+      let nTranslate = citiesMap.get(nTrimmed)
+      if (!nTranslate) {
+        nTranslate = await Translator.getTranslation(nTrimmed)
+        newCitiesMap.set(nTrimmed, nTranslate)
+      }
+      //scNamesTranslated.push(nTranslate)
+      this.citiesList.add(nTranslate)
+    }
+
+    this.scName = Array.from(this.citiesList).join(" / ")
   }
 
   /**

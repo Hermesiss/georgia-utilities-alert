@@ -10,23 +10,62 @@ import cron from 'node-cron'
 
 dotenv.config();
 
-const port = process.env.PORT || 8000;
-const ownerId = process.env.TELEGRAM_OWNER_ID;
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const envError = (envName: string) => {
+  throw Error(`Missing ${envName} env value`);
+}
 
-if (!token) throw new Error("No telegram token in .env")
+const port = process.env.PORT || 8000;
+const ownerId = process.env.TELEGRAM_OWNER_ID ?? envError("TELEGRAM_OWNER_ID")
+const token = process.env.TELEGRAM_BOT_TOKEN ?? envError("TELEGRAM_BOT_TOKEN")
 
 let telegram: Telegram = Telegram.fromToken(token)
 let batumi: BatumiElectricityParser;
 
-async function sendNewAlertsToOwner(newAlerts: Array<AlertDiff>) {
+const channelMain = process.env.TELEGRAM_CHANNEL_MAIN ?? envError("TELEGRAM_CHANNEL_MAIN")
+const channelBatumi = process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI")
+const channelKutaisi = process.env.TELEGRAM_CHANNEL_KUTAISI ?? envError("TELEGRAM_CHANNEL_KUTAISI")
+const channelKobuleti = process.env.TELEGRAM_CHANNEL_KOBULETI ?? envError("TELEGRAM_CHANNEL_KOBULETI")
+
+function getChannelsForAlert(alert: Alert): Set<string> {
+  //main channel and local channels for alert
+  const s = new Set<string>([channelMain])
+  for (let string of alert.citiesList) {
+    switch (string) {
+      case "Batumi":
+        s.add(channelBatumi)
+        break;
+      case "Kutaisi":
+        s.add(channelKutaisi)
+        break;
+      case "Kobuleti":
+        s.add(channelKobuleti)
+        break;
+    }
+  }
+  return s;
+}
+
+async function sendAlertToChannels(alert: Alert): Promise<void> {
+  if (process.env.TELEGRAM_DISABLE_CHANNELS == "true") return
+
+  const channels = getChannelsForAlert(alert)
+  const text = await alert.formatSingleAlert()
+
+  for (let chat_id of channels) {
+    await telegram.api.sendMessage({chat_id, text, parse_mode: 'markdown'})
+    await new Promise(r => setTimeout(r, 1500))
+  }
+}
+
+async function fetchAndSendNewAlerts() {
+  const newAlerts = await batumi.fetchAlerts(true)
   if (newAlerts.length == 0) {
     await sendToOwner("No new alerts")
   } else {
     for (let newAlert of newAlerts) {
-      let text: string
+      let text: string | null = null
       if (newAlert.oldAlert == null) {
-        text = `New alert! ${newAlert.translatedAlert.scName} /alert_${newAlert.translatedAlert.taskId}`;
+        await sendAlertToChannels(newAlert.translatedAlert)
       } else if (newAlert.diffs.length > 0) {
         const diffPrint = JSON.stringify(newAlert.diffs)
         text = `Changed alert ${newAlert.translatedAlert.scName} /alert_${newAlert.translatedAlert.taskId}\n${diffPrint}`
@@ -34,7 +73,11 @@ async function sendNewAlertsToOwner(newAlerts: Array<AlertDiff>) {
         //something is wrong
         text = `¯\\_(ツ)_/¯ /alert_${newAlert.translatedAlert.taskId}`;
       }
-      await sendToOwner(text)
+
+      if (text) {
+        await sendToOwner(text)
+        await new Promise(r => setTimeout(r, 1000))
+      }
     }
   }
 }
@@ -58,34 +101,35 @@ const run = async () => {
   });
 
   batumi = new BatumiElectricityParser();
-  let newAlerts: Array<AlertDiff> = await batumi.fetchAlerts(true)
 
-  await sendNewAlertsToOwner(newAlerts);
+  await fetchAndSendNewAlerts();
 
   telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
 
   //run every 10 minutes
   cron.schedule("*/10 * * * *", async () => {
-    newAlerts = await batumi.fetchAlerts(true)
-
-    await sendNewAlertsToOwner(newAlerts);
+    await fetchAndSendNewAlerts();
   })
 }
 
 
-async function getAlertsForDate(date: Date, caption: string, cityGe: string | null = null) {
+async function getAlertsForDate(date: Date, caption: string, cityName: string | null = null): Promise<string> {
   const alerts = await batumi.getAlertsFromDay(date)
   let regions = new Map<string, Array<Alert>>()
   for (let alert of alerts) {
-    if (cityGe && alert.scName !== cityGe) continue
+    //Show only selected city if specified
+    if (cityName && !alert.citiesList.has(cityName)) continue
 
-    const region = alert.scName
-    if (!regions.has(region)) {
-      regions.set(region, new Array<Alert>())
+    for (let region of alert.citiesList) {
+      //Add for only selected city if specified
+      if (cityName && region != cityName) continue
+      if (!regions.has(region)) {
+        regions.set(region, new Array<Alert>())
+      }
+
+      const regionArr = regions.get(region)
+      regionArr?.push(alert)
     }
-
-    const regionArr = regions.get(region)
-    regionArr?.push(alert)
   }
 
   regions = new Map([...regions].sort((a, b) => a[0].localeCompare(b[0])))
@@ -96,7 +140,8 @@ async function getAlertsForDate(date: Date, caption: string, cityGe: string | nu
     text += "No alerts"
   } else {
     for (let [region, alerts] of regions) {
-      text += `${region}\n`
+      if (!cityName) //Don't show city name if it was specified
+        text += `${region}\n`
       for (let alert of alerts) {
         text += `${alert.getPlanEmoji()} ${alert.formatStartTime()} - ${alert.formatEndTime()} /alert_${alert.taskId}\n`
       }
@@ -133,6 +178,10 @@ async function sendToOwner(text: string) {
   if (!ownerId) return
   await telegram.api.sendMessage({chat_id: ownerId, text: text})
 }
+
+telegram.updates.on(UpdateType.ChannelPost, async context => {
+  console.log(`Channel post from ${context.from?.id} ${context.from?.username}. Chat id: ${context.chatId}`)
+})
 
 telegram.updates.on(UpdateType.Message, async context => {
   const text = context.text;
@@ -189,7 +238,9 @@ telegram.updates.on(UpdateType.Message, async context => {
           let text = "Cities with upcoming alerts:\n"
           const citiesSorted = Array.from(cities.values()).sort();
           for (let city of citiesSorted) {
-            text += `${cities.revGet(city)} /upcoming_${city} \n`
+            const cityName = cities.revGet(city);
+            if (!cityName) continue
+            text += `${cityName}:  ${batumi.getAlertCount(cityName)}    /upcoming_${city} \n`
           }
 
           let kb: TelegramKeyboardButton[][] = []
