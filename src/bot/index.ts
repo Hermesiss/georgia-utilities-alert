@@ -179,10 +179,6 @@ async function sendToOwner(text: string) {
   await telegram.api.sendMessage({chat_id: ownerId, text: text})
 }
 
-telegram.updates.on(UpdateType.ChannelPost, async context => {
-  console.log(`Channel post from ${context.from?.id} ${context.from?.username}. Chat id: ${context.chatId}`)
-})
-
 telegram.updates.on(UpdateType.Message, async context => {
   const text = context.text;
 
