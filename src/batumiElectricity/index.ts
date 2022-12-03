@@ -3,6 +3,7 @@ import {Alert, AlertDiff, AlertsRoot} from "./types";
 import {TwoWayMap} from "../common/twoWayMap";
 import {IOriginalAlert, OriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
+import * as readline from 'readline'
 
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
@@ -134,7 +135,7 @@ export class BatumiElectricityParser {
       }
       const fetchAlertsText = "Fetch alerts: ";
       process.stdout.write(fetchAlertsText + "_".repeat(filteredData.length));
-      process.stdout.cursorTo(fetchAlertsText.length);
+      readline.cursorTo(process.stdout, fetchAlertsText.length);
       for (let i = 0; i < filteredData.length; i++) {
         let diff = new AlertDiff();
         const alertData = filteredData[i]
@@ -245,7 +246,7 @@ export class BatumiElectricityParser {
     return this.citiesTwoWayMap
   }
 
-  getAlertCount(cityName: string): number | undefined{
+  getAlertCount(cityName: string): number | undefined {
     return this.alertsByCity.get(cityName)?.length
   }
 }
