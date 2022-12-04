@@ -151,7 +151,7 @@ export class Alert {
       `*Region:* ${regionName}\n\n` +
       `*Cities:* ${cities}\n\n` +
       `*Area:*\n${areas}\n` +
-      taskNote
+      `${this.taskId} ` + taskNote
   }
 
   public async formatAreas(areaTree: AreaTree, level = 0): Promise<string> {

@@ -13,3 +13,7 @@ List all tomorrow's alerts
 `/upcoming`
 
 All upcoming alerts grouped by day
+
+`/cities`
+
+All cities with upcoming alerts
