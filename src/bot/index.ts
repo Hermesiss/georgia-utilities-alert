@@ -8,6 +8,7 @@ import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces
 import * as mongoose from "mongoose";
 import cron from 'node-cron'
 import dayjs, {Dayjs} from "dayjs";
+import {IPosts, OriginalAlert} from "../mongo/originalAlert";
 
 dotenv.config();
 
@@ -52,16 +53,30 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   const channels = getChannelsForAlert(alert)
   const text = await alert.formatSingleAlert()
 
+  const originalAlert = await OriginalAlert.findOne({taskId: alert.taskId})
+
+  if (!originalAlert) {
+    throw Error(`ALERT ${alert.taskId} SHOULD BE IN DB AT THIS MOMENT`)
+  }
+
+  if (!originalAlert.posts) {
+    originalAlert.posts = new Array<IPosts>()
+  }
+
+
   for (let chat_id of channels) {
-    await telegram.api.sendMessage({chat_id, text, parse_mode: 'markdown'})
+    const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'markdown'})
+    originalAlert.posts.push({channel: chat_id, messageId: msg.message_id})
     await new Promise(r => setTimeout(r, 1500))
   }
+
+  await originalAlert.save()
 }
 
 async function fetchAndSendNewAlerts() {
   const newAlerts = await batumi.fetchAlerts(true)
   if (newAlerts.length == 0) {
-    await sendToOwner("No new alerts " + dayjs().format('YY-MM-DD HH:mm'), )
+    await sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
   } else {
     for (let newAlert of newAlerts) {
       let text: string | null = null

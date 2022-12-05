@@ -1,4 +1,4 @@
-import {Schema, model, connection} from "mongoose";
+import {Schema, model, connection, Model, Types} from "mongoose";
 
 export interface IOriginalAlert {
   taskId: number;
@@ -12,9 +12,24 @@ export interface IOriginalAlert {
   reconnectionDate: string;
   dif?: string;
   taskType: string;
+
+  posts: IPosts[];
+  deleted: boolean;
 }
 
-const originalAlertSchema = new Schema<IOriginalAlert>({
+export interface IPosts {
+  channel: string;
+  messageId: number;
+}
+
+// TMethodsAndOverrides
+type OriginalAlertDocumentProps = {
+  names: Types.DocumentArray<IPosts>;
+};
+
+type OriginalAlertType = Model<IOriginalAlert, {}, OriginalAlertDocumentProps>
+
+const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
   taskId: {type: Number, required: true, index: true},
   taskName: {type: String, required: true},
   taskNote: {type: String, required: false},
@@ -26,9 +41,15 @@ const originalAlertSchema = new Schema<IOriginalAlert>({
   reconnectionDate: {type: String, required: true},
   dif: {type: String, required: false},
   taskType: {type: String, required: true},
+  deleted: {type: Boolean, default: false},
+  posts: [new Schema<IPosts>({
+    channel: {type: String, required: true},
+    messageId: {type: Number, required: true}
+  })]
 })
 
-export const OriginalAlert = model<IOriginalAlert>('OriginalAlert', originalAlertSchema);
+
+export const OriginalAlert = model<IOriginalAlert, OriginalAlertType>('OriginalAlert', originalAlertSchema);
 
 //TODO move somewhere else
 connection.on("error", console.error.bind(console, "connection error: "));

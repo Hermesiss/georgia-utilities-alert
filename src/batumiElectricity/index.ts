@@ -197,8 +197,17 @@ export class BatumiElectricityParser {
       }).exec()
 
       for (let futureAlert of dbData) {
-        if (!this.alertsById.has(futureAlert.taskId)){
+        if (!this.alertsById.has(futureAlert.taskId)) {
           console.log(`${futureAlert.taskId} was deleted`)
+          if (futureAlert.posts) {
+            if (futureAlert.posts.length == 0) {
+              console.log("Old post, has no link")
+            } else {
+              for (let post of futureAlert.posts) {
+                console.log(`=== NEED TO CHANGE POST ${post.messageId} IN CHANNEL ${post.channel}`)
+              }
+            }
+          }
         }
       }
 
