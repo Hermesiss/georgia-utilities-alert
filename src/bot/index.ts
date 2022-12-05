@@ -7,6 +7,7 @@ import {MessageContext} from "puregram/lib/contexts/message";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
 import * as mongoose from "mongoose";
 import cron from 'node-cron'
+import dayjs, {Dayjs} from "dayjs";
 
 dotenv.config();
 
@@ -60,7 +61,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 async function fetchAndSendNewAlerts() {
   const newAlerts = await batumi.fetchAlerts(true)
   if (newAlerts.length == 0) {
-    await sendToOwner("No new alerts")
+    await sendToOwner("No new alerts " + dayjs().format('YY-MM-DD HH:mm'), )
   } else {
     for (let newAlert of newAlerts) {
       let text: string | null = null
@@ -113,7 +114,7 @@ const run = async () => {
 }
 
 
-async function getAlertsForDate(date: Date, caption: string, cityName: string | null = null): Promise<string> {
+async function getAlertsForDate(date: Dayjs, caption: string, cityName: string | null = null): Promise<string> {
   const alerts = await batumi.getAlertsFromDay(date)
   let regions = new Map<string, Array<Alert>>()
   for (let alert of alerts) {
@@ -160,14 +161,14 @@ async function sendUpcoming(context: MessageContext, cityCommand: string) {
     await context.send(`No alerts for ${cityCommand}`)
     return
   }
-  const upcomingDays: Array<Date> = await batumi.getUpcomingDays(city)
+  const upcomingDays: Array<Dayjs> = await batumi.getUpcomingDays(city)
   if (upcomingDays.length == 0) {
     await context.send(`No upcoming alerts for ${cityCommand}`)
     return
   }
 
   for (let date of upcomingDays) {
-    const caption = `Alerts for ${date.toDateString()}`
+    const caption = `Alerts for ${date.toString()}`
     const s = await getAlertsForDate(date, caption, city);
     await context.send(s)
     await new Promise(r => setTimeout(r, 300))
@@ -194,7 +195,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           return
         case "/today": {
           context.sendChatAction("typing")
-          const date = new Date();
+          const date = dayjs();
           const caption = "Today's alerts:"
           const s = await getAlertsForDate(date, caption);
           context.send(s)
@@ -202,9 +203,7 @@ telegram.updates.on(UpdateType.Message, async context => {
         }
         case "/tomorrow": {
           context.sendChatAction("typing")
-          const today = new Date()
-          let tomorrow = new Date()
-          tomorrow.setDate(today.getDate() + 1)
+          let tomorrow = dayjs().add(1, "day")
           const caption = "Tomorrow's alerts:"
           const s = await getAlertsForDate(tomorrow, caption);
           context.send(s)
@@ -213,7 +212,7 @@ telegram.updates.on(UpdateType.Message, async context => {
 
         case "/upcoming": {
           context.sendChatAction("typing")
-          const upcomingDays: Array<Date> = await batumi.getUpcomingDays()
+          const upcomingDays: Array<Dayjs> = await batumi.getUpcomingDays()
 
           if (upcomingDays.length == 0) {
             await context.send("No upcoming alerts")
@@ -221,7 +220,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           }
 
           for (let date of upcomingDays) {
-            const caption = `Alerts for ${date.toDateString()}`
+            const caption = `Alerts for ${date.format('YYYY-MM-DD')}`
             const s = await getAlertsForDate(date, caption);
             await context.send(s)
             await new Promise(r => setTimeout(r, 300))

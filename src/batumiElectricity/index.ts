@@ -4,6 +4,11 @@ import {TwoWayMap} from "../common/twoWayMap";
 import {IOriginalAlert, OriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
 import * as readline from 'readline'
+import dayjs, {Dayjs} from 'dayjs'
+
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+
+dayjs.extend(isSameOrAfter)
 
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
@@ -31,19 +36,17 @@ export class BatumiElectricityParser {
 
   }
 
-  public async getAlertsFromDay(date: Date): Promise<Array<Alert>> {
+  public async getAlertsFromDay(date: Dayjs): Promise<Array<Alert>> {
     const todayAlerts = new Array<Alert>()
 
     await this.fetchAlerts();
 
-    const targetDateString = date.toDateString();
-
     for (let [id, alert] of this.alertsById) {
-      if (alert.startDate.toDateString() === targetDateString) {
+      if (alert.startDate.isSame(date, 'day')) {
         todayAlerts.push(alert)
       }
     }
-    return todayAlerts.sort((x, y) => x.startDate.getTime() - y.startDate.getTime() || x.endDate.getTime() - y.endDate.getTime())
+    return todayAlerts.sort((x, y) => x.startDate.valueOf() - y.startDate.valueOf() || x.endDate.valueOf() - y.endDate.valueOf())
   }
 
   /**
@@ -133,6 +136,7 @@ export class BatumiElectricityParser {
         const merged = BatumiElectricityParser.mergeObjects(elements)
         filteredData.push(merged)
       }
+
       const fetchAlertsText = "Fetch alerts: ";
       process.stdout.write(fetchAlertsText + "_".repeat(filteredData.length));
       readline.cursorTo(process.stdout, fetchAlertsText.length);
@@ -167,7 +171,7 @@ export class BatumiElectricityParser {
         this.alertsById.set(alert.taskId, alert)
 
         //add to alertsByDate
-        const day = alert.startDate.toDateString()
+        const day = alert.startDate.format('YYYY-MM-DD')
         if (!this.alertsByDate.has(day)) {
           this.alertsByDate.set(day, new Array<Alert>())
         }
@@ -182,6 +186,22 @@ export class BatumiElectricityParser {
       process.stdout.write("\n");
       this.alertsFetching = false
 
+      const today = dayjs().format("YYYY-MM-DD")
+      const future = dayjs().add(60, 'day').format("YYYY-MM-DD")
+
+      const dbData: HydratedDocument<IOriginalAlert>[] = await OriginalAlert.find({
+        disconnectionDate: {
+          $gt: today,
+          $lt: future
+        }
+      }).exec()
+
+      for (let futureAlert of dbData) {
+        if (!this.alertsById.has(futureAlert.taskId)){
+          console.log(`${futureAlert.taskId} was deleted`)
+        }
+      }
+
       Alert.printTranslations()
       console.timeEnd("fetchAlert")
     }
@@ -189,13 +209,13 @@ export class BatumiElectricityParser {
     return newAlerts
   }
 
-  async getUpcomingDays(cityName: string | null = null): Promise<Array<Date>> {
+  async getUpcomingDays(cityName: string | null = null): Promise<Array<Dayjs>> {
     await this.fetchAlerts()
     console.log("Search alerts for city", cityName)
-    const today = new Date(new Date().toDateString())
-    const dates = new Array<Date>()
+    const today: dayjs.Dayjs = dayjs()
+    const dates = new Array<Dayjs>()
     for (let [dateString, alerts] of this.alertsByDate) {
-      const date = new Date(dateString)
+      const date = dayjs(dateString, 'YYYY-MMMM-DD HH:mm')
 
       if (cityName !== null) {
         //Show only alerts for selected city
@@ -203,11 +223,11 @@ export class BatumiElectricityParser {
       }
 
       if (alerts.length == 0) continue
-      if (date.getTime() >= today.getTime()) {
+      if (date.isSameOrAfter(today)) {
         dates.push(date)
       }
     }
-    return dates.sort((x, y) => x.getTime() - y.getTime())
+    return dates.sort((x, y) => (x.valueOf() - y.valueOf()))
   }
 
   /**

@@ -3,6 +3,7 @@ import cities from "./cities.json";
 import districts from "./districts.json";
 import {IOriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
+import dayjs, {Dayjs} from "dayjs";
 
 const citiesMap = new Map(Object.entries(cities))
 const newCitiesMap = new Map()
@@ -66,8 +67,8 @@ export class Alert {
   dif?: string;
   taskType: string;
 
-  startDate: Date;
-  endDate: Date;
+  startDate: Dayjs;
+  endDate: Dayjs;
   planType: PlanType
 
   areaTree: AreaTree = new AreaTree("Root")
@@ -108,9 +109,6 @@ export class Alert {
     return res
   }
 
-  private static timeFormatOptions: Intl.DateTimeFormatOptions = {hour: "numeric", minute: "2-digit", hour12: false};
-  private static dayFormatOptions: Intl.DateTimeFormatOptions = {hour: "numeric", minute: "2-digit", hour12: false};
-
   public getPlanEmoji() {
     switch (this.planType) {
       case PlanType.Planned:
@@ -130,11 +128,11 @@ export class Alert {
   }
 
   public formatStartTime() {
-    return this.startDate.toLocaleTimeString("en-US", Alert.timeFormatOptions)
+    return this.startDate.format("HH:mm")
   }
 
   public formatEndTime() {
-    return this.endDate.toLocaleTimeString("en-US", Alert.timeFormatOptions)
+    return this.endDate.format("HH:mm")
   }
 
   public async formatSingleAlert(): Promise<string> {
@@ -171,8 +169,8 @@ export class Alert {
   }
 
   async init(): Promise<void> {
-    this.startDate = new Date(this.disconnectionDate)
-    this.endDate = new Date(this.reconnectionDate)
+    this.startDate = dayjs(this.disconnectionDate, 'YYYY-MMMM-DD HH:mm')
+    this.endDate = dayjs(this.reconnectionDate, 'YYYY-MMMM-DD HH:mm')
 
     this.planType = this.taskType == "1" ? PlanType.Planned : PlanType.Unplanned
 
