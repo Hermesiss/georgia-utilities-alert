@@ -15,6 +15,7 @@ export class AlertDiff {
   newAlert: Alert;
   translatedAlert: Alert
   diffs = new Array<DiffElement>()
+  deletedAlert?: HydratedDocument<IOriginalAlert>
 }
 
 export class DiffElement {
@@ -67,6 +68,9 @@ export class Alert {
   dif?: string;
   taskType: string;
 
+  createdDate?: Date
+  deletedDate?: Date
+
   startDate: Dayjs;
   endDate: Dayjs;
   planType: PlanType
@@ -102,6 +106,8 @@ export class Alert {
     res.reconnectionDate = original.reconnectionDate
     res.dif = original.dif
     res.taskType = original.taskType
+    res.createdDate = original.createdDate
+    res.deletedDate = original.deletedDate
 
     if (init)
       await res.init()
@@ -110,12 +116,17 @@ export class Alert {
   }
 
   public getPlanEmoji() {
+    let text = ""
+    if (this.deletedDate) text += "✖✖✖ "
     switch (this.planType) {
       case PlanType.Planned:
-        return "⚙️"
+        text += "⚙️"
+        break
       case PlanType.Unplanned:
-        return "⚠️"
+        text += "⚠️"
+        break
     }
+    return text
   }
 
   public getPlanText() {
@@ -136,12 +147,14 @@ export class Alert {
   }
 
   public async formatSingleAlert(): Promise<string> {
-    const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) : ""
-    const cities = Array.from(this.citiesList).join(", ");
     const taskName = await Translator.getTranslation(this.taskName)
     const regionName = await Translator.getTranslation(this.regionName)
+    const cities = Array.from(this.citiesList).join(", ");
     const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
     const areas = await this.formatAreas(this.areaTree);
+    const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) + "\n\n" : ""
+    const created = this.createdDate ? "*Created:* " + dayjs(this.createdDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
+    const deleted = this.deletedDate ? "*Deleted:* " + dayjs(this.deletedDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
 
     return `${this.getPlanEmoji()}${planText} *[${this.scName}]* ${taskName}\n\n` +
       `*Start:* ${this.disconnectionDate}\n\n` +
@@ -149,7 +162,8 @@ export class Alert {
       `*Region:* ${regionName}\n\n` +
       `*Cities:* ${cities}\n\n` +
       `*Area:*\n${areas}\n` +
-      `${this.taskId} ` + taskNote
+      `${this.taskId} ` + taskNote +
+      created + deleted
   }
 
   public async formatAreas(areaTree: AreaTree, level = 0): Promise<string> {

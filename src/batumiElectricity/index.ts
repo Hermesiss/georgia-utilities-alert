@@ -106,12 +106,12 @@ export class BatumiElectricityParser {
   }
 
   public async fetchAlerts(force: boolean = false): Promise<Array<AlertDiff>> {
-    const newAlerts = new Array<AlertDiff>()
+    const changedAlerts = new Array<AlertDiff>()
     if (this.alertsFetching) {
       while (this.alertsFetching) {
         await new Promise(r => setTimeout(r, 300))
       }
-      return newAlerts
+      return changedAlerts
     }
     if (force || this.alertsLastFetch === null || Date.now() - this.alertsLastFetch.getTime() > this.alertsFetchIntervalMs) {
       console.time("fetchAlert")
@@ -151,6 +151,7 @@ export class BatumiElectricityParser {
         if (!original) {
           //this is new alert
           diff.newAlert = alertData
+          alertData.createdDate = new Date()
           original = new OriginalAlert({...alertData})
           await original.save()
         } else {
@@ -180,7 +181,7 @@ export class BatumiElectricityParser {
         //push to newAlerts
         if (!diff.oldAlert || diff.diffs.length > 0) {
           diff.translatedAlert = alert
-          newAlerts.push(diff)
+          changedAlerts.push(diff)
         }
       }
       process.stdout.write("\n");
@@ -197,6 +198,10 @@ export class BatumiElectricityParser {
       }).exec()
 
       for (let futureAlert of dbData) {
+        if (futureAlert.deletedDate) continue
+
+        futureAlert.deletedDate = new Date()
+
         if (!this.alertsById.has(futureAlert.taskId)) {
           console.log(`${futureAlert.taskId} was deleted`)
           if (futureAlert.posts) {
@@ -205,9 +210,14 @@ export class BatumiElectricityParser {
             } else {
               for (let post of futureAlert.posts) {
                 console.log(`=== NEED TO CHANGE POST ${post.messageId} IN CHANNEL ${post.channel}`)
+                const diff = new AlertDiff()
+                diff.deletedAlert = futureAlert
+                changedAlerts.push(diff)
               }
             }
           }
+
+          await futureAlert.save()
         }
       }
 
@@ -215,7 +225,7 @@ export class BatumiElectricityParser {
       console.timeEnd("fetchAlert")
     }
 
-    return newAlerts
+    return changedAlerts
   }
 
   async getUpcomingDays(cityName: string | null = null): Promise<Array<Dayjs>> {

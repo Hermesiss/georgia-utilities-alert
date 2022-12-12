@@ -14,7 +14,8 @@ export interface IOriginalAlert {
   taskType: string;
 
   posts: IPosts[];
-  deleted: boolean;
+  createdDate?: Date;
+  deletedDate?: Date;
 }
 
 export interface IPosts {
@@ -41,11 +42,12 @@ const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
   reconnectionDate: {type: String, required: true},
   dif: {type: String, required: false},
   taskType: {type: String, required: true},
-  deleted: {type: Boolean, default: false},
   posts: [new Schema<IPosts>({
     channel: {type: String, required: true},
     messageId: {type: Number, required: true}
-  })]
+  })],
+  createdDate: {type: Date, required: false},
+  deletedDate: {type: Date, required: false},
 })
 
 

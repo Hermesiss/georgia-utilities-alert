@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import {RemoveKeyboard, Telegram, UpdateType} from 'puregram'
+import {APIError, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
 import {Alert, AlertDiff} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
@@ -8,7 +8,9 @@ import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces
 import * as mongoose from "mongoose";
 import cron from 'node-cron'
 import dayjs, {Dayjs} from "dayjs";
-import {IPosts, OriginalAlert} from "../mongo/originalAlert";
+import {IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
+import {HydratedDocument} from "mongoose";
+import {ApiResponseError} from "puregram/lib/types/interfaces";
 
 dotenv.config();
 
@@ -74,20 +76,22 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 }
 
 async function fetchAndSendNewAlerts() {
-  const newAlerts = await batumi.fetchAlerts(true)
-  if (newAlerts.length == 0) {
+  const changedAlerts = await batumi.fetchAlerts(true)
+  if (changedAlerts.length == 0) {
     await sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
   } else {
-    for (let newAlert of newAlerts) {
+    for (let changedAlert of changedAlerts) {
       let text: string | null = null
-      if (newAlert.oldAlert == null) {
-        await sendAlertToChannels(newAlert.translatedAlert)
-      } else if (newAlert.diffs.length > 0) {
-        const diffPrint = JSON.stringify(newAlert.diffs)
-        text = `Changed alert ${newAlert.translatedAlert.scName} /alert_${newAlert.translatedAlert.taskId}\n${diffPrint}`
+      if (changedAlert.deletedAlert) {
+        await updatePost(changedAlert.deletedAlert)
+      } else if (changedAlert.oldAlert == null) {
+        await sendAlertToChannels(changedAlert.translatedAlert)
+      } else if (changedAlert.diffs.length > 0) {
+        const diffPrint = JSON.stringify(changedAlert.diffs)
+        text = `Changed alert ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}\n${diffPrint}`
       } else {
         //something is wrong
-        text = `¯\\_(ツ)_/¯ /alert_${newAlert.translatedAlert.taskId}`;
+        text = `¯\\_(ツ)_/¯ /alert_${changedAlert.translatedAlert.taskId}`;
       }
 
       if (text) {
@@ -187,6 +191,60 @@ async function sendUpcoming(context: MessageContext, cityCommand: string) {
     const s = await getAlertsForDate(date, caption, city);
     await context.send(s)
     await new Promise(r => setTimeout(r, 300))
+  }
+}
+
+async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
+  if (!originalAlert.posts) {
+    console.error("Cannot update posts about deleted alert: no posts in DB")
+    return
+  }
+
+  const alert = await Alert.fromOriginal(originalAlert)
+
+  for (let post of originalAlert.posts) {
+    const text = await alert.formatSingleAlert()
+    let logTxt = `Changing post https://t.me/${post.channel.replace('@', '')}/${post.messageId}`
+    let tries = 3
+    while (tries > 0) {
+      try {
+        await telegram.api.editMessageText({
+          chat_id: post.channel,
+          message_id: post.messageId,
+          text,
+          parse_mode: "Markdown"
+        })
+        console.log(logTxt)
+        break
+      } catch (e: any) {
+        if ('code' in e) {
+          if (e.code == 400) { // Bad Request: message is not modified
+            console.log("Already edited")
+            break
+          }
+          if (e.code == 429) { // Too Many Requests
+            const apiError = <APIError>e
+            const retry = apiError.parameters?.retry_after
+            tries--
+            if (retry) {
+              console.log(`WAIT FOR ${retry} AND RETRY, ${tries}`)
+              await new Promise(r => setTimeout(r, 1000 * (retry + 1)))
+            } else {
+              console.log(`RETRY, ${tries}`)
+            }
+          }
+        } else {
+          logTxt = e.toString()
+          console.log("=== UNKNOWN ERROR", e)
+          break
+        }
+      }
+    }
+
+    await new Promise(r => setTimeout(r, 1000))
+    await sendToOwner(logTxt)
+
+    await new Promise(r => setTimeout(r, 1000))
   }
 }
 
