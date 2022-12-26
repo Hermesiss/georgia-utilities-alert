@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import {APIError, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
+import {APIError, MediaInput, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
 import {Alert, AlertDiff} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
@@ -130,6 +130,20 @@ const run = async () => {
   cron.schedule("*/10 * * * *", async () => {
     await fetchAndSendNewAlerts();
   })
+}
+
+//aggregate alerts by day in disconnectionDate. TODO TEST THIS
+async function getAlertsByDay(): Promise<Map<string, HydratedDocument<IOriginalAlert>[]>> {
+  const alerts = await OriginalAlert.find()
+  const map = new Map<string, HydratedDocument<IOriginalAlert>[]>()
+  for (let alert of alerts) {
+    const date = dayjs(alert.disconnectionDate).format('YYYY-MM-DD')
+    if (!map.has(date)) {
+      map.set(date, new Array<HydratedDocument<IOriginalAlert>>())
+    }
+    map.get(date)?.push(alert)
+  }
+  return map
 }
 
 

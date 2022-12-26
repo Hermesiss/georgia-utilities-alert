@@ -44,6 +44,8 @@ export class AreaTree {
 
   public set(name: string, area: AreaTree) {
     this.children.set(name, area)
+    // sort children by key
+    this.children = new Map([...this.children.entries()].sort((a, b) => a[0].localeCompare(b[0])))
   }
 
   constructor(name: string = "") {
@@ -152,7 +154,7 @@ export class Alert {
     const cities = Array.from(this.citiesList).join(", ");
     const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
     const areas = await this.formatAreas(this.areaTree);
-    const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) + "\n\n" : ""
+    const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) : ""
     const created = this.createdDate ? "*Created:* " + dayjs(this.createdDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
     const deleted = this.deletedDate ? "*Deleted:* " + dayjs(this.deletedDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
 
@@ -162,7 +164,7 @@ export class Alert {
       `*Region:* ${regionName}\n\n` +
       `*Cities:* ${cities}\n\n` +
       `*Area:*\n${areas}\n` +
-      `${this.taskId} ` + taskNote +
+      `${this.taskId} ` + taskNote + "\n\n" +
       created + deleted
   }
 
