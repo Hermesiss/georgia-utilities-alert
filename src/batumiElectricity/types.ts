@@ -192,16 +192,23 @@ export class Alert {
 
     const areas = this.disconnectionArea.split(',')
 
-    const citiesArr = Array.from(citiesMap)
+    //const citiesArr = Array.from(citiesMap)
 
     for (let area of areas) {
       const sub = area.split("/")
       let tree = this.areaTree
       for (let i = 0; i < sub.length; i++) {
         let item = sub[i].trim()
+
+        // remove all quotation marks
+        item = item.replace(/[“”"‘’'«»`„]+/, '')
+
         let translated = citiesMap.get(item)
         if (translated) {
-          if (i == 0 && citiesArr.some(x => item.includes(x[0]))) {
+          if (i == 0
+            // don't remember why I added this
+            // && citiesArr.some(x => item.includes(x[0]))
+          ) {
             this.citiesList.add(translated)
           }
         } else {
