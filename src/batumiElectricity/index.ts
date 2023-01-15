@@ -166,6 +166,9 @@ export class BatumiElectricityParser {
           alertData.createdDate = new Date()
           original = new OriginalAlert({...alertData})
           await original.save()
+        } else if (original.posts.length == 0) {
+          //alert without posts somehow
+          diff.newAlert = alertData
         } else {
           //alert already exists...
           diff.oldAlert = await Alert.fromOriginal(original, false)

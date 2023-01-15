@@ -78,6 +78,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 
 async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Promise<void> {
   const alerts = await batumi.getOriginalAlertsFromDay(date)
+  console.log(`Posting ${alerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
   const orderedAlerts = alerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
 
   const channelsWithAlerts = new Map<string, string[]>()
@@ -90,6 +91,11 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
     let alertName = (await Translator.getTranslation(alert.taskName))
 
     alertName = alertName.replace('[', '(').replace(']', ')')
+    if (alert.posts.length == 0){
+      console.log(`Alert ${alert.taskId} has no posts. ${alert.createdDate}`)
+      continue
+    }
+
     for (let post of alert.posts) {
       if (post.channel == channelMain && !debug) continue
 
