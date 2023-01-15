@@ -32,7 +32,7 @@ type OriginalAlertType = Model<IOriginalAlert, {}, OriginalAlertDocumentProps>
 
 const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
   taskId: {type: Number, required: true, index: true},
-  taskName: {type: String, required: true},
+  taskName: {type: String, required: false, default: ""},
   taskNote: {type: String, required: false},
   scEffectedCustomers: {type: String, required: false},
   disconnectionArea: {type: String, required: true},
@@ -52,6 +52,8 @@ const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
 
 
 export const OriginalAlert = model<IOriginalAlert, OriginalAlertType>('OriginalAlert', originalAlertSchema);
+
+export const getLinkFromPost = (post: IPosts) => `https://t.me/${post.channel.replace('@', '')}/${post.messageId}`
 
 //TODO move somewhere else
 connection.on("error", console.error.bind(console, "connection error: "));

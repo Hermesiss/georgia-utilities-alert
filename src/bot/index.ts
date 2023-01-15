@@ -1,16 +1,17 @@
 import dotenv from 'dotenv';
-import {APIError, MediaInput, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
+import {APIError, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
-import {Alert, AlertDiff} from "../batumiElectricity/types";
+import {Alert} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
 import * as mongoose from "mongoose";
 import cron from 'node-cron'
 import dayjs, {Dayjs} from "dayjs";
-import {IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
+import {getLinkFromPost, IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
-import {ApiResponseError} from "puregram/lib/types/interfaces";
+import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
+import {Translator} from "../translator";
 
 dotenv.config();
 
@@ -67,13 +68,57 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 
 
   for (let chat_id of channels) {
-    const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'markdown'})
+    const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'Markdown'})
     originalAlert.posts.push({channel: chat_id, messageId: msg.message_id})
     await new Promise(r => setTimeout(r, 1500))
   }
 
   await originalAlert.save()
 }
+
+async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Promise<void> {
+  const alerts = await batumi.getOriginalAlertsFromDay(date)
+  const orderedAlerts = alerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
+
+  const channelsWithAlerts = new Map<string, string[]>()
+
+  for (let alert of orderedAlerts) {
+    if (alert.deletedDate) continue
+
+    const disconnectionTime = dayjs(alert.disconnectionDate).format('HH:mm')
+    const reconnectionTime = dayjs(alert.reconnectionDate).format('HH:mm')
+    let alertName = (await Translator.getTranslation(alert.taskName))
+
+    alertName = alertName.replace('[', '(').replace(']', ')')
+    for (let post of alert.posts) {
+      if (post.channel == channelMain && !debug) continue
+
+      if (!channelsWithAlerts.has(post.channel)) {
+        channelsWithAlerts.set(post.channel, new Array<string>())
+      }
+
+      const link = getLinkFromPost(post)
+      const markdownLink = `[${disconnectionTime}-${reconnectionTime} ${alertName}](${link})\n`
+
+      channelsWithAlerts.get(post.channel)?.push(markdownLink)
+    }
+  }
+
+  if (channelsWithAlerts.size == 0) {
+    await sendToOwner(`No alerts for ${date.format('YYYY-MM-DD')}`)
+  }
+
+  for (let channelsWithAlert of channelsWithAlerts) {
+    const post = `*${caption}*\n\n${channelsWithAlert[1].join('')}`
+    if (debug) {
+      await sendToOwner(post, "Markdown", 1000)
+    } else {
+      await telegram.api.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
+      await new Promise(r => setTimeout(r, 1500))
+    }
+  }
+}
+
 
 async function fetchAndSendNewAlerts() {
   const changedAlerts = await batumi.fetchAlerts(true)
@@ -130,6 +175,18 @@ const run = async () => {
   cron.schedule("*/10 * * * *", async () => {
     await fetchAndSendNewAlerts();
   })
+
+  //run every day at 09:00
+  cron.schedule("0 9 * * *", async () => {
+    await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
+    //await postAlertsForDay(dayjs(), "Today!", false)
+  })
+
+  //run every day at 21:00
+  cron.schedule("0 21 * * *", async () => {
+    await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
+    //await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+  })
 }
 
 //aggregate alerts by day in disconnectionDate. TODO TEST THIS
@@ -147,7 +204,7 @@ async function getAlertsByDay(): Promise<Map<string, HydratedDocument<IOriginalA
 }
 
 
-async function getAlertsForDate(date: Dayjs, caption: string, cityName: string | null = null): Promise<string> {
+async function getAlertSummaryForDate(date: Dayjs, caption: string, cityName: string | null = null): Promise<string> {
   const alerts = await batumi.getAlertsFromDay(date)
   let regions = new Map<string, Array<Alert>>()
   for (let alert of alerts) {
@@ -202,7 +259,7 @@ async function sendUpcoming(context: MessageContext, cityCommand: string) {
 
   for (let date of upcomingDays) {
     const caption = `Alerts for ${date.toString()}`
-    const s = await getAlertsForDate(date, caption, city);
+    const s = await getAlertSummaryForDate(date, caption, city);
     await context.send(s)
     await new Promise(r => setTimeout(r, 300))
   }
@@ -218,7 +275,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
 
   for (let post of originalAlert.posts) {
     const text = await alert.formatSingleAlert()
-    let logTxt = `Changing post https://t.me/${post.channel.replace('@', '')}/${post.messageId}`
+    let logTxt = `Changing post ${getLinkFromPost(post)}`
     let tries = 3
     while (tries > 0) {
       try {
@@ -262,9 +319,12 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
   }
 }
 
-async function sendToOwner(text: string) {
+async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined, awaitTimeMs: number = 0) {
   if (!ownerId) return
-  await telegram.api.sendMessage({chat_id: ownerId, text: text})
+  await telegram.api.sendMessage({chat_id: ownerId, text: text, parse_mode})
+  if (awaitTimeMs > 0) {
+    await new Promise(r => setTimeout(r, awaitTimeMs))
+  }
 }
 
 telegram.updates.on(UpdateType.Message, async context => {
@@ -284,7 +344,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           context.sendChatAction("typing")
           const date = dayjs();
           const caption = "Today's alerts:"
-          const s = await getAlertsForDate(date, caption);
+          const s = await getAlertSummaryForDate(date, caption);
           context.send(s)
           return
         }
@@ -292,11 +352,26 @@ telegram.updates.on(UpdateType.Message, async context => {
           context.sendChatAction("typing")
           let tomorrow = dayjs().add(1, "day")
           const caption = "Tomorrow's alerts:"
-          const s = await getAlertsForDate(tomorrow, caption);
+          const s = await getAlertSummaryForDate(tomorrow, caption);
           context.send(s)
           return
         }
-
+        case "/check_today_debug": {
+          await postAlertsForDay(dayjs(), "Today!", true)
+          return
+        }
+        case "/check_today": {
+          await postAlertsForDay(dayjs(), "Today!", false)
+          return
+        }
+        case "/check_tomorrow_debug": {
+          await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", true)
+          return
+        }
+        case "/check_tomorrow": {
+          await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+          return
+        }
         case "/upcoming": {
           context.sendChatAction("typing")
           const upcomingDays: Array<Dayjs> = await batumi.getUpcomingDays()
@@ -308,7 +383,7 @@ telegram.updates.on(UpdateType.Message, async context => {
 
           for (let date of upcomingDays) {
             const caption = `Alerts for ${date.format('YYYY-MM-DD')}`
-            const s = await getAlertsForDate(date, caption);
+            const s = await getAlertSummaryForDate(date, caption);
             await context.send(s)
             await new Promise(r => setTimeout(r, 300))
           }
@@ -353,7 +428,7 @@ telegram.updates.on(UpdateType.Message, async context => {
           return
         }
         const formatSingleAlert = await alertFromId.formatSingleAlert();
-        context.send(formatSingleAlert || "", {parse_mode: 'markdown'})
+        context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
         return
       }
 

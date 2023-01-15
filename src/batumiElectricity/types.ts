@@ -217,7 +217,8 @@ export class Alert {
 
         if (!translated) {
           translated = await Translator.getTranslation(item);
-          newDistrictsMap.set(item, translated)
+          if (item != translated)
+            newDistrictsMap.set(item, translated)
         }
 
         item = translated

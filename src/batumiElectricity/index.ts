@@ -49,6 +49,18 @@ export class BatumiElectricityParser {
     return todayAlerts.sort((x, y) => x.startDate.valueOf() - y.startDate.valueOf() || x.endDate.valueOf() - y.endDate.valueOf())
   }
 
+  public async getOriginalAlertsFromDay(date: Dayjs): Promise<Array<HydratedDocument<IOriginalAlert>>> {
+    const today = date.format("YYYY-MM-DD")
+    const future = date.add(1, 'day').format("YYYY-MM-DD")
+
+    return await OriginalAlert.find({
+      disconnectionDate: {
+        $gt: today,
+        $lt: future
+      }
+    }).exec()
+  }
+
   /**
    * Get list of duplicated taskId's
    * @param arr
