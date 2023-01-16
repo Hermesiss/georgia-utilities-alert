@@ -185,13 +185,13 @@ const run = async () => {
   //run every day at 09:00
   cron.schedule("0 9 * * *", async () => {
     await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
-    //await postAlertsForDay(dayjs(), "Today!", false)
+    await postAlertsForDay(dayjs(), "Today!", false)
   })
 
   //run every day at 21:00
   cron.schedule("0 21 * * *", async () => {
     await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
-    //await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+    await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
   })
 }
 
