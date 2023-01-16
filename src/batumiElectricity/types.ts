@@ -201,7 +201,7 @@ export class Alert {
         let item = sub[i].trim()
 
         // remove all quotation marks
-        item = item.replace(/[“”"‘’'«»`„]+/g, '')
+        item = item.replace(/[“”"‘’'«»_`„]+/g, '')
 
         let translated = citiesMap.get(item)
         if (translated) {
