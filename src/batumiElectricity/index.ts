@@ -224,7 +224,7 @@ export class BatumiElectricityParser {
               console.log("Old post, has no link")
             } else {
               for (let post of futureAlert.posts) {
-                console.log(`=== NEED TO CHANGE POST ${post.messageId} IN CHANNEL ${post.channel}`)
+                console.log(`==== NEED TO CHANGE POST ${post.messageId} IN CHANNEL ${post.channel}`)
                 const diff = new AlertDiff()
                 diff.deletedAlert = futureAlert
                 changedAlerts.push(diff)

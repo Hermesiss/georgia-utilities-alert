@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import {APIError, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
+import {APIError, Markdown, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
 import {Alert} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
@@ -68,8 +68,15 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 
 
   for (let chat_id of channels) {
-    const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'Markdown'})
-    originalAlert.posts.push({channel: chat_id, messageId: msg.message_id})
+    console.log("==== SEND TO CHANNEL")
+
+    try {
+      const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'Markdown'})
+      originalAlert.posts.push({channel: chat_id, messageId: msg.message_id})
+    } catch (e) {
+      console.log(`Error sending to ${chat_id}\nText:\n`, text, "Error:\n", e)
+    }
+
     await new Promise(r => setTimeout(r, 1500))
   }
 
@@ -90,8 +97,8 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
     const reconnectionTime = dayjs(alert.reconnectionDate).format('HH:mm')
     let alertName = (await Translator.getTranslation(alert.taskName))
 
-    alertName = alertName.replace('[', '(').replace(']', ')')
-    if (alert.posts.length == 0){
+    alertName = Markdown.escape(alertName.replace('[', '(').replace(']', ')'))
+    if (alert.posts.length == 0) {
       console.log(`Alert ${alert.taskId} has no posts. ${alert.createdDate}`)
       continue
     }
@@ -119,6 +126,7 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
     if (debug) {
       await sendToOwner(post, "Markdown", 1000)
     } else {
+      console.log("==== SEND DAILY TO CHANNEL")
       await telegram.api.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
       await new Promise(r => setTimeout(r, 1500))
     }
@@ -285,6 +293,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     let tries = 3
     while (tries > 0) {
       try {
+        console.log("==== EDIT POST")
         await telegram.api.editMessageText({
           chat_id: post.channel,
           message_id: post.messageId,
@@ -296,6 +305,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
       } catch (e: any) {
         if ('code' in e) {
           if (e.code == 400) { // Bad Request: message is not modified
+            // TODO handle markdown parse error
             console.log("Already edited")
             break
           }
@@ -312,7 +322,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
           }
         } else {
           logTxt = e.toString()
-          console.log("=== UNKNOWN ERROR", e)
+          console.log("==== UNKNOWN ERROR", e)
           break
         }
       }
@@ -327,6 +337,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
 
 async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined, awaitTimeMs: number = 0) {
   if (!ownerId) return
+  console.log("==== SEND TO OWNER")
   await telegram.api.sendMessage({chat_id: ownerId, text: text, parse_mode})
   if (awaitTimeMs > 0) {
     await new Promise(r => setTimeout(r, awaitTimeMs))

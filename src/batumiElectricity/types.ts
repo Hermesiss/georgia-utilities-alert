@@ -4,6 +4,7 @@ import districts from "./districts.json";
 import {IOriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
 import dayjs, {Dayjs} from "dayjs";
+import {Markdown} from "puregram";
 
 const citiesMap = new Map(Object.entries(cities))
 const newCitiesMap = new Map()
@@ -82,10 +83,10 @@ export class Alert {
 
   static printTranslations() {
     if (newDistrictsMap.size > 0)
-      console.log("=== NEW TRANSLATED DISTRICTS\n", JSON.stringify(Object.fromEntries(newDistrictsMap)))
+      console.log("==== NEW TRANSLATED DISTRICTS\n", JSON.stringify(Object.fromEntries(newDistrictsMap)))
 
     if (newCitiesMap.size > 0)
-      console.log("=== NEW TRANSLATED CITIES\n", JSON.stringify(Object.fromEntries(newCitiesMap)))
+      console.log("==== NEW TRANSLATED CITIES\n", JSON.stringify(Object.fromEntries(newCitiesMap)))
   }
 
   static async from(from: Alert): Promise<Alert> {
@@ -138,6 +139,7 @@ export class Alert {
       case PlanType.Unplanned:
         return "Emergency"
     }
+    return ""
   }
 
   public formatStartTime() {
@@ -149,14 +151,16 @@ export class Alert {
   }
 
   public async formatSingleAlert(): Promise<string> {
-    const taskName = await Translator.getTranslation(this.taskName)
-    const regionName = await Translator.getTranslation(this.regionName)
+    const taskName = Markdown.escape( await Translator.getTranslation(this.taskName))
+    const regionName = Markdown.escape(await Translator.getTranslation(this.regionName))
     const cities = Array.from(this.citiesList).join(", ");
-    const planText = this.planType != PlanType.Planned ? ` _${this.getPlanText()}_ ` : ""
+    const planText = this.planType != PlanType.Planned ? ` ${Markdown.italic(this.getPlanText(), true)} ` : ""
     const areas = await this.formatAreas(this.areaTree);
-    const taskNote = this.taskNote ? await Translator.getTranslation(this.taskNote) : ""
-    const created = this.createdDate ? "*Created:* " + dayjs(this.createdDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
-    const deleted = this.deletedDate ? "*Deleted:* " + dayjs(this.deletedDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
+    const taskNote = this.taskNote ? Markdown.escape(await Translator.getTranslation(this.taskNote)) : ""
+    const created = this.createdDate ? Markdown.bold("Created: ") + dayjs(this.createdDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
+    const deleted = this.deletedDate ? Markdown.bold("Deleted: ") + dayjs(this.deletedDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
+
+    //TODO replace ** with Markdown.bold
 
     return `${this.getPlanEmoji()}${planText} *[${this.scName}]* ${taskName}\n\n` +
       `*Start:* ${this.disconnectionDate}\n\n` +
@@ -174,11 +178,11 @@ export class Alert {
 
     if (level != 0) {
       const translatedName = areaTree.name
-      text += `${"    ".repeat(level - 1)}${translatedName}\n`;
+      text += Markdown.escape(`${"    ".repeat(level - 1)}${translatedName}\n`);
     }
     for (let [name, area] of areaTree.children) {
       const text1 = await this.formatAreas(area, level + 1);
-      text += text1
+      text += Markdown.escape(text1)
     }
 
     return text
