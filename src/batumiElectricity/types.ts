@@ -133,10 +133,10 @@ export class Alert {
     if (!this.deletedDate) {
       if (this.startDate.isSame(dayjs(), "day")) {
         text += " 🔥 Today 🔥 "
-      }
-
-      if (this.startDate.isSame(dayjs().add(1, 'day'), "day")) {
+      } else if (this.startDate.isSame(dayjs().add(1, 'day'), "day")) {
         text += " 🌅 Tomorrow 🌅 "
+      } else if (this.startDate.isSame(dayjs(), "week")){
+        text += " 🗓 This week 🗓 "
       }
     }
 
