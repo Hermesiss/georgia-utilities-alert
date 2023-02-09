@@ -57,7 +57,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   const text = await alert.formatSingleAlert()
 
   // notify if alert is today or tomorrow
-  const today = dayjs(alert.disconnectionDate).isSame(dayjs(), 'day') //TODO
+  const today = dayjs(alert.disconnectionDate).isSame(dayjs(), 'day')
   const tomorrow = dayjs(alert.disconnectionDate).isSame(dayjs().add(1, 'day'), 'day')
   const notify = today || tomorrow
 
@@ -189,21 +189,38 @@ const run = async () => {
 
   telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
 
+  async function callAsyncAndMeasureTime(func: () => Promise<void>, fnName: string) {
+    const start = Date.now()
+    await func()
+    const end = Date.now()
+    console.log(`${fnName} Finished in ${end - start} ms`)
+  }
+
   //run every 10 minutes
   cron.schedule("*/10 * * * *", async () => {
-    await fetchAndSendNewAlerts();
+    await callAsyncAndMeasureTime(async () => {
+      await fetchAndSendNewAlerts()
+    }, "fetchAndSendNewAlerts")
   })
 
   //run every day at 09:00
   cron.schedule("0 9 * * *", async () => {
-    await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
-    await postAlertsForDay(dayjs(), "Today!", false)
+    await callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await postAlertsForDay(dayjs(), "Today!", false)
+      }, "postAlertsForToday"
+    )
   })
 
   //run every day at 21:00
   cron.schedule("0 21 * * *", async () => {
-    await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
-    await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+    await callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+      }, "postAlertsForTomorrow"
+    )
   })
 }
 

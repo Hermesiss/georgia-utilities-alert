@@ -129,6 +129,17 @@ export class Alert {
         text += "⚠️"
         break
     }
+
+    if (!this.deletedDate) {
+      if (this.startDate.isSame(dayjs(), "day")) {
+        text += " 🔥 Today 🔥 "
+      }
+
+      if (this.startDate.isSame(dayjs().add(1, 'day'), "day")) {
+        text += " 🌅 Tomorrow 🌅 "
+      }
+    }
+
     return text
   }
 
@@ -150,8 +161,15 @@ export class Alert {
     return this.endDate.format("HH:mm")
   }
 
+  public formatTimeSpan() {
+    if (this.startDate.isSame(this.endDate, "day")) {
+      return `${this.startDate.format("YYYY-MM-DD")} ${this.formatStartTime()} - ${this.formatEndTime()}`
+    }
+    return `${this.startDate.format("YYYY-MM-DD HH:mm")} - ${this.endDate.format("YYYY-MM-DD HH:mm")}`
+  }
+
   public async formatSingleAlert(): Promise<string> {
-    const taskName = Markdown.escape( await Translator.getTranslation(this.taskName))
+    const taskName = Markdown.escape(await Translator.getTranslation(this.taskName))
     const regionName = Markdown.escape(await Translator.getTranslation(this.regionName))
     const cities = Array.from(this.citiesList).join(", ");
     const planText = this.planType != PlanType.Planned ? ` ${Markdown.italic(this.getPlanText(), true)} ` : ""
@@ -163,8 +181,7 @@ export class Alert {
     //TODO replace ** with Markdown.bold
 
     return `${this.getPlanEmoji()}${planText} *[${this.scName}]* ${taskName}\n\n` +
-      `*Start:* ${this.disconnectionDate}\n\n` +
-      `*End:* ${this.reconnectionDate}\n\n` +
+      `*Date:* ${this.formatTimeSpan()}\n\n` +
       `*Region:* ${regionName}\n\n` +
       `*Cities:* ${cities}\n\n` +
       `*Area:*\n${areas}\n` +
