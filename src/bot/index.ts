@@ -56,6 +56,11 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   const channels = getChannelsForAlert(alert)
   const text = await alert.formatSingleAlert()
 
+  // notify if alert is today or tomorrow
+  const today = dayjs(alert.disconnectionDate).isSame(dayjs(), 'day') //TODO
+  const tomorrow = dayjs(alert.disconnectionDate).isSame(dayjs().add(1, 'day'), 'day')
+  const notify = today || tomorrow
+
   const originalAlert = await OriginalAlert.findOne({taskId: alert.taskId})
 
   if (!originalAlert) {
@@ -66,12 +71,11 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
     originalAlert.posts = new Array<IPosts>()
   }
 
-
   for (let chat_id of channels) {
     console.log("==== SEND TO CHANNEL")
 
     try {
-      const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'Markdown'})
+      const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'Markdown', disable_notification: !notify})
       originalAlert.posts.push({channel: chat_id, messageId: msg.message_id})
     } catch (e) {
       console.log(`Error sending to ${chat_id}\nText:\n`, text, "Error:\n", e)
