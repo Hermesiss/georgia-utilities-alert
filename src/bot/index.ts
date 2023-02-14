@@ -192,6 +192,8 @@ const run = async () => {
   await fetchAndSendNewAlerts();
 
   telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
+
+  createCronJobs();
 }
 
 
