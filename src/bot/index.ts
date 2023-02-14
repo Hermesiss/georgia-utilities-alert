@@ -6,7 +6,7 @@ import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
 import * as mongoose from "mongoose";
-import cron from 'node-cron'
+import cron, {ScheduledTask} from 'node-cron'
 import dayjs, {Dayjs} from "dayjs";
 import {getLinkFromPost, IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
@@ -180,6 +180,10 @@ const run = async () => {
     res.send('Georgia Utilities Alert');
   });
 
+  app.get('/createCronJobs', (req: Request, res: Response) => {
+    res.send(createCronJobs());
+  })
+
   app.listen(port, () => {
   });
 
@@ -188,23 +192,43 @@ const run = async () => {
   await fetchAndSendNewAlerts();
 
   telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
+}
 
-  async function callAsyncAndMeasureTime(func: () => Promise<void>, fnName: string) {
-    const start = Date.now()
-    await func()
-    const end = Date.now()
-    console.log(`${fnName} Finished in ${end - start} ms`)
+
+async function callAsyncAndMeasureTime(func: () => Promise<void>, fnName: string) {
+  const start = Date.now()
+  await func()
+  const end = Date.now()
+  console.log(`${fnName} Finished in ${end - start} ms`)
+}
+
+let cron10min: ScheduledTask | null = null;
+let cronMorning: ScheduledTask | null = null;
+let cronEvening: ScheduledTask | null = null;
+
+function createCronJobs(): string {
+  let response = ""
+  if (cron10min) {
+    response += "10min job already exists"
+    cron10min.stop()
   }
 
+  response += "10min job created"
   //run every 10 minutes
-  cron.schedule("*/10 * * * *", async () => {
+  cron10min = cron.schedule("*/10 * * * *", async () => {
     await callAsyncAndMeasureTime(async () => {
       await fetchAndSendNewAlerts()
     }, "fetchAndSendNewAlerts")
   })
 
+  if (cronMorning) {
+    response += "Morning job already exists"
+    cronMorning.stop()
+  }
+
+  response += "Morning job created"
   //run every day at 09:00
-  cron.schedule("0 9 * * *", async () => {
+  cronMorning = cron.schedule("0 9 * * *", async () => {
     await callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
@@ -213,8 +237,14 @@ const run = async () => {
     )
   })
 
+  if (cronEvening) {
+    response += "Evening job already exists"
+    cronEvening.stop()
+  }
+
+  response += "Evening job created"
   //run every day at 21:00
-  cron.schedule("0 21 * * *", async () => {
+  cronEvening = cron.schedule("0 21 * * *", async () => {
     await callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
@@ -222,6 +252,8 @@ const run = async () => {
       }, "postAlertsForTomorrow"
     )
   })
+
+  return response
 }
 
 //aggregate alerts by day in disconnectionDate. TODO TEST THIS
