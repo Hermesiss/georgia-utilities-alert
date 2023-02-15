@@ -88,7 +88,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 }
 
 async function editAllPostedAlerts(onListCreated?: (links: string) => void | null): Promise<void> {
-  const alerts = await OriginalAlert.find({deletedDate: {$exists: false}, startDate: {$gte: dayjs()}})
+  const alerts = await OriginalAlert.find({deletedDate: {$exists: false}, disconnectionDate: {$gte: dayjs().format("YYYY-MM-DD")}})
 
   if (onListCreated) {
     let response = ""
