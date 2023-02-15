@@ -88,7 +88,9 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 }
 
 async function editAllPostedAlerts(onListCreated?: (links: string) => void | null): Promise<void> {
-  const alerts = await OriginalAlert.find({deletedDate: {$exists: false}})
+  // get all posted alerts that are not deleted and starts no later than today
+  const alerts = await OriginalAlert.find({deletedDate: {$exists: false}, startDate: {$lte: dayjs()}})
+  //const alerts = await OriginalAlert.find({deletedDate: {$exists: false}})
 
   if (onListCreated) {
     let response = ""
@@ -312,7 +314,7 @@ function createCronJobs(): string {
   response += "Midnight job created\n"
 
   //run every day at 00:00
-  cronMidnight = cron.schedule("0 0 * * *", async () => {
+  cronMidnight = cron.schedule("8 0 * * *", async () => {
     await callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily midnight report " + dayjs().format('YYYY-MM-DD HH:mm'))
