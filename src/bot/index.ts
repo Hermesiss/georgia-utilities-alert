@@ -87,6 +87,48 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   await originalAlert.save()
 }
 
+async function editAllPostedAlerts(onListCreated?: (links: string) => void | null): Promise<void> {
+  const alerts = await OriginalAlert.find({deletedDate: {$exists: false}})
+
+  if (onListCreated) {
+    let response = ""
+
+    // get list of links
+    for (let alert of alerts) {
+      if (!alert.posts) continue
+
+      for (let post of alert.posts) {
+        const link = getLinkFromPost(post)
+        response += `<a>${link}</a>\n`
+      }
+    }
+
+    onListCreated(response)
+  }
+
+  for (let alert of alerts) {
+    if (!alert.posts) continue
+
+    const a = await Alert.fromOriginal(alert)
+
+    for (let post of alert.posts) {
+      const text = await a.formatSingleAlert()
+      try {
+        await telegram.api.editMessageText({
+          chat_id: post.channel,
+          message_id: post.messageId,
+          text,
+          parse_mode: 'Markdown'
+        })
+
+        await new Promise(r => setTimeout(r, 1500))
+      } catch (e) {
+        console.log(`Error editing ${post.channel} ${post.messageId}\nText:\n`, text, "Error:\n", e)
+      }
+    }
+  }
+}
+
 async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Promise<void> {
   const alerts = await batumi.getOriginalAlertsFromDay(date)
   console.log(`Posting ${alerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
@@ -184,6 +226,12 @@ const run = async () => {
     res.send(createCronJobs());
   })
 
+  app.get('/updatePostedAlerts', async (req: Request, res: Response) => {
+    await editAllPostedAlerts(links => {
+      res.send(links);
+    })
+  })
+
   app.listen(port, () => {
   });
 
@@ -207,15 +255,16 @@ async function callAsyncAndMeasureTime(func: () => Promise<void>, fnName: string
 let cron10min: ScheduledTask | null = null;
 let cronMorning: ScheduledTask | null = null;
 let cronEvening: ScheduledTask | null = null;
+let cronMidnight: ScheduledTask | null = null;
 
 function createCronJobs(): string {
   let response = ""
   if (cron10min) {
-    response += "10min job already exists"
+    response += "10min job already exists\n"
     cron10min.stop()
   }
 
-  response += "10min job created"
+  response += "10min job created\n"
   //run every 10 minutes
   cron10min = cron.schedule("*/10 * * * *", async () => {
     await callAsyncAndMeasureTime(async () => {
@@ -224,11 +273,11 @@ function createCronJobs(): string {
   })
 
   if (cronMorning) {
-    response += "Morning job already exists"
+    response += "Morning job already exists\n"
     cronMorning.stop()
   }
 
-  response += "Morning job created"
+  response += "Morning job created\n"
   //run every day at 09:00
   cronMorning = cron.schedule("0 9 * * *", async () => {
     await callAsyncAndMeasureTime(
@@ -240,11 +289,11 @@ function createCronJobs(): string {
   })
 
   if (cronEvening) {
-    response += "Evening job already exists"
+    response += "Evening job already exists\n"
     cronEvening.stop()
   }
 
-  response += "Evening job created"
+  response += "Evening job created\n"
   //run every day at 21:00
   cronEvening = cron.schedule("0 21 * * *", async () => {
     await callAsyncAndMeasureTime(
@@ -252,6 +301,23 @@ function createCronJobs(): string {
         await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
         await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
       }, "postAlertsForTomorrow"
+    )
+  })
+
+  if (cronMidnight) {
+    response += "Midnight job already exists\n"
+    cronMidnight.stop()
+  }
+
+  response += "Midnight job created\n"
+
+  //run every day at 00:00
+  cronMidnight = cron.schedule("0 0 * * *", async () => {
+    await callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner("Daily midnight report " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await editAllPostedAlerts()
+      }, "postAlertsForDayAfterTomorrow"
     )
   })
 
