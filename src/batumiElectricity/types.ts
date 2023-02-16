@@ -211,13 +211,11 @@ export class Alert {
       }
     }
     for (let [name, area] of areaTree.children) {
-      let childLevel = level
       if (areaTree.children.size != 1) {
         text += "    ".repeat(level)
-        childLevel++
       }
 
-      const childText = await this.formatAreas(area, cityName, childLevel);
+      const childText = await this.formatAreas(area, cityName, level + 1);
       text += Markdown.escape(childText)
     }
 
