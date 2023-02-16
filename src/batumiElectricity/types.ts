@@ -203,7 +203,12 @@ export class Alert {
 
     if (level != 0) {
       const translatedName = areaTree.name
-      text += Markdown.escape(`${"    ".repeat(level - 1)}${translatedName}\n`);
+      text += Markdown.escape(`${"    ".repeat(level - 1)}${translatedName}`);
+      if (areaTree.children.size != 1) {
+        text += "\n"
+      } else {
+        text += " / "
+      }
     }
     for (let [name, area] of areaTree.children) {
       const text1 = await this.formatAreas(area, cityName, level + 1);
