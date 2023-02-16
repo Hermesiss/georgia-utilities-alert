@@ -135,7 +135,9 @@ export class Alert {
         text += " 🔥 Today 🔥 "
       } else if (this.startDate.isSame(dayjs().add(1, 'day'), "day")) {
         text += " 🌅 Tomorrow 🌅 "
-      } else if (this.startDate.isSame(dayjs(), "week")){
+      } else if (this.startDate.isBefore(dayjs(), 'day')) {
+        text += " 👽 Back to the Future! 👽 "
+      } else if (this.startDate.isSame(dayjs(), "week")) {
         text += " 🗓 This week 🗓 "
       }
     }
@@ -168,12 +170,12 @@ export class Alert {
     return `${this.startDate.format("YYYY-MM-DD HH:mm")} - ${this.endDate.format("YYYY-MM-DD HH:mm")}`
   }
 
-  public async formatSingleAlert(): Promise<string> {
+  public async formatSingleAlert(cityName: string | null): Promise<string> {
     const taskName = Markdown.escape(await Translator.getTranslation(this.taskName))
     const regionName = Markdown.escape(await Translator.getTranslation(this.regionName))
     const cities = Array.from(this.citiesList).join(", ");
     const planText = this.planType != PlanType.Planned ? ` ${Markdown.italic(this.getPlanText(), true)} ` : ""
-    const areas = await this.formatAreas(this.areaTree);
+    const areas = await this.formatAreas(this.areaTree, cityName);
     const taskNote = this.taskNote ? Markdown.escape(await Translator.getTranslation(this.taskNote)) : ""
     const created = this.createdDate ? Markdown.bold("Created: ") + dayjs(this.createdDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
     const deleted = this.deletedDate ? Markdown.bold("Deleted: ") + dayjs(this.deletedDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
@@ -189,16 +191,22 @@ export class Alert {
       created + deleted
   }
 
-  public async formatAreas(areaTree: AreaTree, level = 0): Promise<string> {
+  public async formatAreas(areaTree: AreaTree, cityName: string | null, level = 0): Promise<string> {
     let text = ""
     if (level > 5) return text
+
+    if (level == 1) {
+      if (cityName != null && cityName !== areaTree.name) {
+        return ""
+      }
+    }
 
     if (level != 0) {
       const translatedName = areaTree.name
       text += Markdown.escape(`${"    ".repeat(level - 1)}${translatedName}\n`);
     }
     for (let [name, area] of areaTree.children) {
-      const text1 = await this.formatAreas(area, level + 1);
+      const text1 = await this.formatAreas(area, cityName, level + 1);
       text += Markdown.escape(text1)
     }
 
@@ -325,6 +333,17 @@ export class City {
 
   private init(): void {
 
+  }
+}
+
+export class CityChannel {
+  cityName: string | null;
+  channelId: string;
+
+  //constructor
+  constructor(cityName: string | null, channelId: string) {
+    this.cityName = cityName;
+    this.channelId = channelId;
   }
 }
 

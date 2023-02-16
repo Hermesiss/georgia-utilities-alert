@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import {APIError, Markdown, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
-import {Alert} from "../batumiElectricity/types";
+import {Alert, CityChannel} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
@@ -26,26 +26,40 @@ const token = process.env.TELEGRAM_BOT_TOKEN ?? envError("TELEGRAM_BOT_TOKEN")
 let telegram: Telegram = Telegram.fromToken(token)
 let batumi: BatumiElectricityParser;
 
-const channelMain = process.env.TELEGRAM_CHANNEL_MAIN ?? envError("TELEGRAM_CHANNEL_MAIN")
-const channelBatumi = process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI")
-const channelKutaisi = process.env.TELEGRAM_CHANNEL_KUTAISI ?? envError("TELEGRAM_CHANNEL_KUTAISI")
-const channelKobuleti = process.env.TELEGRAM_CHANNEL_KOBULETI ?? envError("TELEGRAM_CHANNEL_KOBULETI")
+const channels = new Array<CityChannel>()
 
-function getChannelsForAlert(alert: Alert): Set<string> {
-  //main channel and local channels for alert
-  const s = new Set<string>([channelMain])
-  for (let string of alert.citiesList) {
-    switch (string) {
-      case "Batumi":
-        s.add(channelBatumi)
-        break;
-      case "Kutaisi":
-        s.add(channelKutaisi)
-        break;
-      case "Kobuleti":
-        s.add(channelKobuleti)
-        break;
+channels.push(new CityChannel("Batumi", process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI")))
+channels.push(new CityChannel("Kutaisi", process.env.TELEGRAM_CHANNEL_KUTAISI ?? envError("TELEGRAM_CHANNEL_KUTAISI")))
+channels.push(new CityChannel("Kobuleti", process.env.TELEGRAM_CHANNEL_KOBULETI ?? envError("TELEGRAM_CHANNEL_KOBULETI")))
+
+// city name is null for area formatting - we are stripping another cities for posting in city-related channel
+const channelMain = new CityChannel(null, process.env.TELEGRAM_CHANNEL_MAIN ?? envError("TELEGRAM_CHANNEL_MAIN"))
+
+function getChannelForCity(city: string): CityChannel | null {
+  for (let channel of channels) {
+    if (channel.cityName == city) {
+      return channel
     }
+  }
+  return null
+}
+
+function getChannelForId(channelId: string): CityChannel | null{
+  for (let channel of channels) {
+    if (channel.channelId == channelId) {
+      return channel
+    }
+  }
+  return null
+}
+
+function getChannelsForAlert(alert: Alert): Set<CityChannel> {
+  //main channel and local channels for alert
+  const s = new Set<CityChannel>([channelMain])
+  for (let string of alert.citiesList) {
+    const c = getChannelForCity(string)
+    if (c != null)
+      s.add(c)
   }
   return s;
 }
@@ -54,7 +68,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   if (process.env.TELEGRAM_DISABLE_CHANNELS == "true") return
 
   const channels = getChannelsForAlert(alert)
-  const text = await alert.formatSingleAlert()
+
 
   // notify if alert is today or tomorrow
   const today = dayjs(alert.disconnectionDate).isSame(dayjs(), 'day')
@@ -71,14 +85,14 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
     originalAlert.posts = new Array<IPosts>()
   }
 
-  for (let chat_id of channels) {
+  for (let channel of channels) {
     console.log("==== SEND TO CHANNEL")
-
+    const text = await alert.formatSingleAlert(channel.cityName)
     try {
-      const msg = await telegram.api.sendMessage({chat_id, text, parse_mode: 'Markdown', disable_notification: !notify})
-      originalAlert.posts.push({channel: chat_id, messageId: msg.message_id})
+      const msg = await telegram.api.sendMessage({chat_id: channel.channelId, text, parse_mode: 'Markdown', disable_notification: !notify})
+      originalAlert.posts.push({channel: channel.channelId, messageId: msg.message_id})
     } catch (e) {
-      console.log(`Error sending to ${chat_id}\nText:\n`, text, "Error:\n", e)
+      console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
     }
 
     await new Promise(r => setTimeout(r, 1500))
@@ -88,7 +102,10 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 }
 
 async function editAllPostedAlerts(onListCreated?: (links: string) => void | null): Promise<void> {
-  const alerts = await OriginalAlert.find({deletedDate: {$exists: false}, disconnectionDate: {$gte: dayjs().format("YYYY-MM-DD")}})
+  const alerts = await OriginalAlert.find({
+    deletedDate: {$exists: false},
+    disconnectionDate: {$gte: dayjs().format("YYYY-MM-DD")}
+  })
 
   if (onListCreated) {
     let response = ""
@@ -112,7 +129,8 @@ async function editAllPostedAlerts(onListCreated?: (links: string) => void | nul
     const a = await Alert.fromOriginal(alert)
 
     for (let post of alert.posts) {
-      const text = await a.formatSingleAlert()
+      const channel = getChannelForId(post.channel)
+      const text = await a.formatSingleAlert(channel?.cityName ?? null)
       try {
         await telegram.api.editMessageText({
           chat_id: post.channel,
@@ -150,7 +168,7 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
     }
 
     for (let post of alert.posts) {
-      if (post.channel == channelMain && !debug) continue
+      if (post.channel == channelMain.channelId && !debug) continue
 
       if (!channelsWithAlerts.has(post.channel)) {
         channelsWithAlerts.set(post.channel, new Array<string>())
@@ -409,7 +427,8 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
   const alert = await Alert.fromOriginal(originalAlert)
 
   for (let post of originalAlert.posts) {
-    const text = await alert.formatSingleAlert()
+    const channel = getChannelForId(post.channel)
+    const text = await alert.formatSingleAlert(channel?.cityName ?? null)
     let logTxt = `Changing post ${getLinkFromPost(post)}`
     let tries = 3
     while (tries > 0) {
@@ -560,12 +579,13 @@ telegram.updates.on(UpdateType.Message, async context => {
       if (text.startsWith("/alert_")) {
         context.sendChatAction("typing")
         const taskId = Number.parseInt(text.replace("/alert_", ""));
+        const city = text.split(" ")[1] ?? null
         const alertFromId = await batumi.getAlertFromId(taskId);
         if (!alertFromId) {
           context.send(`Cannot find alert with id ${taskId}`)
           return
         }
-        const formatSingleAlert = await alertFromId.formatSingleAlert();
+        const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
         return
       }
