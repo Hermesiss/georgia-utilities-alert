@@ -1,16 +1,17 @@
 import dotenv from 'dotenv';
-import {APIError, Markdown, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
+import {Markdown, RemoveKeyboard, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
 import {Alert, CityChannel} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
+import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
 import * as mongoose from "mongoose";
+import {HydratedDocument} from "mongoose";
 import dayjs, {Dayjs} from "dayjs";
 import {getLinkFromPost, IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
-import {HydratedDocument} from "mongoose";
-import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
 import {Translator} from "../translator";
+import {TelegramFramework} from "./framework";
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ const port = process.env.PORT || 8000;
 const ownerId = process.env.TELEGRAM_OWNER_ID ?? envError("TELEGRAM_OWNER_ID")
 const token = process.env.TELEGRAM_BOT_TOKEN ?? envError("TELEGRAM_BOT_TOKEN")
 
-let telegram: Telegram = Telegram.fromToken(token)
+const telegramFramework = new TelegramFramework(token);
 let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
@@ -68,7 +69,6 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 
   const channels = getChannelsForAlert(alert)
 
-
   // notify if alert is today or tomorrow
   const today = dayjs(alert.disconnectionDate).isSame(dayjs(), 'day')
   const tomorrow = dayjs(alert.disconnectionDate).isSame(dayjs().add(1, 'day'), 'day')
@@ -88,18 +88,17 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
     console.log("==== SEND TO CHANNEL")
     const text = await alert.formatSingleAlert(channel.cityName)
     try {
-      const msg = await telegram.api.sendMessage({
+      const msg = await telegramFramework.sendMessage({
         chat_id: channel.channelId,
         text,
         parse_mode: 'Markdown',
         disable_notification: !notify
       })
-      originalAlert.posts.push({channel: channel.channelId, messageId: msg.message_id})
+      if (msg)
+        originalAlert.posts.push({channel: channel.channelId, messageId: msg.message_id})
     } catch (e) {
       console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
     }
-
-    await new Promise(r => setTimeout(r, 1500))
   }
 
   await originalAlert.save()
@@ -140,18 +139,14 @@ async function editAllPostedAlerts(onListCreated?: (links: string) => void | nul
     for (let post of alert.posts) {
       const channel = getChannelForId(post.channel)
       const text = await a.formatSingleAlert(channel?.cityName ?? null)
-      try {
-        await telegram.api.editMessageText({
-          chat_id: post.channel,
-          message_id: post.messageId,
-          text,
-          parse_mode: 'Markdown'
-        })
-
-        await new Promise(r => setTimeout(r, 1500))
-      } catch (e) {
+      await telegramFramework.editMessageText({
+        chat_id: post.channel,
+        message_id: post.messageId,
+        text,
+        parse_mode: 'Markdown'
+      }, e => {
         console.log(`Error editing ${post.channel} ${post.messageId}\nText:\n`, text, "Error:\n", e)
-      }
+      })
     }
   }
 }
@@ -197,11 +192,10 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
   for (let channelsWithAlert of channelsWithAlerts) {
     const post = `*${caption}*\n\n${channelsWithAlert[1].join('')}`
     if (debug) {
-      await sendToOwner(post, "Markdown", 1000)
+      await sendToOwner(post, "Markdown")
     } else {
       console.log("==== SEND DAILY TO CHANNEL")
-      await telegram.api.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
-      await new Promise(r => setTimeout(r, 1500))
+      await telegramFramework.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
     }
   }
 }
@@ -228,7 +222,6 @@ async function fetchAndSendNewAlerts() {
 
       if (text) {
         await sendToOwner(text)
-        await new Promise(r => setTimeout(r, 1000))
       }
     }
   }
@@ -256,6 +249,7 @@ const run = async () => {
         await editAllPostedAlerts(links => {
           res.send(links);
         })
+        await sendToOwner("Daily midnight renaming ended " + dayjs().format('YYYY-MM-DD HH:mm'))
       }, "postAlertsForDayAfterTomorrow"
     )
   })
@@ -292,7 +286,7 @@ const run = async () => {
 
   await fetchAndSendNewAlerts();
 
-  telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
+  telegramFramework.startPollingUpdates().then(success => console.log(`@${telegramFramework.botUsername} launched: ${success}`))
 }
 
 
@@ -375,7 +369,6 @@ async function sendUpcoming(context: MessageContext, cityCommand: string) {
     const caption = `Alerts for ${date.toString()}`
     const s = await getAlertSummaryForDate(date, caption, city);
     await context.send(s)
-    await new Promise(r => setTimeout(r, 300))
   }
 }
 
@@ -390,62 +383,27 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
   for (let post of originalAlert.posts) {
     const channel = getChannelForId(post.channel)
     const text = await alert.formatSingleAlert(channel?.cityName ?? null)
-    let logTxt = `Changing post ${getLinkFromPost(post)}`
-    let tries = 3
-    while (tries > 0) {
-      try {
-        console.log("==== EDIT POST")
-        await telegram.api.editMessageText({
-          chat_id: post.channel,
-          message_id: post.messageId,
-          text,
-          parse_mode: "Markdown"
-        })
-        console.log(logTxt)
-        break
-      } catch (e: any) {
-        if ('code' in e) {
-          if (e.code == 400) { // Bad Request: message is not modified
-            // TODO handle markdown parse error
-            console.log("Already edited")
-            break
-          }
-          if (e.code == 429) { // Too Many Requests
-            const apiError = <APIError>e
-            const retry = apiError.parameters?.retry_after
-            tries--
-            if (retry) {
-              console.log(`WAIT FOR ${retry} AND RETRY, ${tries}`)
-              await new Promise(r => setTimeout(r, 1000 * (retry + 1)))
-            } else {
-              console.log(`RETRY, ${tries}`)
-            }
-          }
-        } else {
-          logTxt = e.toString()
-          console.log("==== UNKNOWN ERROR", e)
-          break
-        }
-      }
-    }
+    let msg = `Changing post ${getLinkFromPost(post)}`;
 
-    await new Promise(r => setTimeout(r, 1000))
-    await sendToOwner(logTxt)
-
-    await new Promise(r => setTimeout(r, 1000))
+    await telegramFramework.editMessageText({
+      chat_id: post.channel,
+      message_id: post.messageId,
+      text,
+      parse_mode: "Markdown"
+    }, e => {
+      msg += `\n\nError: ${e}`
+    })
+    await sendToOwner(msg)
   }
 }
 
-async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined, awaitTimeMs: number = 0) {
+async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined) {
   if (!ownerId) return
   console.log("==== SEND TO OWNER")
-  await telegram.api.sendMessage({chat_id: ownerId, text: text, parse_mode})
-  if (awaitTimeMs > 0) {
-    await new Promise(r => setTimeout(r, awaitTimeMs))
-  }
+  await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
 }
 
-telegram.updates.on(UpdateType.Message, async context => {
+telegramFramework.onUpdates(UpdateType.Message, async context => {
   const text = context.text;
 
   console.log(`Message from ${context.from?.id} ${context.from?.username}`)
@@ -572,8 +530,6 @@ const commands = [
   {command: "cities", description: "All cities with upcoming alerts"},
 ];
 
-telegram.api.setMyCommands({
-  commands
-}).then(value => console.log("Set my commands", value, commands))
+telegramFramework.setMyCommands({commands}).then(value => console.log("Set my commands", value, commands))
 
 run().then()
