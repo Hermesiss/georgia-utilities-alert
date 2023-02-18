@@ -6,7 +6,6 @@ import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import {TelegramKeyboardButton} from "puregram/lib/generated/telegram-interfaces";
 import * as mongoose from "mongoose";
-import cron, {ScheduledTask} from 'node-cron'
 import dayjs, {Dayjs} from "dayjs";
 import {getLinkFromPost, IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
@@ -44,7 +43,7 @@ function getChannelForCity(city: string): CityChannel | null {
   return null
 }
 
-function getChannelForId(channelId: string): CityChannel | null{
+function getChannelForId(channelId: string): CityChannel | null {
   for (let channel of channels) {
     if (channel.channelId == channelId) {
       return channel
@@ -89,7 +88,12 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
     console.log("==== SEND TO CHANNEL")
     const text = await alert.formatSingleAlert(channel.cityName)
     try {
-      const msg = await telegram.api.sendMessage({chat_id: channel.channelId, text, parse_mode: 'Markdown', disable_notification: !notify})
+      const msg = await telegram.api.sendMessage({
+        chat_id: channel.channelId,
+        text,
+        parse_mode: 'Markdown',
+        disable_notification: !notify
+      })
       originalAlert.posts.push({channel: channel.channelId, messageId: msg.message_id})
     } catch (e) {
       console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
@@ -101,6 +105,11 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   await originalAlert.save()
 }
 
+/*
+ Edit all non-deleted posted alerts in channels
+ @param onListCreated - callback to get list of links before actually editing
+ @returns void
+ */
 async function editAllPostedAlerts(onListCreated?: (links: string) => void | null): Promise<void> {
   const alerts = await OriginalAlert.find({
     deletedDate: {$exists: false},
@@ -240,14 +249,40 @@ const run = async () => {
     res.send('Georgia Utilities Alert');
   });
 
-  app.get('/createCronJobs', (req: Request, res: Response) => {
-    res.send(createCronJobs());
+  app.post('/api/actions/updatePostedAlerts', (req: Request, res: Response) => {
+    callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner("Daily midnight renaming " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await editAllPostedAlerts(links => {
+          res.send(links);
+        })
+      }, "postAlertsForDayAfterTomorrow"
+    )
   })
 
-  app.get('/updatePostedAlerts', async (req: Request, res: Response) => {
-    await editAllPostedAlerts(links => {
-      res.send(links);
-    })
+  app.post('/api/actions/checkAlerts', (req: Request, res: Response) => {
+    fetchAndSendNewAlerts().then()
+    res.send("OK")
+  })
+
+  app.post('/api/actions/sendToday', (req: Request, res: Response) => {
+    callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await postAlertsForDay(dayjs(), "Today!", false)
+      }, "postAlertsForToday"
+    ).then()
+    res.send("OK")
+  })
+
+  app.post('/api/actions/sendTomorrow', (req: Request, res: Response) => {
+    callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+      }, "postAlertsForTomorrow"
+    ).then()
+    res.send("OK")
   })
 
   app.listen(port, () => {
@@ -258,8 +293,6 @@ const run = async () => {
   await fetchAndSendNewAlerts();
 
   telegram.updates.startPolling().then(success => console.log(`@${telegram.bot.username} launched: ${success}`))
-
-  createCronJobs();
 }
 
 
@@ -268,78 +301,6 @@ async function callAsyncAndMeasureTime(func: () => Promise<void>, fnName: string
   await func()
   const end = Date.now()
   console.log(`${fnName} Finished in ${end - start} ms`)
-}
-
-let cron10min: ScheduledTask | null = null;
-let cronMorning: ScheduledTask | null = null;
-let cronEvening: ScheduledTask | null = null;
-let cronMidnight: ScheduledTask | null = null;
-
-function createCronJobs(): string {
-  let response = ""
-  if (cron10min) {
-    response += "10min job already exists\n"
-    cron10min.stop()
-  }
-
-  response += "10min job created\n"
-  //run every 10 minutes
-  cron10min = cron.schedule("*/10 * * * *", async () => {
-    await callAsyncAndMeasureTime(async () => {
-      await fetchAndSendNewAlerts()
-    }, "fetchAndSendNewAlerts")
-  })
-
-  if (cronMorning) {
-    response += "Morning job already exists\n"
-    cronMorning.stop()
-  }
-
-  response += "Morning job created\n"
-  //run every day at 09:00
-  cronMorning = cron.schedule("0 9 * * *", async () => {
-    await callAsyncAndMeasureTime(
-      async () => {
-        await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await postAlertsForDay(dayjs(), "Today!", false)
-      }, "postAlertsForToday"
-    )
-  })
-
-  if (cronEvening) {
-    response += "Evening job already exists\n"
-    cronEvening.stop()
-  }
-
-  response += "Evening job created\n"
-  //run every day at 21:00
-  cronEvening = cron.schedule("0 21 * * *", async () => {
-    await callAsyncAndMeasureTime(
-      async () => {
-        await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
-      }, "postAlertsForTomorrow"
-    )
-  })
-
-  if (cronMidnight) {
-    response += "Midnight job already exists\n"
-    cronMidnight.stop()
-  }
-
-  response += "Midnight job created\n"
-
-  //run every day at 00:00
-  cronMidnight = cron.schedule("8 0 * * *", async () => {
-    await callAsyncAndMeasureTime(
-      async () => {
-        await sendToOwner("Daily midnight report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await editAllPostedAlerts()
-      }, "postAlertsForDayAfterTomorrow"
-    )
-  })
-
-  return response
 }
 
 //aggregate alerts by day in disconnectionDate. TODO TEST THIS
