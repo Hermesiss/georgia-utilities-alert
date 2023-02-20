@@ -1,13 +1,12 @@
 import fs from "fs"
 import stringSimilarity from "string-similarity"
 import dayjs from "dayjs";
-import {FeaturesEntity, GeoJsonData, Geometry, SavedStreet} from "./types";
+import {GeoJsonData, Geometry, SavedStreet} from "./types";
 import dotenv from "dotenv";
 import polyline from "google-polyline";
 
 import {staticMapUrl} from 'static-google-map';
-import {exec} from "child_process";
-import open from "open";
+import { loadImage, createCanvas } from 'canvas';
 
 dotenv.config();
 
@@ -27,7 +26,6 @@ let streets = new Set<string>()
 const lines = input.split("\n")
 
 const realStreets = new Map<string, SavedStreet[]>()
-
 
 for (let line of lines) {
   const individual = line.split("/")
@@ -65,8 +63,6 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
       empty++
       continue
     }
-
-    //if ( road.properties['name:en']==null) continue
 
     const saved = {
       name: road.properties.name,
@@ -144,13 +140,9 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
 
       points.push([coord[1], coord[0]]) //TODO check
     }
-    /*    const randomColorFromPathStyles = () => {
-          const colors = ["red", "blue", "green", "yellow", "pink", "purple", "orange", "black", "white"]
-          return colors[Math.floor(Math.random() * colors.length)]
-        }*/
+
     const encodedPoints = polyline.encode(points)
     mapPaths.push({points: `enc:${encodedPoints}`, color: 'red', weight: 5})
-
   }
 
   console.log(`Duration: ${duration}ms`)
@@ -163,14 +155,45 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
     maptype: 'roadmap',
     paths: mapPaths,
     language: 'en',
-    /*pathGroups: [{
-      color: 'red',
-      paths: mapPaths
-    }]*/
   });
 
   console.log(url)
+
+  drawImage(url, "12:00 - 14:30")
 })
+
+function drawImage(url: string, date: string){
+  const canvas = createCanvas(640, 640)
+  const context = canvas.getContext('2d')
+  loadImage(url).then((data) => {
+    context.drawImage(data, 0, 0, 640, 640)
+
+    context.font = '30pt Helvetica'
+    context.textBaseline = 'top'
+    context.textAlign = 'center'
+    context.fillStyle = '#fff'
+
+    context.strokeStyle = '#222'
+    context.shadowColor = '#000';
+    context.shadowBlur = 3;
+
+    const textX = 320
+    context.lineWidth = 2;
+    context.strokeText(date, textX, 24)
+    context.fillText(date, textX, 24)
+
+    context.font = '15pt Helvetica'
+    context.textAlign = 'left'
+
+    /*const channelText = "@alerts_batumi"
+    context.lineWidth = 4;
+    //context.strokeText(channelText, 10, 10)
+    context.fillText(channelText, 12, 10)*/
+
+    const imgBuffer = canvas.toBuffer('image/png')
+    fs.writeFileSync('./dist/drawnImage.png', imgBuffer)
+  })
+}
 
 
 
