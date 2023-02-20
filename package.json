@@ -8,7 +8,9 @@
     "build": "npx tsc",
     "postinstall": "npx tsc",
     "start": "node dist/bot/index.js",
-    "start:dev:bot": "concurrently \"npx tsc --watch\" \"nodemon -q dist/bot/index.js\""
+    "start:dev:bot": "concurrently \"npx tsc --watch\" \"nodemon -q dist/bot/index.js\"",
+    "dev:map:start": "node dist/map/index.js",
+    "dev:map:build-and-start": "npm run build && npm run dev:map:start"
   },
   "keywords": [],
   "author": "hermesiss",
@@ -20,11 +22,13 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "mongoose": "^6.7.5",
-    "puregram": "^2.9.8"
+    "puregram": "^2.9.8",
+    "string-similarity": "^4.0.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.14",
     "@types/node": "^18.11.9",
+    "@types/string-similarity": "^4.0.0",
     "concurrently": "^7.6.0",
     "nodemon": "^2.0.20",
     "typescript": "^4.9.3"

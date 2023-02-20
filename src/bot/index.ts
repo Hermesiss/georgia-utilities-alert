@@ -151,7 +151,7 @@ async function editAllPostedAlerts(onListCreated?: (links: string) => void | nul
   }
 }
 
-async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Promise<void> {
+async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
   const alerts = await batumi.getOriginalAlertsFromDay(date)
   console.log(`Posting ${alerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
   const orderedAlerts = alerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
@@ -172,7 +172,7 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
     }
 
     for (let post of alert.posts) {
-      if (post.channel == channelMain.channelId && !debug) continue
+      if (post.channel == channelMain.channelId) continue
 
       if (!channelsWithAlerts.has(post.channel)) {
         channelsWithAlerts.set(post.channel, new Array<string>())
@@ -191,12 +191,8 @@ async function postAlertsForDay(date: Dayjs, caption: string, debug = false): Pr
 
   for (let channelsWithAlert of channelsWithAlerts) {
     const post = `*${caption}*\n\n${channelsWithAlert[1].join('')}`
-    if (debug) {
-      await sendToOwner(post, "Markdown")
-    } else {
-      console.log("==== SEND DAILY TO CHANNEL")
-      await telegramFramework.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
-    }
+    console.log("==== SEND DAILY TO CHANNEL")
+    await telegramFramework.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
   }
 }
 
@@ -263,7 +259,7 @@ const run = async () => {
     callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await postAlertsForDay(dayjs(), "Today!", false)
+        await postAlertsForDay(dayjs(), "Today!")
       }, "postAlertsForToday"
     ).then()
     res.send("OK")
@@ -273,7 +269,7 @@ const run = async () => {
     callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
+        await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow")
       }, "postAlertsForTomorrow"
     ).then()
     res.send("OK")
@@ -430,22 +426,6 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
           const caption = "Tomorrow's alerts:"
           const s = await getAlertSummaryForDate(tomorrow, caption);
           context.send(s)
-          return
-        }
-        case "/check_today_debug": {
-          await postAlertsForDay(dayjs(), "Today!", true)
-          return
-        }
-        case "/check_today": {
-          await postAlertsForDay(dayjs(), "Today!", false)
-          return
-        }
-        case "/check_tomorrow_debug": {
-          await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", true)
-          return
-        }
-        case "/check_tomorrow": {
-          await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow", false)
           return
         }
         case "/upcoming": {
