@@ -153,14 +153,14 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
     }
 
     const encodedPoints = polyline.encode(points)
-    mapPaths.push({points: `enc:${encodedPoints}`, color: 'red', weight: 5})
+    mapPaths.push({points: `enc:${encodedPoints}`, color: '0xff0000ff', weight: 4})
   }
 
   console.log(`Duration: ${duration}ms`)
 
   const url = staticMapUrl({
     key: googleMapApiKey,
-    scale: 1,
+    scale: 2,
     size: '640x640',
     format: 'png',
     maptype: 'roadmap',
