@@ -6,9 +6,13 @@ import dotenv from "dotenv";
 import polyline from "google-polyline";
 
 import {staticMapUrl} from 'static-google-map';
-import { loadImage, createCanvas } from 'canvas';
+import {loadImage, createCanvas} from 'canvas';
+import {Translator} from "../translator";
+import routeLineTranslations from "./data/route_line_translated.json";
 
 dotenv.config();
+
+const translatedRouteMap = new Map<string, string>(Object.entries(routeLineTranslations))
 
 const input =
   `Alexander Pushkin
@@ -47,7 +51,7 @@ const getGeometry = (name: string): Geometry[] | null => {
 
 const googleMapApiKey = process.env.GOOGLE_MAP_API_KEY || "";
 
-fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
+fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
   if (err) {
     console.error(err)
     return
@@ -58,8 +62,14 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
   let empty = 0
 
   for (let road of obj.features) {
+    if (road.properties.name == null || typeof road.properties.name === 'undefined') continue
     const name = road.properties['name:en']
     if (name == null || typeof name === 'undefined') {
+      if (!translatedRouteMap.has(road.properties.name)) {
+        const t = await Translator.getTranslation(road.properties.name)
+        translatedRouteMap.set(road.properties.name, t)
+      }
+      road.properties['name:en'] = translatedRouteMap.get(road.properties.name) || road.properties.name
       empty++
       continue
     }
@@ -81,6 +91,7 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
   console.log("Empty", empty)
   console.log("Total", realStreets.size)
 
+  fs.writeFileSync("./src/map/data/route_line_translated.json", JSON.stringify(Object.fromEntries(translatedRouteMap), null, 2))
 
   const start = dayjs()
 
@@ -99,7 +110,7 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
     for (let best of similar.ratings) {
       if (best.rating > threshold) {
         found++
-        console.log(`Find similar for ${street} is ${JSON.stringify(best.target)} with ${best.rating}`)
+        console.log(`Find similar for ${street} is ${best.target} with ${best.rating}`)
         if (processed.has(best.target)) {
           continue
         }
@@ -159,36 +170,42 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", (err, data) => {
 
   console.log(url)
 
-  drawImage(url, "12:00 - 14:30")
+  drawImage(url, dayjs().format("YYYY.MM.DD"), "12:00 - 14:30", "@alerts_batumi")
 })
 
-function drawImage(url: string, date: string){
-  const canvas = createCanvas(640, 640)
+function drawImage(url: string, date: string, time: string, watermark?: string) {
+  const canvas = createCanvas(640, 760)
   const context = canvas.getContext('2d')
   loadImage(url).then((data) => {
-    context.drawImage(data, 0, 0, 640, 640)
+    context.drawImage(data, 0, 120, 640, 640)
 
-    context.font = '30pt Helvetica'
     context.textBaseline = 'top'
     context.textAlign = 'center'
     context.fillStyle = '#fff'
+    context.fillRect(0, 0, 640, 120)
 
+    context.fillStyle = '#000'
     context.strokeStyle = '#222'
-    context.shadowColor = '#000';
+    context.shadowColor = '#00000040';
     context.shadowBlur = 3;
 
     const textX = 320
+    context.font = '16pt Helvetica'
+    context.fillText(date, textX, 14)
     context.lineWidth = 2;
-    context.strokeText(date, textX, 24)
-    context.fillText(date, textX, 24)
+    context.font = '30pt Helvetica'
+    //context.strokeText(date, textX, 24)
+    context.fillText(time, textX, 50)
 
-    context.font = '15pt Helvetica'
-    context.textAlign = 'left'
-
-    /*const channelText = "@alerts_batumi"
-    context.lineWidth = 4;
-    //context.strokeText(channelText, 10, 10)
-    context.fillText(channelText, 12, 10)*/
+    if (watermark) {
+      context.lineWidth = 2;
+      context.font = '16pt Helvetica'
+      context.textAlign = 'left'
+      context.fillStyle = '#FFFFFF'
+      context.strokeStyle = '#00000055'
+      context.shadowColor = '#00000080';
+      context.fillText(watermark, 12, 132)
+    }
 
     const imgBuffer = canvas.toBuffer('image/png')
     fs.writeFileSync('./dist/drawnImage.png', imgBuffer)
