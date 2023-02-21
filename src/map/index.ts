@@ -61,6 +61,12 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
   console.log("Total items", obj.features?.length)
   let empty = 0
 
+  const colEmergency = {bg:'#b0392e', line: `0xff0000ff`}
+  const colPlanned = {bg:'#4b68b1', line: `0x0000ffff`}
+  const colDone = {bg: '#616161', line: `0x606060ff`}
+
+  const selectedColor = colDone
+
   for (let road of obj.features) {
     if (road.properties.name == null || typeof road.properties.name === 'undefined') continue
     const name = road.properties['name:en']
@@ -153,7 +159,7 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
     }
 
     const encodedPoints = polyline.encode(points)
-    mapPaths.push({points: `enc:${encodedPoints}`, color: '0xff0000ff', weight: 4})
+    mapPaths.push({points: `enc:${encodedPoints}`, color: selectedColor.line, weight: 4})
   }
 
   console.log(`Duration: ${duration}ms`)
@@ -170,41 +176,42 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
 
   console.log(url)
 
-  drawImage(url, dayjs().format("YYYY.MM.DD"), "12:00 - 14:30", "@alerts_batumi")
+
+  drawImage(url, dayjs().format("DD MMMM YYYY"), "12:00 - 14:30", selectedColor.bg, "Emergency outage",
+    "@alerts_batumi")
 })
 
-function drawImage(url: string, date: string, time: string, watermark?: string) {
-  const canvas = createCanvas(640, 760)
+function drawImage(url: string, date: string, time: string, bgColor: string, bottomLeft?: string, bottomRight?: string) {
+  const canvas = createCanvas(640, 872)
   const context = canvas.getContext('2d')
   loadImage(url).then((data) => {
-    context.drawImage(data, 0, 120, 640, 640)
+    context.fillStyle = bgColor
+    context.fillRect(0, 0, 640, 872)
+    context.drawImage(data, 0, 182, 640, 640)
 
+    context.font = '36pt Helvetica'
     context.textBaseline = 'top'
     context.textAlign = 'center'
     context.fillStyle = '#fff'
-    context.fillRect(0, 0, 640, 120)
-
-    context.fillStyle = '#000'
-    context.strokeStyle = '#222'
-    context.shadowColor = '#00000040';
-    context.shadowBlur = 3;
 
     const textX = 320
-    context.font = '16pt Helvetica'
-    context.fillText(date, textX, 14)
-    context.lineWidth = 2;
-    context.font = '30pt Helvetica'
+    context.fillText(date, textX, 18)
+    //context.font = '30pt Helvetica'
     //context.strokeText(date, textX, 24)
-    context.fillText(time, textX, 50)
+    context.fillText(time, textX, 102)
 
-    if (watermark) {
-      context.lineWidth = 2;
-      context.font = '16pt Helvetica'
+    if (bottomRight) {
+      context.font = '18pt Helvetica'
+      context.textAlign = 'right'
+      context.fillStyle = '#FFFFFF'
+      context.fillText(bottomRight, 640 - 24, 832)
+    }
+
+    if (bottomLeft) {
+      context.font = '18pt Helvetica'
       context.textAlign = 'left'
       context.fillStyle = '#FFFFFF'
-      context.strokeStyle = '#00000055'
-      context.shadowColor = '#00000080';
-      context.fillText(watermark, 12, 132)
+      context.fillText(bottomLeft, 24, 832)
     }
 
     const imgBuffer = canvas.toBuffer('image/png')
