@@ -7,14 +7,18 @@ import polyline from "google-polyline";
 import {staticMapUrl} from 'static-google-map';
 import {Translator} from "../translator";
 import routeLineTranslations from "./data/route_line_translated.json";
+import aliases from "./data/aliases.json";
 import {Alert, AreaTree} from "../batumiElectricity/types";
 import {AlertColor} from "../imageGeneration";
 
 dotenv.config();
 
 const translatedRouteMap = new Map<string, string>(Object.entries(routeLineTranslations))
+const aliasesMap = new Map<string, string>(Object.entries(aliases))
+const aliasesNames = Array.from(aliasesMap.keys());
 
 const realStreets = new Map<string, SavedStreet[]>()
+let realStreetsNames: string[]
 
 function getGeometry(name: string): Geometry[] | null {
   const saved = realStreets.get(name)
@@ -62,10 +66,23 @@ export async function prepareGeoJson() {
   }
 
   fs.writeFileSync("./src/map/data/route_line_translated.json", JSON.stringify(Object.fromEntries(translatedRouteMap), null, 2))
+  realStreetsNames = Array.from(realStreets.keys());
 }
 
-export async function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): Promise<string> {
-  const geometry = await createGeometry(alert, city)
+export function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): string {
+  const streets = getStreets(alert.areaTree, city)
+  const realStreets = getRealStreets(streets)
+  return drawMapFromStreets(realStreets, color)
+}
+
+export function drawMapFromInput(input: string, color: AlertColor): string {
+  const streets = getStreetsFromInput(input)
+  const realStreets = getRealStreets(streets)
+  return drawMapFromStreets(realStreets, color)
+}
+
+export function drawMapFromStreets(realStreets: Set<string>, color: AlertColor): string {
+  const geometry = createGeometry(realStreets)
   return drawMap(geometry, color)
 }
 
@@ -102,19 +119,45 @@ function getStreets(tree: AreaTree, city: string | null, level = 0): Set<string>
   return result
 }
 
-async function createGeometry(alert: Alert, city: string | null): Promise<Geometry[]> {
-  const targetStrings = Array.from(realStreets.keys());
+export function getStreetsFromInput(input: string): Set<string> {
+  let streets = new Set<string>()
 
+  const lines = input.split("\n")
+
+  for (let line of lines) {
+    const individual = line.split("/")
+    for (let string of individual) {
+      streets.add(string.trim())
+    }
+  }
+
+  return streets
+}
+
+/**
+ *
+ * @param streets
+ * @return realStreets
+ */
+export function getRealStreets(streets: Set<string>): Set<string> {
   const threshold = 0.5
 
-  const geometries: Geometry[] = []
   const processed = new Set<string>()
 
-  let streets = getStreets(alert.areaTree, city)
-
   for (let street of streets) {
-    const similar = stringSimilarity.findBestMatch(street, targetStrings)
+    const similar = stringSimilarity.findBestMatch(street, realStreetsNames)
     let found = 0
+    const similarAlias = stringSimilarity.findBestMatch(street, aliasesNames)
+    if (similarAlias.bestMatch.rating > 0.8) {
+      if (processed.has(similarAlias.bestMatch.target)) {
+        continue
+      }
+
+      const street = aliasesMap.get(similarAlias.bestMatch.target) ?? ""
+      processed.add(street)
+      continue
+    }
+
     for (let best of similar.ratings) {
       if (best.rating > threshold) {
         found++
@@ -124,9 +167,6 @@ async function createGeometry(alert: Alert, city: string | null): Promise<Geomet
         }
 
         processed.add(best.target)
-        const geometry = getGeometry(best.target);
-        if (geometry)
-          geometries.push(...geometry)
       }
     }
     if (found == 0) {
@@ -135,16 +175,28 @@ async function createGeometry(alert: Alert, city: string | null): Promise<Geomet
         console.log(`Find BAD similar for ${street} ${JSON.stringify(best.target)} with ${best.rating}`)
         if (!processed.has(best.target)) {
           processed.add(best.target)
-          const geometry = getGeometry(best.target);
-          if (geometry) {
-            geometries.push(...geometry)
-          }
         }
       } else {
         console.log(`Not found similar for ${street}`)
       }
     }
+  }
 
+  return processed
+}
+
+/**
+ *
+ * @param realStreets
+ */
+function createGeometry(realStreets: Set<string>): Geometry[] {
+  const geometries: Geometry[] = []
+
+  for (let string of realStreets) {
+    const geometry = getGeometry(string);
+    if (geometry) {
+      geometries.push(...geometry)
+    }
   }
 
   return geometries

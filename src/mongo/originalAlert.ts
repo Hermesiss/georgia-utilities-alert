@@ -45,7 +45,8 @@ const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
   taskType: {type: String, required: true},
   posts: [new Schema<IPosts>({
     channel: {type: String, required: true},
-    messageId: {type: Number, required: true}
+    messageId: {type: Number, required: true},
+    hasPhoto: {type: Boolean, required: true, default: false},
   })],
   createdDate: {type: Date, required: false},
   deletedDate: {type: Date, required: false},

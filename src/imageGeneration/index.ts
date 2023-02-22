@@ -21,6 +21,10 @@ export async function drawSingleAlert(alert: Alert, alertColor: AlertColor, mapU
   return drawImage(mapUrl, date, time, alert.taskId.toString(), alertColor.bg, alertColor.caption, channel)
 }
 
+export async function drawCustom(alertColor: AlertColor, mapUrl: string, channel: string, date: string, time: string, imgFilename: string): Promise<string> {
+  return drawImage(mapUrl, date, time,imgFilename, alertColor.bg, alertColor.caption, channel)
+}
+
 /**
  *
  * @param url

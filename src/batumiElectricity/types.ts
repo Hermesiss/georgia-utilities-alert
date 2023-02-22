@@ -321,18 +321,18 @@ export class Alert {
     return diff;
   }
 
-  getAlertColor(): AlertColor {
-    const colEmergency = {bg: '#b0392e', line: `0xff0000ff`, caption: "Emergency outage"}
-    const colPlanned = {bg: '#4b68b1', line: `0x0000ffff`, caption: "Planned outage"}
-    const colDone = {bg: '#616161', line: `0x606060ff`, caption: "Work completed"}
+  static colorEmergency = {bg: '#b0392e', line: `0xff0000ff`, caption: "Emergency outage"}
+  static colorPlanned = {bg: '#4b68b1', line: `0x0000ffff`, caption: "Planned outage"}
+  static colorDone = {bg: '#616161', line: `0x606060ff`, caption: "Work completed"}
 
+  getAlertColor(): AlertColor {
     if (this.deletedDate) {
-      return colDone
+      return Alert.colorDone
     }
     if (this.planType === PlanType.Planned) {
-      return colPlanned
+      return Alert.colorPlanned
     }
-    return colEmergency
+    return Alert.colorEmergency
   }
 }
 

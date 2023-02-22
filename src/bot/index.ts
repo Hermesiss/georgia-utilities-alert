@@ -12,8 +12,15 @@ import dayjs, {Dayjs} from "dayjs";
 import {getLinkFromPost, IOriginalAlert, IPosts, OriginalAlert} from "../mongo/originalAlert";
 import {Translator} from "../translator";
 import {TelegramFramework} from "./framework";
-import {AlertColor, drawSingleAlert} from "../imageGeneration";
-import {drawMapFromAlert, prepareGeoJson} from "../map";
+import {AlertColor, drawCustom, drawSingleAlert} from "../imageGeneration";
+import {
+  drawMapFromAlert,
+  drawMapFromInput,
+  drawMapFromStreets,
+  getRealStreets,
+  getStreetsFromInput,
+  prepareGeoJson
+} from "../map";
 
 dotenv.config();
 
@@ -30,12 +37,12 @@ let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
 
-channels.push(new CityChannel("Batumi", process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI"), false)) //TODO change to true
+channels.push(new CityChannel("Batumi", process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI"), true)) //TODO change to true
 channels.push(new CityChannel("Kutaisi", process.env.TELEGRAM_CHANNEL_KUTAISI ?? envError("TELEGRAM_CHANNEL_KUTAISI")))
 channels.push(new CityChannel("Kobuleti", process.env.TELEGRAM_CHANNEL_KOBULETI ?? envError("TELEGRAM_CHANNEL_KOBULETI")))
 
 // city name is null for area formatting - we are stripping another cities for posting in city-related channel
-const channelMain = new CityChannel(null, process.env.TELEGRAM_CHANNEL_MAIN ?? envError("TELEGRAM_CHANNEL_MAIN"))
+const channelMain = new CityChannel(null, process.env.TELEGRAM_CHANNEL_MAIN ?? "skip")
 
 function getChannelForCity(city: string): CityChannel | null {
   for (let channel of channels) {
@@ -57,7 +64,10 @@ function getChannelForId(channelId: string): CityChannel | null {
 
 function getChannelsForAlert(alert: Alert): Set<CityChannel> {
   //main channel and local channels for alert
-  const s = new Set<CityChannel>([channelMain])
+  const s = new Set<CityChannel>()
+  if (channelMain.channelId != "skip"){
+    s.add(channelMain)
+  }
   for (let string of alert.citiesList) {
     const c = getChannelForCity(string)
     if (c != null)
@@ -94,7 +104,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
       let msg: TelegramMessage | null;
       if (postPhoto) {
         const alertColor: AlertColor = alert.getAlertColor()
-        const mapUrl = await drawMapFromAlert(alert, alertColor, channel.cityName)
+        const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
         const image = await drawSingleAlert(alert, alertColor, mapUrl, "@alerts_batumi")
 
         msg = await telegramFramework.sendPhoto({
@@ -421,7 +431,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
 
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
-      const mapUrl = await drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
+      const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
       const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
 
       await telegramFramework.editMessageMedia({
@@ -538,7 +548,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         }
         const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         const alertColor: AlertColor = alertFromId.getAlertColor()
-        const mapUrl = await drawMapFromAlert(alertFromId, alertColor, "Batumi")
+        const mapUrl = drawMapFromAlert(alertFromId, alertColor, "Batumi")
         const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@alerts_batumi")
         //context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
         context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
@@ -549,6 +559,18 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const cityCommand = text.replace("/upcoming_", "")
         await sendUpcoming(context, cityCommand);
         return
+      }
+
+      if (text.startsWith("/draw")) {
+        const cities = text.replace("/draw", "")
+        const streets = getStreetsFromInput(cities)
+        const realStreets = getRealStreets(streets)
+        const returnText = `Real streets:\n${Array.from(realStreets).join("\n")}`
+        const mapUrl = drawMapFromStreets(realStreets, Alert.colorPlanned)
+        //const mapUrl = drawMapFromInput(cities, Alert.colorPlanned)
+        const image = await drawCustom(Alert.colorPlanned, mapUrl, "@alerts_batumi", "Kek", "Shrek", "MyFile")
+        //context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
+        context.sendPhoto(MediaSource.path(image), {caption: returnText, parse_mode: 'Markdown'})
       }
     } else {
       console.log(`Simple text ${context.text}`)
