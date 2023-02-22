@@ -15,7 +15,6 @@ import {TelegramFramework} from "./framework";
 import {AlertColor, drawCustom, drawSingleAlert} from "../imageGeneration";
 import {
   drawMapFromAlert,
-  drawMapFromInput,
   drawMapFromStreets,
   getRealStreets,
   getStreetsFromInput,
@@ -65,7 +64,7 @@ function getChannelForId(channelId: string): CityChannel | null {
 function getChannelsForAlert(alert: Alert): Set<CityChannel> {
   //main channel and local channels for alert
   const s = new Set<CityChannel>()
-  if (channelMain.channelId != "skip"){
+  if (channelMain.channelId != "skip") {
     s.add(channelMain)
   }
   for (let string of alert.citiesList) {
@@ -102,10 +101,10 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
     const postPhoto = channel.canPostPhotos
     try {
       let msg: TelegramMessage | null;
-      if (postPhoto) {
-        const alertColor: AlertColor = alert.getAlertColor()
-        const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
-        const image = await drawSingleAlert(alert, alertColor, mapUrl, "@alerts_batumi")
+      const alertColor: AlertColor = alert.getAlertColor()
+      const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
+      if (postPhoto && mapUrl != null) {
+        const image = await drawSingleAlert(alert, alertColor, mapUrl, channel.channelId)
 
         msg = await telegramFramework.sendPhoto({
           chat_id: channel.channelId,
@@ -123,7 +122,11 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
         });
       }
       if (msg)
-        originalAlert.posts.push({channel: channel.channelId, messageId: msg.message_id, hasPhoto: postPhoto})
+        originalAlert.posts.push({
+          channel: channel.channelId,
+          messageId: msg.message_id,
+          hasPhoto: (postPhoto && mapUrl != null)
+        })
     } catch (e) {
       console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
     }
@@ -162,20 +165,28 @@ async function editAllPostedAlerts(onListCreated?: (links: string) => void | nul
   for (let alert of alerts) {
     if (!alert.posts) continue
 
-    const a = await Alert.fromOriginal(alert)
+    await updatePost(alert)
+
+    /*const a = await Alert.fromOriginal(alert)
 
     for (let post of alert.posts) {
       const channel = getChannelForId(post.channel)
       const text = await a.formatSingleAlert(channel?.cityName ?? null)
-      await telegramFramework.editMessageText({
-        chat_id: post.channel,
-        message_id: post.messageId,
-        text,
-        parse_mode: 'Markdown'
-      }, e => {
-        console.log(`Error editing ${post.channel} ${post.messageId}\nText:\n`, text, "Error:\n", e)
-      })
-    }
+      if (!post.hasPhoto) {
+        await telegramFramework.editMessageText({
+          chat_id: post.channel,
+          message_id: post.messageId,
+          text,
+          parse_mode: 'Markdown'
+        }, e => {
+          console.log(`Error editing ${post.channel} ${post.messageId}\nText:\n`, text, "Error:\n", e)
+        })
+      } else {
+
+        const channel = getChannelForId(post.channel)
+        const mapUrl = drawMapFromAlert(a, a.getAlertColor(), channel?.cityName ?? null)
+      }
+    }*/
   }
 }
 
@@ -432,15 +443,31 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
       const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
-      const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
+      if (mapUrl) {
+        const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
 
-      await telegramFramework.editMessageMedia({
-        chat_id: post.channel,
-        media: {
-          type: 'photo', media: MediaSource.path(image), caption: text,
-          parse_mode: 'Markdown',
-        },
-      })
+        await telegramFramework.editMessageMedia({
+          chat_id: post.channel,
+          message_id: post.messageId,
+          media: {
+            type: 'photo', media: MediaSource.path(image), caption: text,
+            parse_mode: 'Markdown',
+          },
+        }, e => {
+          msg += `\n\nError: ${e}`
+        })
+      } else {
+        await telegramFramework.editMessageCaption({
+          chat_id: post.channel,
+          message_id: post.messageId,
+          media: {
+            type: 'photo', caption: text,
+            parse_mode: 'Markdown',
+          },
+        }, e => {
+          msg += `\n\nError: ${e}`
+        })
+      }
     } else {
       await telegramFramework.editMessageText({
         chat_id: post.channel,
@@ -549,9 +576,12 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         const alertColor: AlertColor = alertFromId.getAlertColor()
         const mapUrl = drawMapFromAlert(alertFromId, alertColor, "Batumi")
-        const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@alerts_batumi")
-        //context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
-        context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
+        if (mapUrl) {
+          const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
+          context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
+        } else {
+          context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
+        }
         return
       }
 
@@ -567,10 +597,12 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const realStreets = getRealStreets(streets)
         const returnText = `Real streets:\n${Array.from(realStreets).join("\n")}`
         const mapUrl = drawMapFromStreets(realStreets, Alert.colorPlanned)
-        //const mapUrl = drawMapFromInput(cities, Alert.colorPlanned)
-        const image = await drawCustom(Alert.colorPlanned, mapUrl, "@alerts_batumi", "Kek", "Shrek", "MyFile")
-        //context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
-        context.sendPhoto(MediaSource.path(image), {caption: returnText, parse_mode: 'Markdown'})
+        if (mapUrl) {
+          const image = await drawCustom(Alert.colorPlanned, mapUrl, "@alerts_batumi", "Kek", "Shrek", "MyFile")
+          context.sendPhoto(MediaSource.path(image), {caption: returnText, parse_mode: 'Markdown'})
+        } else {
+          context.send(returnText, {parse_mode: 'Markdown'})
+        }
       }
     } else {
       console.log(`Simple text ${context.text}`)

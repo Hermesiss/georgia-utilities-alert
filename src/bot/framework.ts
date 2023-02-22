@@ -45,7 +45,7 @@ export class TelegramFramework {
     return await this.tgActionWithRetry(() => this.telegram.api.sendMessage(params), onError)
   }
 
-  private async tgActionWithRetry<T>(tgEditAction :() =>Promise<Interfaces.TelegramMessage | T> , onError?: (e: any) => any) {
+  private async tgActionWithRetry<T>(tgEditAction: () => Promise<Interfaces.TelegramMessage | T>, onError?: (e: any) => any) {
     let tries = 3
     let result: Interfaces.TelegramMessage | T = null as any
     while (tries > 0) {
@@ -61,6 +61,7 @@ export class TelegramFramework {
           // Bad Request: message is not modified
           if (e.code == 400) {
             // TODO handle markdown parse error
+            console.log("==== BAD REQUEST", e)
             console.log("Already edited")
             break
           }

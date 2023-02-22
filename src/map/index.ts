@@ -69,19 +69,19 @@ export async function prepareGeoJson() {
   realStreetsNames = Array.from(realStreets.keys());
 }
 
-export function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): string {
+export function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): string | null {
   const streets = getStreets(alert.areaTree, city)
   const realStreets = getRealStreets(streets)
   return drawMapFromStreets(realStreets, color)
 }
 
-export function drawMapFromInput(input: string, color: AlertColor): string {
+export function drawMapFromInput(input: string, color: AlertColor): string | null {
   const streets = getStreetsFromInput(input)
   const realStreets = getRealStreets(streets)
   return drawMapFromStreets(realStreets, color)
 }
 
-export function drawMapFromStreets(realStreets: Set<string>, color: AlertColor): string {
+export function drawMapFromStreets(realStreets: Set<string>, color: AlertColor): string | null {
   const geometry = createGeometry(realStreets)
   return drawMap(geometry, color)
 }
@@ -208,7 +208,8 @@ function createGeometry(realStreets: Set<string>): Geometry[] {
  * @param selectedColor
  * @returns url for static map
  */
-function drawMap(geometries: Geometry[], selectedColor: AlertColor): string {
+function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | null {
+  if (geometries.length == 0) return null
   const mapPaths: Path[] = []
 
   const paths: number[][][] = geometries.map(g => g.coordinates)
