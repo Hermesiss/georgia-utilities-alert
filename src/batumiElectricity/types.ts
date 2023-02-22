@@ -5,6 +5,7 @@ import {IOriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
 import dayjs, {Dayjs} from "dayjs";
 import {Markdown} from "puregram";
+import {AlertColor} from "../imageGeneration";
 
 const citiesMap = new Map(Object.entries(cities))
 const newCitiesMap = new Map()
@@ -319,6 +320,20 @@ export class Alert {
 
     return diff;
   }
+
+  getAlertColor(): AlertColor {
+    const colEmergency = {bg: '#b0392e', line: `0xff0000ff`, caption: "Emergency outage"}
+    const colPlanned = {bg: '#4b68b1', line: `0x0000ffff`, caption: "Planned outage"}
+    const colDone = {bg: '#616161', line: `0x606060ff`, caption: "Work completed"}
+
+    if (this.deletedDate) {
+      return colDone
+    }
+    if (this.planType === PlanType.Planned) {
+      return colPlanned
+    }
+    return colEmergency
+  }
 }
 
 export class CitiesRoot {
@@ -349,10 +364,13 @@ export class CityChannel {
   cityName: string | null;
   channelId: string;
 
+  canPostPhotos: boolean = false;
+
   //constructor
-  constructor(cityName: string | null, channelId: string) {
+  constructor(cityName: string | null, channelId: string, canPostPhotos: boolean = false) {
     this.cityName = cityName;
     this.channelId = channelId;
+    this.canPostPhotos = canPostPhotos;
   }
 }
 

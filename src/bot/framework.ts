@@ -1,5 +1,11 @@
 import {APIError, Markdown, RemoveKeyboard, Telegram, UpdateType} from 'puregram'
-import {EditMessageTextParams, SendMessageParams, SetMyCommandsParams} from "puregram/lib/generated/methods";
+import {
+  EditMessageCaptionParams, EditMessageMediaParams,
+  EditMessageTextParams,
+  SendMessageParams,
+  SendPhotoParams,
+  SetMyCommandsParams
+} from "puregram/lib/generated/methods";
 import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
 import {Known, MaybeArray} from "puregram/lib/types/types";
 import {ContextsMapping} from "puregram/lib/types/mappings";
@@ -29,48 +35,22 @@ export class TelegramFramework {
     return await this.telegram.updates.startPolling()
   }
 
-  async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
-    let tries = 3
-    let result: Interfaces.TelegramMessage | null = null
-    while (tries > 0) {
-      try {
-        //console.log("==== SEND MESSAGE")
-        result = await this.telegram.api.sendMessage(params)
-        break
-      } catch (e: any) {
-        if (onError) {
-          onError(e)
-        }
-        if ('code' in e) {
-          // Too Many Requests
-          if (e.code == 429) {
-            const apiError = <APIError>e
-            const retry = apiError.parameters?.retry_after
-            tries--
-            if (retry) {
-              console.log(`WAIT FOR ${retry} AND RETRY, ${tries}`)
-              await new Promise(r => setTimeout(r, 1000 * (retry + 1)))
-            } else {
-              console.log(`RETRY, ${tries}`)
-            }
-          }
-        } else {
-          console.log("==== UNKNOWN ERROR", e)
-          break
-        }
-      }
-    }
-
-    return result
+  async sendPhoto(params: SendPhotoParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
+    console.log("==== SEND PHOTO")
+    return await this.tgActionWithRetry(() => this.telegram.api.sendPhoto(params), onError)
   }
 
-  async editMessageText(params: EditMessageTextParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null | true> {
+  async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
+    console.log("==== SEND MESSAGE")
+    return await this.tgActionWithRetry(() => this.telegram.api.sendMessage(params), onError)
+  }
+
+  private async tgActionWithRetry<T>(tgEditAction :() =>Promise<Interfaces.TelegramMessage | T> , onError?: (e: any) => any) {
     let tries = 3
-    let result: Interfaces.TelegramMessage | null | true = null
+    let result: Interfaces.TelegramMessage | T = null as any
     while (tries > 0) {
       try {
-        console.log("==== EDIT POST")
-        result = await this.telegram.api.editMessageText(params)
+        result = await tgEditAction()
         break
       } catch (e: any) {
         if (onError) {
@@ -103,5 +83,20 @@ export class TelegramFramework {
     }
 
     return result
+  }
+
+  async editMessageMedia(params: EditMessageMediaParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null | true> {
+    console.log("==== EDIT MEDIA")
+    return await this.tgActionWithRetry(() => this.telegram.api.editMessageMedia(params), onError)
+  }
+
+  async editMessageCaption(params: EditMessageCaptionParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null | true> {
+    console.log("==== EDIT CAPTION")
+    return await this.tgActionWithRetry(() => this.telegram.api.editMessageCaption(params), onError)
+  }
+
+  async editMessageText(params: EditMessageTextParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null | true> {
+    console.log("==== EDIT TEXT")
+    return await this.tgActionWithRetry(() => this.telegram.api.editMessageText(params), onError)
   }
 }

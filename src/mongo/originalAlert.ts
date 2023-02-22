@@ -21,6 +21,7 @@ export interface IOriginalAlert {
 export interface IPosts {
   channel: string;
   messageId: number;
+  hasPhoto: boolean;
 }
 
 // TMethodsAndOverrides

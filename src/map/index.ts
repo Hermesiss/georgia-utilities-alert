@@ -1,46 +1,22 @@
 import fs from "fs"
 import stringSimilarity from "string-similarity"
-import dayjs from "dayjs";
 import {GeoJsonData, Geometry, SavedStreet} from "./types";
 import dotenv from "dotenv";
 import polyline from "google-polyline";
 
 import {staticMapUrl} from 'static-google-map';
-import {loadImage, createCanvas} from 'canvas';
 import {Translator} from "../translator";
 import routeLineTranslations from "./data/route_line_translated.json";
+import {Alert, AreaTree} from "../batumiElectricity/types";
+import {AlertColor} from "../imageGeneration";
 
 dotenv.config();
 
 const translatedRouteMap = new Map<string, string>(Object.entries(routeLineTranslations))
 
-const input =
-  `Alexander Pushkin
-    G.B.C. 173  /  Odzelashvili 7
-    G.Brtskinvale
-    George Brilliant
-    Javakhishvili
-    Javakhishvili1Shea
-    Javakhishvili2shes
-    Odzelashvili
-    Pushkin  /  Tbel Abuseridze`
-
-let streets = new Set<string>()
-
-const lines = input.split("\n")
-
 const realStreets = new Map<string, SavedStreet[]>()
 
-for (let line of lines) {
-  const individual = line.split("/")
-  for (let string of individual) {
-    streets.add(string.trim())
-  }
-}
-
-console.log(streets)
-
-const getGeometry = (name: string): Geometry[] | null => {
+function getGeometry(name: string): Geometry[] | null {
   const saved = realStreets.get(name)
   if (!saved) {
     return null
@@ -51,24 +27,15 @@ const getGeometry = (name: string): Geometry[] | null => {
 
 const googleMapApiKey = process.env.GOOGLE_MAP_API_KEY || "";
 
-fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
-  if (err) {
-    console.error(err)
-    return
-  }
-
+export async function prepareGeoJson() {
+  const data = fs.readFileSync("./src/map/data/route_line.geojson", "utf8")
   const obj: GeoJsonData = JSON.parse(data)
   console.log("Total items", obj.features?.length)
   let empty = 0
 
-  const colEmergency = {bg:'#b0392e', line: `0xff0000ff`}
-  const colPlanned = {bg:'#4b68b1', line: `0x0000ffff`}
-  const colDone = {bg: '#616161', line: `0x606060ff`}
-
-  const selectedColor = colDone
-
   for (let road of obj.features) {
     if (road.properties.name == null || typeof road.properties.name === 'undefined') continue
+    if (road.properties.route) continue // skip route lines
     const name = road.properties['name:en']
     if (name == null || typeof name === 'undefined') {
       if (!translatedRouteMap.has(road.properties.name)) {
@@ -94,13 +61,48 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
     realStreets.get(name)?.push(saved)
   }
 
-  console.log("Empty", empty)
-  console.log("Total", realStreets.size)
-
   fs.writeFileSync("./src/map/data/route_line_translated.json", JSON.stringify(Object.fromEntries(translatedRouteMap), null, 2))
+}
 
-  const start = dayjs()
+export async function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): Promise<string> {
+  const geometry = await createGeometry(alert, city)
+  return drawMap(geometry, color)
+}
 
+/**
+ * Get unique streets from area tree
+ * @param tree
+ * @param city if set, only streets from this city will be returned
+ * @param level
+ */
+function getStreets(tree: AreaTree, city: string | null, level = 0): Set<string> {
+  const result = new Set<string>()
+  if (level > 5) return result
+  if (level == 1) {
+    if (city) {
+      if (tree.name != city) {
+        return result
+      } else if (tree.children.size == 0) {
+        result.add(tree.name) //if this is out city, and it has no children, add it
+      }
+    }
+  }
+
+  // do no add root
+  if (level >= 2) {
+    result.add(tree.name)
+  }
+  for (let child of tree.children.values()) {
+    if (!city || child.name == city) {
+      const streets = getStreets(child, null, level + 1)
+      streets.forEach(s => result.add(s))
+    }
+  }
+
+  return result
+}
+
+async function createGeometry(alert: Alert, city: string | null): Promise<Geometry[]> {
   const targetStrings = Array.from(realStreets.keys());
 
   const threshold = 0.5
@@ -108,7 +110,7 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
   const geometries: Geometry[] = []
   const processed = new Set<string>()
 
-  const mapPaths: Path[] = []
+  let streets = getStreets(alert.areaTree, city)
 
   for (let street of streets) {
     const similar = stringSimilarity.findBestMatch(street, targetStrings)
@@ -144,11 +146,20 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
     }
 
   }
-  const end = dayjs()
-  const duration = end.diff(start, "ms")
-  const paths: number[][][] = geometries.map(g => g.coordinates)
 
-  console.log("Processed", processed)
+  return geometries
+}
+
+/**
+ *
+ * @param geometries
+ * @param selectedColor
+ * @returns url for static map
+ */
+function drawMap(geometries: Geometry[], selectedColor: AlertColor): string {
+  const mapPaths: Path[] = []
+
+  const paths: number[][][] = geometries.map(g => g.coordinates)
 
   for (let path of paths) {
 
@@ -162,8 +173,6 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
     mapPaths.push({points: `enc:${encodedPoints}`, color: selectedColor.line, weight: 4})
   }
 
-  console.log(`Duration: ${duration}ms`)
-
   const url = staticMapUrl({
     key: googleMapApiKey,
     scale: 2,
@@ -176,47 +185,7 @@ fs.readFile("./src/map/data/route_line.geojson", "utf8", async (err, data) => {
 
   console.log(url)
 
-
-  drawImage(url, dayjs().format("DD MMMM YYYY"), "12:00 - 14:30", selectedColor.bg, "Emergency outage",
-    "@alerts_batumi")
-})
-
-function drawImage(url: string, date: string, time: string, bgColor: string, bottomLeft?: string, bottomRight?: string) {
-  const canvas = createCanvas(640, 872)
-  const context = canvas.getContext('2d')
-  loadImage(url).then((data) => {
-    context.fillStyle = bgColor
-    context.fillRect(0, 0, 640, 872)
-    context.drawImage(data, 0, 182, 640, 640)
-
-    context.font = '36pt Helvetica'
-    context.textBaseline = 'top'
-    context.textAlign = 'center'
-    context.fillStyle = '#fff'
-
-    const textX = 320
-    context.fillText(date, textX, 18)
-    //context.font = '30pt Helvetica'
-    //context.strokeText(date, textX, 24)
-    context.fillText(time, textX, 102)
-
-    if (bottomRight) {
-      context.font = '18pt Helvetica'
-      context.textAlign = 'right'
-      context.fillStyle = '#FFFFFF'
-      context.fillText(bottomRight, 640 - 24, 832)
-    }
-
-    if (bottomLeft) {
-      context.font = '18pt Helvetica'
-      context.textAlign = 'left'
-      context.fillStyle = '#FFFFFF'
-      context.fillText(bottomLeft, 24, 832)
-    }
-
-    const imgBuffer = canvas.toBuffer('image/png')
-    fs.writeFileSync('./dist/drawnImage.png', imgBuffer)
-  })
+  return url
 }
 
 
