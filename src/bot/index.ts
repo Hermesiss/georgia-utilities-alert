@@ -450,24 +450,27 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
           chat_id: post.channel,
           message_id: post.messageId,
           media: {
-            type: 'photo', media: MediaSource.path(image), caption: text,
-            parse_mode: 'Markdown',
-          },
-        }, e => {
-          msg += `\n\nError: ${e}`
-        })
-      } else {
-        await telegramFramework.editMessageCaption({
-          chat_id: post.channel,
-          message_id: post.messageId,
-          media: {
-            type: 'photo', caption: text,
+            type: 'photo',
+            media: MediaSource.path(image),
+            caption: text,
             parse_mode: 'Markdown',
           },
         }, e => {
           msg += `\n\nError: ${e}`
         })
       }
+
+      await telegramFramework.editMessageCaption({
+        chat_id: post.channel,
+        message_id: post.messageId,
+        media: {
+          type: 'photo', caption: text,
+          parse_mode: 'Markdown',
+        },
+      }, e => {
+        msg += `\n\nError: ${e}`
+      })
+
     } else {
       await telegramFramework.editMessageText({
         chat_id: post.channel,

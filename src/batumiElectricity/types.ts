@@ -83,8 +83,8 @@ export class Alert {
   citiesList = new Set<string>()
 
   static printTranslations() {
-    if (newDistrictsMap.size > 0)
-      console.log("==== NEW TRANSLATED DISTRICTS\n", JSON.stringify(Object.fromEntries(newDistrictsMap)))
+    /*if (newDistrictsMap.size > 0)
+      console.log("==== NEW TRANSLATED DISTRICTS\n", JSON.stringify(Object.fromEntries(newDistrictsMap)))*/
 
     if (newCitiesMap.size > 0)
       console.log("==== NEW TRANSLATED CITIES\n", JSON.stringify(Object.fromEntries(newCitiesMap)))

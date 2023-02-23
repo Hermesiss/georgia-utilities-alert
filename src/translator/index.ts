@@ -1,3 +1,5 @@
+import {Translation} from "../mongo/translation";
+
 const {translate} = require('bing-translate-api');
 
 export class Translator {
@@ -12,10 +14,18 @@ export class Translator {
     let result = this.translations.get(phrase)
 
     if (!result) {
-      console.log("Translating", phrase)
       try {
+        const translationFromBase = await Translation.findOne({keyGe: phrase})
+        if (translationFromBase) {
+          console.log(`Loading from base ${phrase} -> ${translationFromBase.valueEn}`)
+          this.translations.set(phrase, {translation: translationFromBase.valueEn})
+          return translationFromBase.valueEn
+        }
+
         result = await translate(phrase, "ka", "en", false)
-        await new Promise(r => setTimeout(r, 50)) //wait to avoid ECONNRESET
+        console.log(`Translating ${phrase} -> ${result.translation}`)
+        await Translation.create({keyGe: phrase, valueEn: result.translation})
+        //await new Promise(r => setTimeout(r, 50)) //wait to avoid ECONNRESET
         this.translations.set(phrase, result)
       }
       catch (e) {
