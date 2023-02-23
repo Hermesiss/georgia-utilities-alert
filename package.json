@@ -26,7 +26,8 @@
     "mongoose": "^6.7.5",
     "puregram": "^2.9.8",
     "static-google-map": "^0.0.5",
-    "string-similarity": "^4.0.4"
+    "string-similarity": "^4.0.4",
+    "tinygradient": "^1.1.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.14",

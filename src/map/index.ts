@@ -10,6 +10,7 @@ import routeLineTranslations from "./data/route_line_translated.json";
 import aliases from "./data/aliases.json";
 import {Alert, AreaTree} from "../batumiElectricity/types";
 import {AlertColor} from "../imageGeneration";
+import tinygradient from "tinygradient";
 
 dotenv.config();
 
@@ -202,6 +203,7 @@ function createGeometry(realStreets: Set<string>): Geometry[] {
   return geometries
 }
 
+
 /**
  *
  * @param geometries
@@ -213,17 +215,31 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
   const mapPaths: Path[] = []
 
   const paths: number[][][] = geometries.map(g => g.coordinates)
+  const length = paths.length
+  const hueStep = 1 / length
+  let i = 0
+
+  const gradient = tinygradient([
+    '#0000ff',
+    '#00a5ff',
+    '#ffff00',
+    '#ff5800',
+    '#ff0000',
+  ])
+
+  const colorsRgb = gradient.rgb(length)
 
   for (let path of paths) {
-
     const points: [number, number][] = []
     for (let coord of path) {
-
       points.push([coord[1], coord[0]]) //TODO check
     }
 
+    const color = selectedColor.line ?? "0x" + colorsRgb[i].toHex() + 'ff'
+    i++
+
     const encodedPoints = polyline.encode(points)
-    mapPaths.push({points: `enc:${encodedPoints}`, color: selectedColor.line, weight: 4})
+    mapPaths.push({points: `enc:${encodedPoints}`, color: color, weight: 4})
   }
 
   const url = staticMapUrl({

@@ -599,9 +599,9 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const streets = getStreetsFromInput(cities)
         const realStreets = getRealStreets(streets)
         const returnText = `Real streets:\n${Array.from(realStreets).join("\n")}`
-        const mapUrl = drawMapFromStreets(realStreets, Alert.colorPlanned)
+        const mapUrl = drawMapFromStreets(realStreets, Alert.colorRandom)
         if (mapUrl) {
-          const image = await drawCustom(Alert.colorPlanned, mapUrl, "@alerts_batumi", "Kek", "Shrek", "MyFile")
+          const image = await drawCustom(Alert.colorRandom, mapUrl, "@alerts_batumi", "Kek", "Shrek", "MyFile")
           context.sendPhoto(MediaSource.path(image), {caption: returnText, parse_mode: 'Markdown'})
         } else {
           context.send(returnText, {parse_mode: 'Markdown'})

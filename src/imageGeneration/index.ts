@@ -4,7 +4,7 @@ import {Alert, PlanType} from "../batumiElectricity/types";
 
 export interface AlertColor {
   bg: string
-  line: string
+  line: string | null
   caption: string
 }
 

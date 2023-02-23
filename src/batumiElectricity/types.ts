@@ -325,6 +325,8 @@ export class Alert {
   static colorPlanned = {bg: '#4b68b1', line: `0x0000ffff`, caption: "Planned outage"}
   static colorDone = {bg: '#616161', line: `0x606060ff`, caption: "Work completed"}
 
+  static colorRandom = {bg: '#e59927', line: null, caption: "Debug"}
+
   getAlertColor(): AlertColor {
     if (this.deletedDate) {
       return Alert.colorDone
