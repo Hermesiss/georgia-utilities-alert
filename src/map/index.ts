@@ -93,7 +93,7 @@ export function drawMapFromStreets(realStreets: Set<string>, color: AlertColor):
  * @param city if set, only streets from this city will be returned
  * @param level
  */
-function getStreets(tree: AreaTree, city: string | null, level = 0): Set<string> {
+export function getStreets(tree: AreaTree, city: string | null, level = 0): Set<string> {
   const result = new Set<string>()
   if (level > 5) return result
   if (level == 1) {
@@ -234,7 +234,7 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
       points.push([coord[1], coord[0]]) //TODO check
     }
 
-    const color = selectedColor.line ?? "0x" + colorsRgb[i].toHex() + 'ff'
+    const color = selectedColor.lineMapFormatted ?? "0x" + colorsRgb[i].toHex() + 'ff'
     i++
 
     const encodedPoints = polyline.encode(points)

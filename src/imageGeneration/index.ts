@@ -2,10 +2,20 @@ import {createCanvas, loadImage} from "canvas";
 import fs from "fs";
 import {Alert, PlanType} from "../batumiElectricity/types";
 
-export interface AlertColor {
+export class AlertColor {
   bg: string
   line: string | null
   caption: string
+
+  get lineMapFormatted(): string {
+    return this.line ? `0x${this.line.replace('#', '')}FF` : "0x000000FF"
+  }
+
+  constructor(bg: string, line: string | null, caption: string) {
+    this.bg = bg
+    this.line = line
+    this.caption = caption
+  }
 }
 
 /**

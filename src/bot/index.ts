@@ -1,7 +1,14 @@
 import dotenv from 'dotenv';
 import {Markdown, MediaSource, RemoveKeyboard, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
-import {Alert, AreaTree, AreaTreeWithArray, CityChannel, PostWithTime} from "../batumiElectricity/types";
+import {
+  Alert,
+  AreaTree,
+  AreaTreeWithArray,
+  AreaTreeWithData,
+  CityChannel,
+  PostWithTime
+} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
@@ -16,11 +23,12 @@ import {AlertColor, drawCustom, drawSingleAlert} from "../imageGeneration";
 import {
   drawMapFromAlert,
   drawMapFromStreets,
-  getRealStreets,
+  getRealStreets, getStreets,
   getStreetsFromInput,
   prepareGeoJson
 } from "../map";
 import {MapPlaceholderLink} from "../map/types";
+import {uploadImage} from "../imageGeneration/hosting";
 
 dotenv.config();
 
@@ -37,9 +45,19 @@ let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
 
-channels.push(new CityChannel("Batumi", process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI"), true)) //TODO change to true
+function addChannel(cityName: string, env: string, canPost: boolean = false) {
+  const channelId = process.env[env] ?? envError(env)
+  if (channelId == "skip") return
+  channels.push(new CityChannel(cityName, channelId, canPost))
+}
+
+addChannel("Batumi", "TELEGRAM_CHANNEL_BATUMI", true)
+addChannel("Kutaisi", "TELEGRAM_CHANNEL_KUTAISI")
+addChannel("Kobuleti", "TELEGRAM_CHANNEL_KOBULETI")
+
+/*channels.push(new CityChannel("Batumi", process.env.TELEGRAM_CHANNEL_BATUMI ?? envError("TELEGRAM_CHANNEL_BATUMI"), true)) //TODO change to true
 channels.push(new CityChannel("Kutaisi", process.env.TELEGRAM_CHANNEL_KUTAISI ?? envError("TELEGRAM_CHANNEL_KUTAISI")))
-channels.push(new CityChannel("Kobuleti", process.env.TELEGRAM_CHANNEL_KOBULETI ?? envError("TELEGRAM_CHANNEL_KOBULETI")))
+channels.push(new CityChannel("Kobuleti", process.env.TELEGRAM_CHANNEL_KOBULETI ?? envError("TELEGRAM_CHANNEL_KOBULETI")))*/
 
 // city name is null for area formatting - we are stripping another cities for posting in city-related channel
 const channelMain = new CityChannel(null, process.env.TELEGRAM_CHANNEL_MAIN ?? "skip")
@@ -54,6 +72,8 @@ function getChannelForCity(city: string): CityChannel | null {
 }
 
 function getChannelForId(channelId: string): CityChannel | null {
+  console.log(`+++ getChannelForId(${channelId})`)
+  console.log(channels)
   for (let channel of channels) {
     if (channel.channelId == channelId) {
       return channel
@@ -107,7 +127,6 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
         ?? MapPlaceholderLink
       if (postPhoto) {
         const image = await drawSingleAlert(alert, alertColor, mapUrl, channel.channelId)
-
         msg = await telegramFramework.sendPhoto({
           chat_id: channel.channelId,
           photo: MediaSource.path(image),
@@ -197,26 +216,18 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
   console.log(`Posting ${originalAlerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
   const orderedAlerts = originalAlerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
 
-  const channelsWithAlerts = new Map<string, string[]>()
-  const channelsWithPhotoAlerts = new Map<string, Alert[]>()
+  const channelsWithAlerts = new Map<string, { photo: boolean, alerts: HydratedDocument<IOriginalAlert>[] }>()
 
   const alerts = new Map<number, Alert>()
-
-  const areaTree = new AreaTree("Root")
 
   for (let alert of originalAlerts) {
     const a = await Alert.fromOriginal(alert)
     alerts.set(alert.taskId, a)
-    areaTree.merge(a.areaTree)
   }
-
-  const formattedTree = await Alert.formatAreas(areaTree, null)
 
   for (let alert of orderedAlerts) {
     if (alert.deletedDate) continue
 
-    const disconnectionTime = dayjs(alert.disconnectionDate).format('HH:mm')
-    const reconnectionTime = dayjs(alert.reconnectionDate).format('HH:mm')
     let alertName = (await Translator.getTranslation(alert.taskName))
 
     alertName = Markdown.escape(alertName.replace('[', '(').replace(']', ')'))
@@ -227,42 +238,76 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 
     for (let post of alert.posts) {
       if (post.channel == channelMain.channelId) continue
+      const channel = getChannelForId(post.channel)
+      console.log(`Post ${post.messageId} in ${post.channel} (${channel?.cityName})`)
+      const photo = channel?.canPostPhotos ?? false;
 
-      if (post.hasPhoto) {
-        if (!channelsWithPhotoAlerts.has(post.channel)) {
-          channelsWithPhotoAlerts.set(post.channel, new Array<Alert>())
-        }
-        const a = alerts.get(alert.taskId) ?? await Alert.fromOriginal(alert)
-        channelsWithPhotoAlerts.get(post.channel)?.push(a)
-      } else {
-        if (!channelsWithAlerts.has(post.channel)) {
-          channelsWithAlerts.set(post.channel, new Array<string>())
-        }
-
-        const link = getLinkFromPost(post)
-        const markdownLink = `[${disconnectionTime}-${reconnectionTime} ${alertName}](${link})\n`
-
-        channelsWithAlerts.get(post.channel)?.push(markdownLink)
+      if (!channelsWithAlerts.has(post.channel)) {
+        channelsWithAlerts.set(post.channel, {photo: photo, alerts: new Array<HydratedDocument<IOriginalAlert>>})
       }
+
+      channelsWithAlerts.get(post.channel)?.alerts.push(alert)
     }
   }
 
-  if (channelsWithAlerts.size == 0 && channelsWithPhotoAlerts.size == 0) {
+  if (channelsWithAlerts.size == 0) {
     await sendToOwner(`No alerts for ${date.format('YYYY-MM-DD')}`)
   }
 
-  for (let channelsWithPhotoAlert of channelsWithPhotoAlerts) {
-    // TODO merge all alert areas into one area with time ranges
-    // TODO display list of streets with time ranges and links to alerts
-    // TODO create one map image for all alerts
-    // TODO send photo
-  }
-
   for (let channelsWithAlert of channelsWithAlerts) {
-    const post = `*${caption}*\n\n${channelsWithAlert[1].join('')}\n\n${formattedTree}`
+    const areaTree = new AreaTreeWithArray<PostWithTime>("Root")
+    const channelAlerts = channelsWithAlert[1]
+    const channelId = channelsWithAlert[0];
+    const channel = getChannelForId(channelId)
+
+    let date: Dayjs | null = null
+
+    for (let alert of channelAlerts.alerts) {
+      const a = alerts.get(alert.taskId) ?? await Alert.fromOriginal(alert)
+      const post = alert.posts.find(p => p.channel == channelId)
+      if (!date) date = a.startDate
+      if (post)
+        post.hasPhoto = channelAlerts.photo
+      const areaWithTime = AreaTreeWithArray.fromAreaTree(a.areaTree, new PostWithTime(a.startDate, a.endDate, post))
+      areaTree.merge(areaWithTime)
+    }
+
+    const formattedTree = await Alert.formatAreas(areaTree, channel?.cityName ?? null, false)
+    const post = `*${caption}*\n\n${formattedTree}`
     //const post = `*${caption}*\n\n${formattedTree}`
-    console.log("==== SEND DAILY TO CHANNEL")
-    await telegramFramework.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
+    console.log(`==== SEND DAILY TO CHANNEL ${channelId} : ${channel?.cityName}, photo ${channel?.canPostPhotos} ====`)
+    console.log(post)
+    if (channelAlerts.photo) {
+      const streets = getStreets(areaTree, channel?.cityName ?? null)
+      const realStreets = getRealStreets(streets)
+      const color = Alert.colorDaily
+
+      const mapUrl = drawMapFromStreets(realStreets, color)
+      if (mapUrl) {
+        const image = await drawCustom(color, mapUrl, channelId, "Alerts for", date?.format("DD MMMM YYYY") ?? "", "MyFile")
+        if (post.length > 1024) {
+          const url = await uploadImage(image)
+          const imgText = TelegramFramework.formatImageMarkdown(url)
+          await telegramFramework.sendMessage(
+            {
+              chat_id: channelId,
+              text: imgText + post,
+              parse_mode: 'Markdown',
+            }
+          )
+
+        } else
+          await telegramFramework.sendPhoto(
+            {
+              chat_id: channelId,
+              photo: MediaSource.path(image),
+              caption: post,
+              parse_mode: 'Markdown',
+            }
+          )
+      }
+    } else
+      await telegramFramework.sendMessage({chat_id: channelId, text: post, parse_mode: 'Markdown'})
   }
 }
 
@@ -347,12 +392,24 @@ const run = async () => {
     res.send("OK")
   })
 
+  app.post('/api/actions/sendDate/:date', (req: Request, res: Response) => {
+    const date = req.params.date
+    callAsyncAndMeasureTime(
+      async () => {
+        await sendToOwner(`Report for day ${date} at ${dayjs().format('YYYY-MM-DD HH:mm')}`)
+        const dateObj = dayjs(date);
+        await postAlertsForDay(dateObj, dateObj.format("DD MMMM YYYY"))
+      }, "postAlertsForDay"
+    ).then()
+    res.send("OK")
+  })
+
   app.listen(port, () => {
   });
 
   batumi = new BatumiElectricityParser();
 
-  await fetchAndSendNewAlerts();
+  //await fetchAndSendNewAlerts(); TODO uncomment
 
   telegramFramework.startPollingUpdates().then(success => {
     console.log(`@${telegramFramework.botUsername} launched: ${success}`);
@@ -620,7 +677,16 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
       }
 
       if (text.startsWith("/merge")) {
-        const ids = text.replace("/merge", "").split(" ").map(x => Number.parseInt(x))
+        const commands = text.replace("/merge", "").split(",")
+        const ids = commands[0].split(" ").map(x => Number.parseInt(x))
+        let cityName: string | null = null
+        if (commands.length > 1) {
+          cityName = commands[1].trim()
+        }
+        let showMap = false
+        if (commands.length > 2) {
+          showMap = commands[2].trim() == "map"
+        }
         const area = new AreaTreeWithArray<PostWithTime>("Root")
         for (let id of ids) {
           if (isNaN(id)) {
@@ -642,9 +708,24 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
           area.merge(alertArea)
         }
 
-        const formatted = await Alert.formatAreas(area, null)
+        const formatted = await Alert.formatAreas(area, cityName)
         console.log(`Merged ${formatted}`)
-        context.send(formatted)
+        if (showMap) {
+          const streets = getStreets(area, cityName)
+          const realStreets = getRealStreets(streets)
+          const color = Alert.colorDaily
+
+          const mapUrl = drawMapFromStreets(realStreets, color) ?? MapPlaceholderLink
+          const img = await drawCustom(Alert.colorDaily, mapUrl, "@alerts_batumi", "Debug", "Debug", "MyFile")
+
+          if (formatted.length > 1024) {
+            const url = await uploadImage(img)
+            const imgText = TelegramFramework.formatImageMarkdown(url)
+            context.send(imgText + formatted, {parse_mode: 'Markdown'})
+          } else
+            context.sendPhoto(MediaSource.path(img), {caption: formatted, parse_mode: 'Markdown'})
+        } else
+          context.send(formatted, {parse_mode: 'Markdown'})
       }
     } else {
       console.log(`Simple text ${context.text}`)

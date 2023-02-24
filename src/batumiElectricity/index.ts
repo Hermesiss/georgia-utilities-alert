@@ -33,7 +33,7 @@ export class BatumiElectricityParser {
   }
 
   public async getOriginalAlertFromId(id: number): Promise<HydratedDocument<IOriginalAlert> | null> {
-    await this.fetchAlerts()
+    //await this.fetchAlerts()
     return OriginalAlert.findOne({taskId: id})
   }
 

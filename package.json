@@ -23,6 +23,7 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "google-polyline": "^1.0.3",
+    "imgbox-js": "^1.0.35",
     "mongoose": "^6.7.5",
     "puregram": "^2.9.8",
     "static-google-map": "^0.0.5",

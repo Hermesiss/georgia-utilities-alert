@@ -35,6 +35,17 @@ export class TelegramFramework {
     return await this.telegram.updates.startPolling()
   }
 
+  /**
+   * A hack to post image with longer caption
+   * Normally, telegram api doesn't allow to post image with caption longer than 1024 symbols
+   * But we can post a normal message with link to image so that it will be shown as preview
+   * @param imageUrl
+   */
+  static formatImageMarkdown(imageUrl: string | null): string {
+    return `\n[​​​​​​​​​​​](${imageUrl})`
+  }
+
+
   async sendPhoto(params: SendPhotoParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
     console.log("==== SEND PHOTO")
     return await this.tgActionWithRetry(() => this.telegram.api.sendPhoto(params), onError)

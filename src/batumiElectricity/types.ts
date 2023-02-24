@@ -144,11 +144,10 @@ export class PostWithTime {
     const time = `${this.start.format("HH:mm")}-${this.end.format("HH:mm")}`
     if (this.post) {
       const link = getLinkFromPost(this.post)
-      return `[${time}](${link})\n`
+      return `[${time}](${link})`
     } else
       return time
   }
-
 
   constructor(start: dayjs.Dayjs, end: dayjs.Dayjs, post?: IPosts) {
     this.start = start;
@@ -290,7 +289,7 @@ export class Alert {
       created + deleted
   }
 
-  public static async formatAreas(areaTree: AreaTree, cityName: string | null, level = 0): Promise<string> {
+  public static async formatAreas(areaTree: AreaTree, cityName: string | null, compact = true, level = 0): Promise<string> {
     let text = ""
     if (level > 5) return text
 
@@ -302,24 +301,27 @@ export class Alert {
 
     if (level != 0) {
       let translatedName = areaTree.name
+
+      text += Markdown.escape(translatedName);
+
       const additionalData = areaTree.getAdditionalData()
       if (additionalData) {
-        translatedName += " (" + additionalData + ")"
+        text += " (" + additionalData + ")"
       }
-      text += Markdown.escape(translatedName);
-      if (areaTree.children.size != 1) {
+
+      if (areaTree.children.size != 1 || !compact) {
         text += "\n"
       } else {
         text += "  /  "
       }
     }
     for (let [name, area] of areaTree.children) {
-      if (areaTree.children.size != 1) {
+      if (areaTree.children.size != 1 || !compact) {
         text += "    ".repeat(level)
       }
 
-      const childText = await this.formatAreas(area, cityName, level + 1);
-      text += Markdown.escape(childText)
+      const childText = await this.formatAreas(area, cityName, compact, level + 1);
+      text += childText
     }
 
     return text
@@ -423,11 +425,13 @@ export class Alert {
     return diff;
   }
 
-  static colorEmergency = {bg: '#b0392e', line: `0xff0000ff`, caption: "Emergency outage"}
-  static colorPlanned = {bg: '#4b68b1', line: `0x0000ffff`, caption: "Planned outage"}
-  static colorDone = {bg: '#616161', line: `0x606060ff`, caption: "Work completed"}
+  static colorEmergency = new AlertColor('#b0392e', `#ff0000`, "Emergency outage")
+  static colorPlanned = new AlertColor('#4b68b1', `#0000ff`, "Planned outage")
+  static colorDone = new AlertColor('#616161', `#606060`, "Work completed")
 
-  static colorRandom = {bg: '#e59927', line: null, caption: "Debug"}
+  static colorRandom = new AlertColor('#e59927', null, "Debug")
+
+  static colorDaily = new AlertColor('#d36226', `#ff5800`, "Daily report")
 
   getAlertColor(): AlertColor {
     if (this.deletedDate) {
@@ -475,6 +479,10 @@ export class CityChannel {
     this.cityName = cityName;
     this.channelId = channelId;
     this.canPostPhotos = canPostPhotos;
+  }
+
+  toString(): string {
+    return this.cityName + " " + this.channelId + " " + this.canPostPhotos;
   }
 }
 
