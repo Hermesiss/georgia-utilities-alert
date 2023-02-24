@@ -5,6 +5,8 @@ export interface GeoJsonData {
   features: (FeaturesEntity)[];
 }
 
+export const MapPlaceholderLink = "https://via.placeholder.com/640x640.png?text=Map+Unavailable"
+
 export interface Crs {
   type: string;
   properties: Properties;

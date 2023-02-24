@@ -1,7 +1,7 @@
 import {Translator} from "../translator";
 import cities from "./cities.json";
 import districts from "./districts.json";
-import {IOriginalAlert} from "../mongo/originalAlert";
+import {getLinkFromPost, IOriginalAlert, IPosts} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
 import dayjs, {Dayjs} from "dayjs";
 import {Markdown} from "puregram";
@@ -44,18 +44,116 @@ export class AreaTree {
     return this.children.get(name)
   }
 
-  public set(name: string, area: AreaTree) {
+  public add(name: string, area: AreaTree) {
     this.children.set(name, area)
     // sort children by key
     this.children = new Map([...this.children.entries()].sort((a, b) => a[0].localeCompare(b[0])))
+  }
+
+  public merge(area: AreaTree) {
+    if (area.children.size > 0) {
+      area.children.forEach((child, key) => {
+        if (this.has(key)) {
+          this.get(key)?.merge(child)
+        } else {
+          this.add(key, child)
+        }
+      })
+    } /*else {
+      this.add(area.name, area)
+    }*/
   }
 
   constructor(name: string = "") {
     this.name = name;
   }
 
-  has(name: string) {
+  public has(name: string) {
     return this.children.has(name)
+  }
+
+  public getAdditionalData(): string {
+    return ""
+  }
+}
+
+export class AreaTreeWithData<T> extends AreaTree {
+  data: T | null = null
+
+  public merge(area: AreaTreeWithData<T>) {
+    if (area.data) {
+      this.data = area.data
+    }
+    super.merge(area)
+  }
+
+  public static fromAreaTree<T>(area: AreaTree, data: T | null = null): AreaTreeWithData<T> {
+    const result = new AreaTreeWithData<T>(area.name)
+    result.data = data
+    for (let child of area.children) {
+      result.add(child[0], AreaTreeWithData.fromAreaTree(child[1], data))
+    }
+
+    return result
+  }
+
+  getAdditionalData(): string {
+    return this.data ? this.data.toString() : ""
+  }
+}
+
+export class AreaTreeWithArray<T> extends AreaTree {
+  data: T[] = []
+
+  public merge(area: AreaTreeWithArray<T>) {
+    if (area.data.length > 0) {
+      for (let datum of area.data) {
+        if (!this.data.includes(datum))
+          this.data.push(datum)
+      }
+    }
+
+    super.merge(area)
+  }
+
+  public static fromAreaTree<T>(area: AreaTree, data: T | null = null): AreaTreeWithArray<T> {
+    const result = new AreaTreeWithArray<T>(area.name)
+    if (data && !result.data.includes(data)) {
+      result.data.push(data)
+    }
+
+    for (let child of area.children) {
+      result.add(child[0], AreaTreeWithArray.fromAreaTree(child[1], data))
+    }
+
+    return result
+  }
+
+  getAdditionalData(): string {
+    return this.data.length > 0 ? this.data
+      .join(", ") : ""
+  }
+}
+
+export class PostWithTime {
+  start: Dayjs
+  end: Dayjs
+  post?: IPosts
+
+  toString(): string {
+    const time = `${this.start.format("HH:mm")}-${this.end.format("HH:mm")}`
+    if (this.post) {
+      const link = getLinkFromPost(this.post)
+      return `[${time}](${link})\n`
+    } else
+      return time
+  }
+
+
+  constructor(start: dayjs.Dayjs, end: dayjs.Dayjs, post?: IPosts) {
+    this.start = start;
+    this.end = end;
+    this.post = post;
   }
 }
 
@@ -176,7 +274,7 @@ export class Alert {
     const regionName = Markdown.escape(await Translator.getTranslation(this.regionName))
     const cities = Array.from(this.citiesList).join(", ");
     const planText = this.planType != PlanType.Planned ? ` ${Markdown.italic(this.getPlanText(), true)} ` : ""
-    const areas = await this.formatAreas(this.areaTree, cityName);
+    const areas = await Alert.formatAreas(this.areaTree, cityName);
     const taskNote = this.taskNote ? Markdown.escape(await Translator.getTranslation(this.taskNote)) : ""
     const created = this.createdDate ? Markdown.bold("Created: ") + dayjs(this.createdDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
     const deleted = this.deletedDate ? Markdown.bold("Deleted: ") + dayjs(this.deletedDate).format("YYYY-MM-DD HH:mm") + "\n\n" : ""
@@ -192,7 +290,7 @@ export class Alert {
       created + deleted
   }
 
-  public async formatAreas(areaTree: AreaTree, cityName: string | null, level = 0): Promise<string> {
+  public static async formatAreas(areaTree: AreaTree, cityName: string | null, level = 0): Promise<string> {
     let text = ""
     if (level > 5) return text
 
@@ -203,7 +301,11 @@ export class Alert {
     }
 
     if (level != 0) {
-      const translatedName = areaTree.name
+      let translatedName = areaTree.name
+      const additionalData = areaTree.getAdditionalData()
+      if (additionalData) {
+        translatedName += " (" + additionalData + ")"
+      }
       text += Markdown.escape(translatedName);
       if (areaTree.children.size != 1) {
         text += "\n"
@@ -264,7 +366,7 @@ export class Alert {
         const existingTree = tree.get(item)
         if (!existingTree) {
           const childTree = new AreaTree(item)
-          tree.set(item, childTree)
+          tree.add(item, childTree)
           tree = childTree
         } else {
           tree = existingTree

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import {Markdown, MediaSource, RemoveKeyboard, UpdateType} from 'puregram'
 import {BatumiElectricityParser} from "../batumiElectricity";
-import {Alert, CityChannel} from "../batumiElectricity/types";
+import {Alert, AreaTree, AreaTreeWithArray, CityChannel, PostWithTime} from "../batumiElectricity/types";
 import express, {Express, Request, Response} from 'express';
 import {MessageContext} from "puregram/lib/contexts/message";
 import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
@@ -20,6 +20,7 @@ import {
   getStreetsFromInput,
   prepareGeoJson
 } from "../map";
+import {MapPlaceholderLink} from "../map/types";
 
 dotenv.config();
 
@@ -103,7 +104,8 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
       let msg: TelegramMessage | null;
       const alertColor: AlertColor = alert.getAlertColor()
       const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
-      if (postPhoto && mapUrl != null) {
+        ?? MapPlaceholderLink
+      if (postPhoto) {
         const image = await drawSingleAlert(alert, alertColor, mapUrl, channel.channelId)
 
         msg = await telegramFramework.sendPhoto({
@@ -125,7 +127,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
         originalAlert.posts.push({
           channel: channel.channelId,
           messageId: msg.message_id,
-          hasPhoto: (postPhoto && mapUrl != null)
+          hasPhoto: (postPhoto)
         })
     } catch (e) {
       console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
@@ -191,12 +193,24 @@ async function editAllPostedAlerts(onListCreated?: (links: string) => void | nul
 }
 
 async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
-  const alerts = await batumi.getOriginalAlertsFromDay(date)
-  console.log(`Posting ${alerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
-  const orderedAlerts = alerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
+  const originalAlerts = await batumi.getOriginalAlertsFromDay(date)
+  console.log(`Posting ${originalAlerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
+  const orderedAlerts = originalAlerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
 
   const channelsWithAlerts = new Map<string, string[]>()
   const channelsWithPhotoAlerts = new Map<string, Alert[]>()
+
+  const alerts = new Map<number, Alert>()
+
+  const areaTree = new AreaTree("Root")
+
+  for (let alert of originalAlerts) {
+    const a = await Alert.fromOriginal(alert)
+    alerts.set(alert.taskId, a)
+    areaTree.merge(a.areaTree)
+  }
+
+  const formattedTree = await Alert.formatAreas(areaTree, null)
 
   for (let alert of orderedAlerts) {
     if (alert.deletedDate) continue
@@ -218,13 +232,12 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
         if (!channelsWithPhotoAlerts.has(post.channel)) {
           channelsWithPhotoAlerts.set(post.channel, new Array<Alert>())
         }
-        const a = await Alert.fromOriginal(alert)
+        const a = alerts.get(alert.taskId) ?? await Alert.fromOriginal(alert)
         channelsWithPhotoAlerts.get(post.channel)?.push(a)
       } else {
         if (!channelsWithAlerts.has(post.channel)) {
           channelsWithAlerts.set(post.channel, new Array<string>())
         }
-
 
         const link = getLinkFromPost(post)
         const markdownLink = `[${disconnectionTime}-${reconnectionTime} ${alertName}](${link})\n`
@@ -246,7 +259,8 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
   }
 
   for (let channelsWithAlert of channelsWithAlerts) {
-    const post = `*${caption}*\n\n${channelsWithAlert[1].join('')}`
+    const post = `*${caption}*\n\n${channelsWithAlert[1].join('')}\n\n${formattedTree}`
+    //const post = `*${caption}*\n\n${formattedTree}`
     console.log("==== SEND DAILY TO CHANNEL")
     await telegramFramework.sendMessage({chat_id: channelsWithAlert[0], text: post, parse_mode: 'Markdown'})
   }
@@ -340,7 +354,10 @@ const run = async () => {
 
   await fetchAndSendNewAlerts();
 
-  telegramFramework.startPollingUpdates().then(success => console.log(`@${telegramFramework.botUsername} launched: ${success}`))
+  telegramFramework.startPollingUpdates().then(success => {
+    console.log(`@${telegramFramework.botUsername} launched: ${success}`);
+    sendToOwner("Bot launched")
+  })
 }
 
 
@@ -442,34 +459,22 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
       const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
-      if (mapUrl) {
-        const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
+        ?? MapPlaceholderLink
 
-        await telegramFramework.editMessageMedia({
-          chat_id: post.channel,
-          message_id: post.messageId,
-          media: {
-            type: 'photo',
-            media: MediaSource.path(image),
-            caption: text,
-            parse_mode: 'Markdown',
-          },
-        }, e => {
-          msg += `\n\nError: ${e}`
-        })
-      }
+      const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
 
-      /*await telegramFramework.editMessageCaption({
+      await telegramFramework.editMessageMedia({
         chat_id: post.channel,
         message_id: post.messageId,
         media: {
           type: 'photo',
+          media: MediaSource.path(image),
           caption: text,
           parse_mode: 'Markdown',
         },
       }, e => {
         msg += `\n\nError: ${e}`
-      })*/
+      })
 
     } else {
       await telegramFramework.editMessageText({
@@ -579,12 +584,11 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         const alertColor: AlertColor = alertFromId.getAlertColor()
         const mapUrl = drawMapFromAlert(alertFromId, alertColor, "Batumi")
-        if (mapUrl) {
-          const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
-          context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
-        } else {
-          context.send(formatSingleAlert || "", {parse_mode: 'Markdown'})
-        }
+          ?? MapPlaceholderLink
+
+        const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
+        context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
+
         return
       }
 
@@ -613,6 +617,34 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const alert = await batumi.getOriginalAlertFromId(id)
         if (alert)
           await updatePost(alert)
+      }
+
+      if (text.startsWith("/merge")) {
+        const ids = text.replace("/merge", "").split(" ").map(x => Number.parseInt(x))
+        const area = new AreaTreeWithArray<PostWithTime>("Root")
+        for (let id of ids) {
+          if (isNaN(id)) {
+            console.log(`Invalid id ${id}`)
+            continue
+          }
+          const orAlert = await batumi.getOriginalAlertFromId(id)
+          if (!orAlert) {
+            console.log(`Cannot find alert with id ${id}`)
+            continue
+          }
+          const alert = await Alert.fromOriginal(orAlert)
+          if (!alert) {
+            console.log(`Cannot convert alert with id ${id}`)
+            continue
+          }
+          console.log(`Merging ${alert.areaTree}`)
+          const alertArea = AreaTreeWithArray.fromAreaTree<PostWithTime>(alert.areaTree, new PostWithTime(alert.startDate, alert.endDate))
+          area.merge(alertArea)
+        }
+
+        const formatted = await Alert.formatAreas(area, null)
+        console.log(`Merged ${formatted}`)
+        context.send(formatted)
       }
     } else {
       console.log(`Simple text ${context.text}`)
