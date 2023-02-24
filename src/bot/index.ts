@@ -439,7 +439,6 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     const text = await alert.formatSingleAlert(channel?.cityName ?? null)
     const photo = post.hasPhoto
     let msg = `Changing post ${getLinkFromPost(post)}`;
-
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
       const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
@@ -460,16 +459,17 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
         })
       }
 
-      await telegramFramework.editMessageCaption({
+      /*await telegramFramework.editMessageCaption({
         chat_id: post.channel,
         message_id: post.messageId,
         media: {
-          type: 'photo', caption: text,
+          type: 'photo',
+          caption: text,
           parse_mode: 'Markdown',
         },
       }, e => {
         msg += `\n\nError: ${e}`
-      })
+      })*/
 
     } else {
       await telegramFramework.editMessageText({
@@ -606,6 +606,13 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         } else {
           context.send(returnText, {parse_mode: 'Markdown'})
         }
+      }
+
+      if (text.startsWith("/update")) {
+        const id = Number.parseInt(text.replace("/update", ""))
+        const alert = await batumi.getOriginalAlertFromId(id)
+        if (alert)
+          await updatePost(alert)
       }
     } else {
       console.log(`Simple text ${context.text}`)

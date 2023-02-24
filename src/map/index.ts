@@ -216,7 +216,6 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
 
   const paths: number[][][] = geometries.map(g => g.coordinates)
   const length = paths.length
-  const hueStep = 1 / length
   let i = 0
 
   const gradient = tinygradient([
