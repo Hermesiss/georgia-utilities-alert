@@ -52,7 +52,7 @@ export class TelegramFramework {
   }
 
   async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
-    console.log("==== SEND MESSAGE")
+    console.log(`==== SEND MESSAGE to ${params.chat_id}`)
     return await this.tgActionWithRetry(() => this.telegram.api.sendMessage(params), onError)
   }
 

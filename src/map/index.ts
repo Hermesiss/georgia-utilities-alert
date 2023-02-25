@@ -226,7 +226,11 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
     '#ff0000',
   ])
 
-  const colorsRgb = gradient.rgb(length)
+  const steps = Math.max(5, length)
+
+
+
+  const colorsRgb = gradient.rgb(steps)
 
   for (let path of paths) {
     const points: [number, number][] = []

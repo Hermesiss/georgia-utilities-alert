@@ -97,9 +97,8 @@ function getChannelsForAlert(alert: Alert): Set<CityChannel> {
 }
 
 async function sendAlertToChannels(alert: Alert): Promise<void> {
-  if (process.env.TELEGRAM_DISABLE_CHANNELS == "true") return
-
   const channels = getChannelsForAlert(alert)
+  console.log(`==== SEND ALERT TO CHANNELS (${alert.taskId}), channels count: ${channels.size}`)
 
   // notify if alert is today or tomorrow
   const today = dayjs(alert.disconnectionDate).isSame(dayjs(), 'day')
@@ -117,15 +116,15 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
   }
 
   for (let channel of channels) {
-    console.log("==== SEND TO CHANNEL")
+    console.log(`==== SEND TO CHANNEL ${channel.channelId} (${channel.cityName})`)
     const text = await alert.formatSingleAlert(channel.cityName)
     const postPhoto = channel.canPostPhotos
     try {
       let msg: TelegramMessage | null;
-      const alertColor: AlertColor = alert.getAlertColor()
-      const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
-        ?? MapPlaceholderLink
       if (postPhoto) {
+        const alertColor: AlertColor = alert.getAlertColor()
+        const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
+          ?? MapPlaceholderLink
         const image = await drawSingleAlert(alert, alertColor, mapUrl, channel.channelId)
         msg = await telegramFramework.sendPhoto({
           chat_id: channel.channelId,
@@ -314,6 +313,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 
 async function fetchAndSendNewAlerts() {
   const changedAlerts = await batumi.fetchAlerts(true)
+  console.time("fetchAndSendNewAlerts")
   if (changedAlerts.length == 0) {
     await sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
   } else {
@@ -336,6 +336,7 @@ async function fetchAndSendNewAlerts() {
       }
     }
   }
+  console.timeEnd("fetchAndSendNewAlerts")
 }
 
 const run = async () => {
@@ -409,7 +410,9 @@ const run = async () => {
 
   batumi = new BatumiElectricityParser();
 
-  //await fetchAndSendNewAlerts(); TODO uncomment
+  if (process.env.NODE_ENV !== 'development') {
+    await fetchAndSendNewAlerts();
+  }
 
   telegramFramework.startPollingUpdates().then(success => {
     console.log(`@${telegramFramework.botUsername} launched: ${success}`);
