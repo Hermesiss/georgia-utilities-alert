@@ -32,6 +32,11 @@ export class BatumiElectricityParser {
     return this.alertsById.get(id)
   }
 
+  public async getOriginalAlertFromId(id: number): Promise<HydratedDocument<IOriginalAlert> | null> {
+    //await this.fetchAlerts()
+    return OriginalAlert.findOne({taskId: id})
+  }
+
   constructor() {
 
   }
@@ -156,7 +161,7 @@ export class BatumiElectricityParser {
         let diff = new AlertDiff();
         const alertData = filteredData[i]
 
-        process.stdout.write("*");
+        process.stdout.write(`[${i}/${filteredData.length}]`);
 
         let original: HydratedDocument<IOriginalAlert> | null
           = await OriginalAlert.findOne({taskId: alertData.taskId}).exec()
