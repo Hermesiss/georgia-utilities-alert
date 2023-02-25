@@ -72,8 +72,6 @@ function getChannelForCity(city: string): CityChannel | null {
 }
 
 function getChannelForId(channelId: string): CityChannel | null {
-  console.log(`+++ getChannelForId(${channelId})`)
-  console.log(channels)
   for (let channel of channels) {
     if (channel.channelId == channelId) {
       return channel
@@ -337,6 +335,7 @@ async function fetchAndSendNewAlerts() {
     }
   }
   console.timeEnd("fetchAndSendNewAlerts")
+  await sendToOwner("Done sending new alerts")
 }
 
 const run = async () => {
