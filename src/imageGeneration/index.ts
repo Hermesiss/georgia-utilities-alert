@@ -55,26 +55,26 @@ async function drawImage(url: string, date: string, time: string, imgFilename: s
   context.fillRect(0, 0, 640, 872)
   context.drawImage(data, 0, 182, 640, 640)
 
-  context.font = '36pt Helvetica'
+  context.font = '36pt Sans'
   context.textBaseline = 'top'
   context.textAlign = 'center'
   context.fillStyle = '#fff'
 
   const textX = 320
   context.fillText(date, textX, 18)
-  //context.font = '30pt Helvetica'
+  //context.font = '30pt Sans'
   //context.strokeText(date, textX, 24)
   context.fillText(time, textX, 102)
 
   if (bottomRight) {
-    context.font = '18pt Helvetica'
+    context.font = '18pt Sans'
     context.textAlign = 'right'
     context.fillStyle = '#FFFFFF'
     context.fillText(bottomRight, 640 - 12, 832)
   }
 
   if (bottomLeft) {
-    context.font = '18pt Helvetica'
+    context.font = '18pt Sans'
     context.textAlign = 'left'
     context.fillStyle = '#FFFFFF'
     context.fillText(bottomLeft, 12, 832)
