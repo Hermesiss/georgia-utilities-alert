@@ -635,10 +635,14 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         context.sendChatAction("typing")
         const taskId = Number.parseInt(text.replace("/alert_", ""));
         const city = text.split(" ")[1] ?? null
-        const alertFromId = await batumi.getAlertFromId(taskId);
+        let alertFromId = await batumi.getAlertFromId(taskId);
         if (!alertFromId) {
-          context.send(`Cannot find alert with id ${taskId}`)
-          return
+          const originalAlert = await OriginalAlert.findOne({taskId})
+          if (!originalAlert) {
+            context.send(`Cannot find alert with id ${taskId}`)
+            return
+          }
+          alertFromId = await Alert.fromOriginal(originalAlert)
         }
         const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         const alertColor: AlertColor = alertFromId.getAlertColor()
