@@ -7,6 +7,12 @@ export interface GeoJsonData {
 
 export const MapPlaceholderLink = "https://via.placeholder.com/640x640.png?text=Map+Unavailable"
 
+export interface StreetFinderResult {
+  input: string
+  match: string
+  rating: number
+}
+
 export interface Crs {
   type: string;
   properties: Properties;
@@ -62,6 +68,8 @@ export interface Geometry {
   type: "LineString";
   //coordinates?: ((number)[] | null)[] | null;
   coordinates: number[] [] ;
+
+  rating?: number
 }
 
 export interface SavedStreet {

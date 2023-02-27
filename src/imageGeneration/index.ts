@@ -7,8 +7,8 @@ export class AlertColor {
   line: string | null
   caption: string
 
-  get lineMapFormatted(): string {
-    return this.line ? `0x${this.line.replace('#', '')}FF` : "0x000000FF"
+  get lineMapFormatted(): string | null {
+    return this.line ? `0x${this.line.replace('#', '')}FF` : null
   }
 
   constructor(bg: string, line: string | null, caption: string) {
@@ -51,6 +51,9 @@ async function drawImage(url: string, date: string, time: string, imgFilename: s
   const context = canvas.getContext('2d')
   const data = await loadImage(url)
 
+  const scale = await loadImage('./src/imageGeneration/img/map-scale.png')
+  //const scale = await loadImage('/img/map-scale.png')
+
   context.fillStyle = bgColor
   context.fillRect(0, 0, 640, 872)
   context.drawImage(data, 0, 182, 640, 640)
@@ -79,6 +82,8 @@ async function drawImage(url: string, date: string, time: string, imgFilename: s
     context.fillStyle = '#FFFFFF'
     context.fillText(bottomLeft, 12, 832)
   }
+
+  context.drawImage(scale, 354 , 184, 284, 29)
 
   const imgBuffer = canvas.toBuffer('image/png')
   const imgPath = `./dist/${imgFilename}.png`

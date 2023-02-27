@@ -1,6 +1,6 @@
 import fs from "fs"
 import stringSimilarity from "string-similarity"
-import {GeoJsonData, Geometry, SavedStreet} from "./types";
+import {GeoJsonData, Geometry, SavedStreet, StreetFinderResult} from "./types";
 import dotenv from "dotenv";
 import polyline from "google-polyline";
 
@@ -41,15 +41,16 @@ export async function prepareGeoJson() {
   for (let road of obj.features) {
     if (road.properties.name == null || typeof road.properties.name === 'undefined') continue
     if (road.properties.route) continue // skip route lines
-    const name = road.properties['name:en']
+    let name = road.properties['name:en']
     if (name == null || typeof name === 'undefined') {
       if (!translatedRouteMap.has(road.properties.name)) {
         const t = await Translator.getTranslation(road.properties.name)
         translatedRouteMap.set(road.properties.name, t)
       }
       road.properties['name:en'] = translatedRouteMap.get(road.properties.name) || road.properties.name
-      empty++
-      continue
+      name = road.properties['name:en']
+      //empty++
+      //continue
     }
 
     const saved = {
@@ -72,18 +73,28 @@ export async function prepareGeoJson() {
 
 export function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): string | null {
   const streets = getStreets(alert.areaTree, city)
-  const realStreets = getRealStreets(streets)
-  return drawMapFromStreets(realStreets, color)
+  const result: StreetFinderResult[] = [];
+  const realStreets = getRealStreets(streets, result)
+  //return drawMapFromStreets(realStreets, color)
+  return drawMapFromStreetFinderResults(result, color)
 }
 
 export function drawMapFromInput(input: string, color: AlertColor): string | null {
   const streets = getStreetsFromInput(input)
-  const realStreets = getRealStreets(streets)
-  return drawMapFromStreets(realStreets, color)
+
+  const result: StreetFinderResult[] = [];
+  const realStreets = getRealStreets(streets, result)
+  //return drawMapFromStreets(realStreets, color)
+  return drawMapFromStreetFinderResults(result, color)
 }
 
 export function drawMapFromStreets(realStreets: Set<string>, color: AlertColor): string | null {
   const geometry = createGeometry(realStreets)
+  return drawMap(geometry, color)
+}
+
+export function drawMapFromStreetFinderResults(results: StreetFinderResult[], color: AlertColor): string | null {
+  const geometry = createGeometryFromStreetFinderResults(results)
   return drawMap(geometry, color)
 }
 
@@ -138,9 +149,10 @@ export function getStreetsFromInput(input: string): Set<string> {
 /**
  *
  * @param streets
+ * @param result - if set, will be filled with match results
  * @return realStreets
  */
-export function getRealStreets(streets: Set<string>): Set<string> {
+export function getRealStreets(streets: Set<string>, result: StreetFinderResult[] | null = null): Set<string> {
   const threshold = 0.5
 
   const processed = new Set<string>()
@@ -150,12 +162,22 @@ export function getRealStreets(streets: Set<string>): Set<string> {
     let found = 0
     const similarAlias = stringSimilarity.findBestMatch(street, aliasesNames)
     if (similarAlias.bestMatch.rating > 0.8) {
-      if (processed.has(similarAlias.bestMatch.target)) {
+      if (!processed.has(similarAlias.bestMatch.target) || result != null) {
+        const realStreet = aliasesMap.get(similarAlias.bestMatch.target) ?? ""
+        processed.add(realStreet)
+        result?.push({input: street, match: realStreet, rating: similarAlias.bestMatch.rating})
+      }
+      continue
+
+    }
+
+    if (similar.bestMatch.rating > 0.9) {
+      if (processed.has(similar.bestMatch.target) && result == null) {
         continue
       }
 
-      const street = aliasesMap.get(similarAlias.bestMatch.target) ?? ""
-      processed.add(street)
+      processed.add(similar.bestMatch.target)
+      result?.push({input: street, match: similar.bestMatch.target, rating: similar.bestMatch.rating})
       continue
     }
 
@@ -163,11 +185,12 @@ export function getRealStreets(streets: Set<string>): Set<string> {
       if (best.rating > threshold) {
         found++
         console.log(`Find similar for ${street} is ${best.target} with ${best.rating}`)
-        if (processed.has(best.target)) {
+        if (processed.has(best.target) && result == null) {
           continue
         }
 
         processed.add(best.target)
+        result?.push({input: street, match: best.target, rating: best.rating})
       }
     }
     if (found == 0) {
@@ -177,6 +200,7 @@ export function getRealStreets(streets: Set<string>): Set<string> {
         if (!processed.has(best.target)) {
           processed.add(best.target)
         }
+        result?.push({input: street, match: best.target, rating: best.rating})
       } else {
         console.log(`Not found similar for ${street}`)
       }
@@ -203,6 +227,22 @@ function createGeometry(realStreets: Set<string>): Geometry[] {
   return geometries
 }
 
+function createGeometryFromStreetFinderResults(results: StreetFinderResult[]): Geometry[] {
+  const geometries: Geometry[] = []
+
+  for (let result of results) {
+    const geometry = getGeometry(result.match);
+    if (geometry) {
+      for (let g of geometry) {
+        g.rating = result.rating
+        geometries.push(g)
+      }
+    }
+  }
+
+  return geometries
+}
+
 
 /**
  *
@@ -214,32 +254,30 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
   if (geometries.length == 0) return null
   const mapPaths: Path[] = []
 
-  const paths: number[][][] = geometries.map(g => g.coordinates)
-  const length = paths.length
-  let i = 0
+  //const paths: number[][][] = geometries.map(g => g.coordinates)
+  //const length = paths.length
+  //let i = 0
 
   const gradient = tinygradient([
-    '#0000ff',
-    '#00a5ff',
-    '#ffff00',
-    '#ff5800',
-    '#ff0000',
+    {color: '#000000', pos: 0.25},
+    {color: '#0000ff', pos: 0.5},
+    {color: '#ff0000', pos: 0.7},
+    {color: '#ff5800', pos: 1},
   ])
 
-  const steps = Math.max(5, length)
-
-
-
-  const colorsRgb = gradient.rgb(steps)
-
-  for (let path of paths) {
+  for (let geometry of geometries) {
     const points: [number, number][] = []
+    const path = geometry.coordinates
     for (let coord of path) {
       points.push([coord[1], coord[0]]) //TODO check
     }
 
-    const color = selectedColor.lineMapFormatted ?? "0x" + colorsRgb[i].toHex() + 'ff'
-    i++
+    const gradientColor = gradient.rgbAt(geometry.rating ?? 1)
+    console.log(`Color for ${geometry.rating} is ${gradientColor.toHex()}`)
+
+    const color =
+      //selectedColor.lineMapFormatted ??
+      "0x" + gradientColor.toHex() + 'ff'
 
     const encodedPoints = polyline.encode(points)
     mapPaths.push({points: `enc:${encodedPoints}`, color: color, weight: 4})

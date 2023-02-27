@@ -21,13 +21,12 @@ import {Translator} from "../translator";
 import {TelegramFramework} from "./framework";
 import {AlertColor, drawCustom, drawSingleAlert} from "../imageGeneration";
 import {
-  drawMapFromAlert,
-  drawMapFromStreets,
+  drawMapFromAlert, drawMapFromStreetFinderResults,
   getRealStreets, getStreets,
   getStreetsFromInput,
   prepareGeoJson
 } from "../map";
-import {MapPlaceholderLink} from "../map/types";
+import {MapPlaceholderLink, StreetFinderResult} from "../map/types";
 import {uploadImage} from "../imageGeneration/hosting";
 
 dotenv.config();
@@ -276,10 +275,11 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
     console.log(post)
     if (channelAlerts.photo) {
       const streets = getStreets(areaTree, channel?.cityName ?? null)
-      const realStreets = getRealStreets(streets)
+      const result = new Array<StreetFinderResult>()
+      const realStreets = getRealStreets(streets, result)
       const color = Alert.colorDaily
 
-      const mapUrl = drawMapFromStreets(realStreets, color)
+      const mapUrl = drawMapFromStreetFinderResults(result, color)
       if (mapUrl) {
         const image = await drawCustom(color, mapUrl, channelId, "Alerts for", date?.format("DD MMMM YYYY") ?? "", "MyFile")
         if (post.length > 1024) {
@@ -350,6 +350,8 @@ const run = async () => {
   await prepareGeoJson()
 
   const app: Express = express();
+
+  app.use(express.static('public'))
 
   app.get('/', (req: Request, res: Response) => {
     res.send('Georgia Utilities Alert');
@@ -664,15 +666,19 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
       if (text.startsWith("/draw")) {
         const cities = text.replace("/draw", "")
         const streets = getStreetsFromInput(cities)
-        const realStreets = getRealStreets(streets)
-        const returnText = `Real streets:\n${Array.from(realStreets).join("\n")}`
-        const mapUrl = drawMapFromStreets(realStreets, Alert.colorRandom)
+        const results = new Array<StreetFinderResult>()
+        const realStreets = getRealStreets(streets, results)
+        const resultFormatted = results.map(x => `${x.input} -> ${x.match}    ${(x.rating * 100).toLocaleString('en-US', {
+          minimumIntegerDigits: 2,
+          useGrouping: false
+        })}%`).join("\n")
+        const returnText = `Real streets:\n${resultFormatted}`
+        const mapUrl = drawMapFromStreetFinderResults(results, Alert.colorRandom)
         if (mapUrl) {
-          const image = await drawCustom(Alert.colorRandom, mapUrl, "@alerts_batumi", "Kek", "Shrek", "MyFile")
-          context.sendPhoto(MediaSource.path(image), {caption: returnText, parse_mode: 'Markdown'})
-        } else {
-          context.send(returnText, {parse_mode: 'Markdown'})
+          const image = await drawCustom(Alert.colorRandom, mapUrl, "@alerts_batumi", "Debug", "Debug", "MyFile")
+          await context.sendPhoto(MediaSource.path(image),)
         }
+        context.send(returnText, {parse_mode: 'Markdown'})
       }
 
       if (text.startsWith("/update")) {
@@ -718,10 +724,11 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         console.log(`Merged ${formatted}`)
         if (showMap) {
           const streets = getStreets(area, cityName)
-          const realStreets = getRealStreets(streets)
+          const result = new Array<StreetFinderResult>()
+          const realStreets = getRealStreets(streets, result)
           const color = Alert.colorDaily
 
-          const mapUrl = drawMapFromStreets(realStreets, color) ?? MapPlaceholderLink
+          const mapUrl = drawMapFromStreetFinderResults(result, color) ?? MapPlaceholderLink
           const img = await drawCustom(Alert.colorDaily, mapUrl, "@alerts_batumi", "Debug", "Debug", "MyFile")
 
           if (formatted.length > 1024) {
