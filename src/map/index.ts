@@ -283,7 +283,7 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
     mapPaths.push({points: `enc:${encodedPoints}`, color: color, weight: 4})
   }
 
-  const url = staticMapUrl({
+  let url = staticMapUrl({
     key: googleMapApiKey,
     scale: 2,
     size: '640x640',
@@ -292,6 +292,9 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
     paths: mapPaths,
     language: 'en',
   });
+
+  //if url is more than 16383 characters, it will be truncated
+  url = url.substring(0, 16383)
 
   console.log(url)
 
