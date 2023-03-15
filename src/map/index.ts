@@ -1,5 +1,5 @@
 import fs from "fs"
-import stringSimilarity from "string-similarity"
+import stringSimilarity, {Rating} from "string-similarity"
 import {GeoJsonData, Geometry, SavedStreet, StreetFinderResult} from "./types";
 import dotenv from "dotenv";
 import polyline from "google-polyline";
@@ -159,7 +159,6 @@ export function getRealStreets(streets: Set<string>, result: StreetFinderResult[
 
   for (let street of streets) {
     const similar = stringSimilarity.findBestMatch(street, realStreetsNames)
-    let found = 0
     const similarAlias = stringSimilarity.findBestMatch(street, aliasesNames)
     if (similarAlias.bestMatch.rating > 0.8) {
       if (!processed.has(similarAlias.bestMatch.target) || result != null) {
@@ -172,28 +171,48 @@ export function getRealStreets(streets: Set<string>, result: StreetFinderResult[
     }
 
     if (similar.bestMatch.rating > 0.9) {
+      // found a perfect match in aliases
       if (processed.has(similar.bestMatch.target) && result == null) {
+        // we already processed this street
         continue
       }
+
 
       processed.add(similar.bestMatch.target)
       result?.push({input: street, match: similar.bestMatch.target, rating: similar.bestMatch.rating})
       continue
     }
 
+    let bestMatches = new Array<Rating>()
+
     for (let best of similar.ratings) {
+      // trying to find matches with rating > threshold
       if (best.rating > threshold) {
-        found++
         console.log(`Find similar for ${street} is ${best.target} with ${best.rating}`)
-        if (processed.has(best.target) && result == null) {
+        /*if (processed.has(best.target) && result == null) {
+          continue
+        }*/
+
+        bestMatches.push(best)
+
+        //processed.add(best.target)
+        //result?.push({input: street, match: best.target, rating: best.rating})
+      }
+    }
+    if (bestMatches.length != 0) {
+      // we found some matches, need to take 3 best matches
+      const matches = bestMatches.sort((a, b) => b.rating - a.rating).slice(0, 3)
+      for (let match of matches) {
+        if (processed.has(match.target) && result == null) {
           continue
         }
 
-        processed.add(best.target)
-        result?.push({input: street, match: best.target, rating: best.rating})
+        processed.add(match.target)
+        result?.push({input: street, match: match.target, rating: match.rating})
       }
-    }
-    if (found == 0) {
+
+    } else {
+      // no matches found, we can take best match with rating > 0.3
       const best = similar.bestMatch
       if (similar.bestMatch.rating > 0.3) {
         console.log(`Find BAD similar for ${street} ${JSON.stringify(best.target)} with ${best.rating}`)
