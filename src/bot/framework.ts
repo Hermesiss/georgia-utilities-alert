@@ -41,7 +41,7 @@ export class TelegramFramework {
    * But we can post a normal message with link to image so that it will be shown as preview
    * @param imageUrl
    */
-  static formatImageMarkdown(imageUrl: string | null): string {
+  static formatImageMarkdown(imageUrl: string): string {
     return `\n[​​​​​​​​​​​](${imageUrl})`
   }
 
