@@ -35,7 +35,7 @@ const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
   taskName: {type: String, required: false, default: ""},
   taskNote: {type: String, required: false},
   scEffectedCustomers: {type: String, required: false},
-  disconnectionArea: {type: String, required: true},
+  disconnectionArea: {type: String, required: false, default: ""},
   regionName: {type: String, required: true},
   scName: {type: String, required: true},
   disconnectionDate: {type: String, required: true},
