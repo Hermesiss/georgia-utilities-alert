@@ -63,7 +63,7 @@ export class Alert {
   taskName: string;
   taskNote?: string;
   scEffectedCustomers?: string;
-  disconnectionArea: string = "";
+  disconnectionArea: string;
   regionName: string;
   scName: string;
   disconnectionDate: string;
@@ -227,6 +227,8 @@ export class Alert {
     this.endDate = dayjs(this.reconnectionDate, 'YYYY-MMMM-DD HH:mm')
 
     this.planType = this.taskType == "1" ? PlanType.Planned : PlanType.Unplanned
+
+    if (!this.disconnectionArea) this.disconnectionArea = ""
 
     const areas = this.disconnectionArea.split(',')
 
