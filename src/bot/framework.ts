@@ -14,6 +14,7 @@ import {Updates} from "puregram/lib/updates";
 
 export class TelegramFramework {
   private telegram: Telegram;
+  private errorHandler: ((e: any) => any) | null;
 
   get botUsername() {
     return this.telegram.bot.username
@@ -25,6 +26,10 @@ export class TelegramFramework {
 
   async setMyCommands(params: SetMyCommandsParams): Promise<true> {
     return await this.telegram.api.setMyCommands(params)
+  }
+
+  setErrorHandler(handler: ((e: any) => any) | null) {
+    this.errorHandler = handler
   }
 
   onUpdates<K extends keyof Known<ContextsMapping>, T = {}>(events: MaybeArray<K>, handler: MaybeArray<Middleware<ContextsMapping[K] & T>>): Updates {
@@ -41,7 +46,8 @@ export class TelegramFramework {
    * But we can post a normal message with link to image so that it will be shown as preview
    * @param imageUrl
    */
-  static formatImageMarkdown(imageUrl: string): string {
+  static formatImageMarkdown(imageUrl: string | null): string {
+    if (imageUrl == null) return ""
     return `\n[​​​​​​​​​​​](${imageUrl})`
   }
 
@@ -64,6 +70,9 @@ export class TelegramFramework {
         result = await tgEditAction()
         break
       } catch (e: any) {
+        if (this.errorHandler) {
+          this.errorHandler(e)
+        }
         if (onError) {
           onError(e)
         }
