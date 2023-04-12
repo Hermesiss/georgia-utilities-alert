@@ -333,6 +333,8 @@ export class Alert {
 
     this.planType = this.taskType == "1" ? PlanType.Planned : PlanType.Unplanned
 
+    if (!this.disconnectionArea) this.disconnectionArea = ""
+
     const areas = this.disconnectionArea.split(',')
 
     //const citiesArr = Array.from(citiesMap)
