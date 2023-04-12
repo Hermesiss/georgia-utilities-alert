@@ -478,6 +478,7 @@ export class CityChannel {
 
   //constructor
   constructor(cityName: string | null, channelId: string, canPostPhotos: boolean = false) {
+    console.log(`Creating CityChannel ${cityName}, channelId: ${channelId}, canPostPhotos: ${canPostPhotos}`)
     this.cityName = cityName;
     this.channelId = channelId;
     this.canPostPhotos = canPostPhotos;

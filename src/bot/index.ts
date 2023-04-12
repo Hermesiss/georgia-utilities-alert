@@ -45,13 +45,14 @@ let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
 
-function addChannel(cityName: string, env: string, canPostPhotos: boolean = false) {
+function addChannel(cityName: string, env: string) {
+  const canPostPhotos = process.env[env + "_PHOTOS"] == "true"
   const channelId = process.env[env] ?? envError(env)
   if (channelId == "skip") return
   channels.push(new CityChannel(cityName, channelId, canPostPhotos))
 }
 
-addChannel("Batumi", "TELEGRAM_CHANNEL_BATUMI", true)
+addChannel("Batumi", "TELEGRAM_CHANNEL_BATUMI")
 addChannel("Kutaisi", "TELEGRAM_CHANNEL_KUTAISI")
 addChannel("Kobuleti", "TELEGRAM_CHANNEL_KOBULETI")
 
