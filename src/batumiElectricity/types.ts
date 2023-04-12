@@ -63,7 +63,7 @@ export class Alert {
   taskName: string;
   taskNote?: string;
   scEffectedCustomers?: string;
-  disconnectionArea: string;
+  disconnectionArea: string = "";
   regionName: string;
   scName: string;
   disconnectionDate: string;
