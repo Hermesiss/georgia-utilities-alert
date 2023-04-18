@@ -561,14 +561,20 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
   }
 }
 
-async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined) {
-  if (!ownerId) return
+async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined): Promise<Interfaces.TelegramMessage | null> {
+  if (!ownerId) return null
   console.log("==== SEND TO OWNER")
-  await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
+  return await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
 }
 
 async function sendToOwnerError(text: any) {
-  await sendToOwner(`Error: ${text.toString()}`)
+  const message = await sendToOwner(`🌋🌋🌋 Error: ${text.toString()}`)
+  if (!message) return
+  await telegramFramework.telegram.api.pinChatMessage({
+    chat_id: ownerId,
+    message_id: message.message_id,
+    disable_notification: false
+  })
 }
 
 telegramFramework.onUpdates(UpdateType.Message, async context => {

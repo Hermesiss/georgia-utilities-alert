@@ -13,7 +13,7 @@ import {Middleware} from "middleware-io";
 import {Updates} from "puregram/lib/updates";
 
 export class TelegramFramework {
-  private telegram: Telegram;
+  public telegram: Telegram;
   private errorHandler: ((e: any) => any) | null;
 
   get botUsername() {
