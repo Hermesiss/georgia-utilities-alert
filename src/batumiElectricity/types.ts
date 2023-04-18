@@ -229,6 +229,7 @@ export class Alert {
     this.planType = this.taskType == "1" ? PlanType.Planned : PlanType.Unplanned
 
     if (!this.disconnectionArea) this.disconnectionArea = ""
+    if (!this.scName) this.scName = this.taskName || ""
 
     const areas = this.disconnectionArea.split(',')
 
