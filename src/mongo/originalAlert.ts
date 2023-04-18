@@ -38,7 +38,7 @@ const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
   scEffectedCustomers: {type: String, required: false},
   disconnectionArea: {type: String, required: false, default: ""},
   regionName: {type: String, required: true},
-  scName: {type: String, required: true},
+  scName: {type: String, required: false, default: ""},
   disconnectionDate: {type: String, required: true},
   reconnectionDate: {type: String, required: true},
   dif: {type: String, required: false},
