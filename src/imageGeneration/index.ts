@@ -1,6 +1,7 @@
-import {createCanvas, loadImage} from "canvas";
+import {createCanvas, Image, loadImage} from "canvas";
 import fs from "fs";
 import {Alert, PlanType} from "../batumiElectricity/types";
+import {MapPlaceholderLink} from "../map/types";
 
 export class AlertColor {
   bg: string
@@ -32,7 +33,7 @@ export async function drawSingleAlert(alert: Alert, alertColor: AlertColor, mapU
 }
 
 export async function drawCustom(alertColor: AlertColor, mapUrl: string, channel: string, date: string, time: string, imgFilename: string): Promise<string> {
-  return drawImage(mapUrl, date, time,imgFilename, alertColor.bg, alertColor.caption, channel)
+  return drawImage(mapUrl, date, time, imgFilename, alertColor.bg, alertColor.caption, channel)
 }
 
 /**
@@ -49,7 +50,14 @@ export async function drawCustom(alertColor: AlertColor, mapUrl: string, channel
 async function drawImage(url: string, date: string, time: string, imgFilename: string, bgColor: string, bottomLeft?: string, bottomRight?: string): Promise<string> {
   const canvas = createCanvas(640, 872)
   const context = canvas.getContext('2d')
-  const data = await loadImage(url)
+  let data: Image;
+
+  try {
+    data = await loadImage(url);
+  } catch (e) {
+    console.error("Error loading image", e)
+    data = await loadImage(MapPlaceholderLink)
+  }
 
   const scale = await loadImage('./src/imageGeneration/img/map-scale.png')
   //const scale = await loadImage('/img/map-scale.png')
@@ -83,7 +91,7 @@ async function drawImage(url: string, date: string, time: string, imgFilename: s
     context.fillText(bottomLeft, 12, 832)
   }
 
-  context.drawImage(scale, 354 , 184, 284, 29)
+  context.drawImage(scale, 354, 184, 284, 29)
 
   const imgBuffer = canvas.toBuffer('image/png')
   const imgPath = `./dist/${imgFilename}.png`

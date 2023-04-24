@@ -66,7 +66,6 @@ export interface FeatureProperties {
 
 export interface Geometry {
   type: "LineString";
-  //coordinates?: ((number)[] | null)[] | null;
   coordinates: number[] [] ;
 
   rating?: number

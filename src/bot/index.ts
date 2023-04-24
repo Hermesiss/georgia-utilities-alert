@@ -570,6 +570,7 @@ async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMod
 async function sendToOwnerError(error: any, context: any) {
   const errorText = `🌋🌋🌋 Unhandled error:\n${JSON.stringify(error)}\nContext: ${JSON.stringify(context)}`;
   console.error(error, context)
+  console.error(errorText)
   const message = await sendToOwner(errorText)
   if (!message) return
   await telegramFramework.telegram.api.pinChatMessage({

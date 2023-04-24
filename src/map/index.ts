@@ -262,6 +262,37 @@ function createGeometryFromStreetFinderResults(results: StreetFinderResult[]): G
   return geometries
 }
 
+export function optimizeGeometries(geometries: Geometry[]): Geometry[] {
+  const resultMap: Map<string, Geometry> = new Map();
+
+  geometries.forEach((geometry) => {
+    // Convert coordinates array to a string, so it can be used as a key in the resultMap
+    const key = JSON.stringify(geometry.coordinates);
+
+    if (resultMap.has(key)) {
+      // If the key already exists, compare the rating and update the value if the new rating is higher
+      const existingGeometry = resultMap.get(key);
+      if (existingGeometry) {
+        if (!geometry.rating) {
+          // If the new geometry has no rating, skip it
+          return;
+        }
+        if (!existingGeometry.rating || geometry.rating > existingGeometry.rating) {
+          resultMap.set(key, geometry);
+        }
+      }
+    } else {
+      // If the key doesn't exist, add the geometry to the resultMap
+      resultMap.set(key, geometry);
+    }
+  });
+
+  // Convert the resultMap values back to an array of Geometry objects
+  console.log(`Optimized geometries from ${geometries.length} to ${resultMap.size}`)
+  return Array.from(resultMap.values());
+}
+
+
 
 /**
  *
@@ -271,6 +302,7 @@ function createGeometryFromStreetFinderResults(results: StreetFinderResult[]): G
  */
 function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | null {
   if (geometries.length == 0) return null
+  const optGeometries = optimizeGeometries(geometries)
   const mapPaths: Path[] = []
 
   //const paths: number[][][] = geometries.map(g => g.coordinates)
@@ -284,7 +316,7 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
     {color: '#ff5800', pos: 1},
   ])
 
-  for (let geometry of geometries) {
+  for (let geometry of optGeometries) {
     const points: [number, number][] = []
     const path = geometry.coordinates
     for (let coord of path) {
