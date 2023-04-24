@@ -40,7 +40,7 @@ const ownerId = process.env.TELEGRAM_OWNER_ID ?? envError("TELEGRAM_OWNER_ID")
 const token = process.env.TELEGRAM_BOT_TOKEN ?? envError("TELEGRAM_BOT_TOKEN")
 
 const telegramFramework = new TelegramFramework(token);
-telegramFramework.setErrorHandler(e => sendToOwnerError(e))
+telegramFramework.setErrorHandler((e, c) => sendToOwnerError(e, c))
 let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
@@ -205,7 +205,7 @@ async function editAllPostedAlerts(onListCreated?: (links: string) => void | nul
       }*/
     }
   } catch (e) {
-    await sendToOwnerError(e)
+    await sendToOwnerError(e, "editAllPostedAlerts")
   }
 }
 
@@ -310,7 +310,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
         await telegramFramework.sendMessage({chat_id: channelId, text: post, parse_mode: 'Markdown'})
     }
   } catch (e) {
-    await sendToOwnerError(e)
+    await sendToOwnerError(e, {name: "postAlertsForDay", date: date.format('YYYY-MM-DD'), caption: caption})
   }
 }
 
@@ -342,7 +342,7 @@ async function fetchAndSendNewAlerts() {
       }
     }
   } catch (e) {
-    await sendToOwnerError(e)
+    await sendToOwnerError(e, "fetchAndSendNewAlerts")
   }
   console.timeEnd("fetchAndSendNewAlerts")
   await sendToOwner("Done sending new alerts")
@@ -567,8 +567,10 @@ async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMod
   return await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
 }
 
-async function sendToOwnerError(text: any) {
-  const message = await sendToOwner(`🌋🌋🌋 Error: ${text.toString()}`)
+async function sendToOwnerError(error: any, context: any) {
+  const errorText = `🌋🌋🌋 Unhandled error:\n${JSON.stringify(error)}\nContext: ${JSON.stringify(context)}`;
+  console.error(error, context)
+  const message = await sendToOwner(errorText)
   if (!message) return
   await telegramFramework.telegram.api.pinChatMessage({
     chat_id: ownerId,

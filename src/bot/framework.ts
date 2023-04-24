@@ -14,7 +14,7 @@ import {Updates} from "puregram/lib/updates";
 
 export class TelegramFramework {
   public telegram: Telegram;
-  private errorHandler: ((e: any) => any) | null;
+  private errorHandler: ((error: any, context: any) => any) | null;
 
   get botUsername() {
     return this.telegram.bot.username
@@ -28,7 +28,7 @@ export class TelegramFramework {
     return await this.telegram.api.setMyCommands(params)
   }
 
-  setErrorHandler(handler: ((e: any) => any) | null) {
+  setErrorHandler(handler: ((error: any, context: any) => any) | null) {
     this.errorHandler = handler
   }
 
@@ -62,16 +62,16 @@ export class TelegramFramework {
     return await this.tgActionWithRetry(() => this.telegram.api.sendMessage(params), onError)
   }
 
-  private async tgActionWithRetry<T>(tgEditAction: () => Promise<Interfaces.TelegramMessage | T>, onError?: (e: any) => any) {
+  private async tgActionWithRetry<T>(tgAction: () => Promise<Interfaces.TelegramMessage | T>, onError?: (e: any) => any) {
     let tries = 3
     let result: Interfaces.TelegramMessage | T = null as any
     while (tries > 0) {
       try {
-        result = await tgEditAction()
+        result = await tgAction()
         break
       } catch (e: any) {
         if (this.errorHandler) {
-          this.errorHandler(e)
+          this.errorHandler(e, tgAction)
         }
         if (onError) {
           onError(e)
