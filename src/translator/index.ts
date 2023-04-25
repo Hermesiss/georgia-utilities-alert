@@ -18,8 +18,13 @@ export class Translator {
         const translationFromBase = await Translation.findOne({keyGe: phrase})
         if (translationFromBase) {
           console.log(`Loading from base ${phrase} -> ${translationFromBase.valueEn}`)
-          this.translations.set(phrase, {translation: translationFromBase.valueEn})
-          return translationFromBase.valueEn
+          if (typeof translationFromBase.valueEn === "string" && translationFromBase.valueEn.length > 0) {
+            this.translations.set(phrase, {translation: translationFromBase.valueEn})
+            return translationFromBase.valueEn
+          } else {
+            // somehow the translation is empty, delete it
+            await Translation.deleteOne({keyGe: phrase})
+          }
         }
 
         result = await translate(phrase, "ka", "en", false)
@@ -27,8 +32,7 @@ export class Translator {
         await Translation.create({keyGe: phrase, valueEn: result.translation})
         //await new Promise(r => setTimeout(r, 50)) //wait to avoid ECONNRESET
         this.translations.set(phrase, result)
-      }
-      catch (e) {
+      } catch (e) {
         console.error(`Translation error while translating [${phrase}]`, e)
         return phrase
       }
