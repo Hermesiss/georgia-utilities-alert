@@ -40,7 +40,7 @@ const ownerId = process.env.TELEGRAM_OWNER_ID ?? envError("TELEGRAM_OWNER_ID")
 const token = process.env.TELEGRAM_BOT_TOKEN ?? envError("TELEGRAM_BOT_TOKEN")
 
 const telegramFramework = new TelegramFramework(token);
-telegramFramework.setErrorHandler((e, c) => sendToOwnerError(e, c))
+telegramFramework.setUnknownErrorHandler((e, c) => sendToOwnerError(e, c))
 let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()

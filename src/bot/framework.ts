@@ -14,7 +14,7 @@ import {Updates} from "puregram/lib/updates";
 
 export class TelegramFramework {
   public telegram: Telegram;
-  private errorHandler: ((error: any, context: any) => any) | null;
+  private unknownErrorHandler: ((error: any, context: any) => any) | null;
 
   get botUsername() {
     return this.telegram.bot.username
@@ -28,8 +28,8 @@ export class TelegramFramework {
     return await this.telegram.api.setMyCommands(params)
   }
 
-  setErrorHandler(handler: ((error: any, context: any) => any) | null) {
-    this.errorHandler = handler
+  setUnknownErrorHandler(handler: ((error: any, context: any) => any) | null) {
+    this.unknownErrorHandler = handler
   }
 
   onUpdates<K extends keyof Known<ContextsMapping>, T = {}>(events: MaybeArray<K>, handler: MaybeArray<Middleware<ContextsMapping[K] & T>>): Updates {
@@ -70,15 +70,15 @@ export class TelegramFramework {
         result = await tgAction()
         break
       } catch (e: any) {
-        if (this.errorHandler) {
-          this.errorHandler(e, tgAction)
-        }
         if ('code' in e) {
           const apiError = <APIError>e
           // Bad Request: message is not modified
           if (e.code == 400) {
             if (typeof e.message === "string" && e.message?.includes("message is not modified")) {
               console.log("Already edited")
+              if (onError) {
+                onError(e)
+              }
               break
             }
           }
@@ -94,11 +94,17 @@ export class TelegramFramework {
             }
             continue
           }
-        }
 
-        // Unknown error
+          if (onError) {
+            onError(e)
+          }
+        }
         if (onError) {
           onError(e)
+        }
+        // Unknown error
+        if (this.unknownErrorHandler) {
+          this.unknownErrorHandler(e, tgAction)
         }
 
         break
