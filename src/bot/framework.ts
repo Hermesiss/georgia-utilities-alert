@@ -94,10 +94,6 @@ export class TelegramFramework {
             }
             continue
           }
-
-          if (onError) {
-            onError(e)
-          }
         }
         if (onError) {
           onError(e)

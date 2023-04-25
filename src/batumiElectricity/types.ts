@@ -59,9 +59,7 @@ export class AreaTree {
           this.add(key, child)
         }
       })
-    } /*else {
-      this.add(area.name, area)
-    }*/
+    }
   }
 
   constructor(name: string = "") {

@@ -375,7 +375,7 @@ const run = async () => {
           res.send(links);
         })
         await sendToOwner("Daily midnight renaming ended " + dayjs().format('YYYY-MM-DD HH:mm'))
-      }, "postAlertsForDayAfterTomorrow"
+      }, "updatePostedAlerts"
     )
   })
 

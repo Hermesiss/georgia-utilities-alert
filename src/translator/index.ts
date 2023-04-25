@@ -5,8 +5,8 @@ const {translate} = require('bing-translate-api');
 export class Translator {
   private static translations = new Map<string, any | undefined>()
 
-  static async getTranslation(phrase: string): Promise<string> {
-    if (null == phrase || phrase.length == 0) return phrase
+  static async getTranslation(phrase: string | null): Promise<string> {
+    if (null == phrase || phrase.length == 0) return ""
 
     // if phrase consists of only numbers and special symbols, return it
     if (phrase.match(/^[0-9a-zA-Z\-\s()":.!@#$%^&*_=+<>\[\]{},\/\\]+$/)) return phrase
