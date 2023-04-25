@@ -73,17 +73,14 @@ export class TelegramFramework {
         if (this.errorHandler) {
           this.errorHandler(e, tgAction)
         }
-        if (onError) {
-          onError(e)
-        }
         if ('code' in e) {
           const apiError = <APIError>e
           // Bad Request: message is not modified
           if (e.code == 400) {
-            // TODO handle markdown parse error
-            console.log("==== BAD REQUEST", e)
-            console.log("Already edited")
-            break
+            if (typeof e.message === "string" && e.message?.includes("message is not modified")) {
+              console.log("Already edited")
+              break
+            }
           }
           // Too Many Requests
           if (e.code == 429) {
@@ -95,11 +92,16 @@ export class TelegramFramework {
             } else {
               console.log(`RETRY, ${tries}`)
             }
+            continue
           }
-        } else {
-          console.log("==== UNKNOWN ERROR", e)
-          break
         }
+
+        // Unknown error
+        if (onError) {
+          onError(e)
+        }
+
+        break
       }
     }
 

@@ -526,7 +526,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     const channel = getChannelForId(post.channel)
     const text = await alert.formatSingleAlert(channel?.cityName ?? null)
     const photo = post.hasPhoto
-    let msg = `Changing post ${getLinkFromPost(post)}`;
+    let msg: string | null = `Changing post ${getLinkFromPost(post)}`;
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
       const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
@@ -544,7 +544,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
           parse_mode: 'Markdown',
         },
       }, e => {
-        msg += `\n\nError: ${e}`
+        msg = null
       })
 
     } else {
@@ -554,10 +554,12 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
         text,
         parse_mode: "Markdown"
       }, e => {
-        msg += `\n\nError: ${e}`
+        msg = null
       })
     }
-    await sendToOwner(msg)
+
+    if (msg != null)
+      await sendToOwner(msg)
   }
 }
 
