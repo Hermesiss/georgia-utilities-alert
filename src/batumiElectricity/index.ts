@@ -1,5 +1,5 @@
 import axios from "axios";
-import {Alert, AlertDiff, AlertsRoot} from "./types";
+import {Alert, AlertDiff, AlertsRoot, CityChannel} from "./types";
 import {TwoWayMap} from "../common/twoWayMap";
 import {IOriginalAlert, OriginalAlert} from "../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
@@ -12,6 +12,7 @@ dayjs.extend(isSameOrAfter)
 
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
+  public alertsSearchUrl = "https://my.energo-pro.ge/owback/searchAlerts"
 
   private alertsById = new Map<number, Alert>()
   private alertsByDate = new Map<string, Array<Alert>>()
@@ -26,14 +27,20 @@ export class BatumiElectricityParser {
    * @private
    */
   private citiesTwoWayMap = new TwoWayMap<string, string>()
+  private includedCities: Array<CityChannel>;
 
   public async getAlertFromId(id: number): Promise<Alert | undefined> {
     await this.fetchAlerts()
     return this.alertsById.get(id)
   }
 
-  constructor() {
+  public async getOriginalAlertFromId(id: number): Promise<HydratedDocument<IOriginalAlert> | null> {
+    //await this.fetchAlerts()
+    return OriginalAlert.findOne({taskId: id})
+  }
 
+  constructor(cities: Array<CityChannel>) {
+    this.includedCities = cities
   }
 
   public async getAlertsFromDay(date: Dayjs): Promise<Array<Alert>> {
@@ -133,8 +140,19 @@ export class BatumiElectricityParser {
       this.alertsByCity.clear()
       this.alertsLastFetch = new Date()
 
-      const json = await axios.get<AlertsRoot>(this.alertsUrl)
-      const {status, data} = json.data
+      let dataDict = new Set<Alert>()
+
+      // Get alerts for each city
+      for (let city of this.includedCities) {
+        if (city.cityNameGe == null) continue
+        const cityData = await this.fetchAlertsForCity(city.cityNameGe)
+        console.log(`Fetching alerts for ${city.cityName}: ${cityData.length} alerts`)
+        for (let alert of cityData) {
+          dataDict.add(alert)
+        }
+      }
+
+      const data = Array.from(dataDict.values())
 
       // Get duplicated taskId's
       const duplicateElements = BatumiElectricityParser.getDuplicates(data);
@@ -156,7 +174,7 @@ export class BatumiElectricityParser {
         let diff = new AlertDiff();
         const alertData = filteredData[i]
 
-        process.stdout.write("*");
+        process.stdout.write(`[${i}/${filteredData.length}]`);
 
         let original: HydratedDocument<IOriginalAlert> | null
           = await OriginalAlert.findOne({taskId: alertData.taskId}).exec()
@@ -302,5 +320,11 @@ export class BatumiElectricityParser {
 
   getAlertCount(cityName: string): number | undefined {
     return this.alertsByCity.get(cityName)?.length
+  }
+
+  private async fetchAlertsForCity(cityGe: string): Promise<Array<Alert>> {
+    const json = await axios.post<AlertsRoot>(this.alertsSearchUrl, {search: cityGe})
+    const {status, data} = json.data
+    return data
   }
 }

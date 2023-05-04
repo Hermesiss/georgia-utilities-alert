@@ -8,7 +8,10 @@
     "build": "npx tsc",
     "postinstall": "npx tsc",
     "start": "node dist/bot/index.js",
-    "start:dev:bot": "concurrently \"npx tsc --watch\" \"nodemon -q dist/bot/index.js\""
+    "start:dev:bot": "concurrently \"npx tsc --watch\" \"nodemon -q dist/bot/index.js\"",
+    "dev:map:start": "node dist/map/index.js",
+    "dev:map:build-and-start": "npm run build && npm run dev:map:start",
+    "test": "jest"
   },
   "keywords": [],
   "author": "hermesiss",
@@ -16,17 +19,28 @@
   "dependencies": {
     "axios": "^1.2.0",
     "bing-translate-api": "^2.7.0",
+    "canvas": "^2.11.0",
     "dayjs": "^1.11.6",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "google-polyline": "^1.0.3",
+    "imgbox-js": "^1.0.35",
     "mongoose": "^6.7.5",
-    "puregram": "^2.9.8"
+    "puregram": "^2.9.8",
+    "static-google-map": "^0.0.5",
+    "string-similarity": "^4.0.4",
+    "tinygradient": "^1.1.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.14",
+    "@types/google-polyline": "^1.0.0",
+    "@types/jest": "^29.5.1",
     "@types/node": "^18.11.9",
+    "@types/string-similarity": "^4.0.0",
     "concurrently": "^7.6.0",
+    "jest": "^29.5.0",
     "nodemon": "^2.0.20",
+    "ts-jest": "^29.1.0",
     "typescript": "^4.9.3"
   }
 }
