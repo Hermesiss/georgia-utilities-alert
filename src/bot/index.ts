@@ -45,19 +45,19 @@ let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
 
-function addChannel(cityName: string, env: string) {
+function addChannel(cityName: string, cityNameGe: string | null, env: string) {
   const canPostPhotos = process.env[env + "_PHOTOS"] == "true"
   const channelId = process.env[env] ?? envError(env)
   if (channelId == "skip") return
-  channels.push(new CityChannel(cityName, channelId, canPostPhotos))
+  channels.push(new CityChannel(cityName, cityNameGe, channelId, canPostPhotos))
 }
 
-addChannel("Batumi", "TELEGRAM_CHANNEL_BATUMI")
-addChannel("Kutaisi", "TELEGRAM_CHANNEL_KUTAISI")
-addChannel("Kobuleti", "TELEGRAM_CHANNEL_KOBULETI")
+addChannel("Batumi", "ბათუმი", "TELEGRAM_CHANNEL_BATUMI")
+addChannel("Kutaisi", "ქუთაისი", "TELEGRAM_CHANNEL_KUTAISI")
+addChannel("Kobuleti", "ქობულეთი", "TELEGRAM_CHANNEL_KOBULETI")
 
 // city name is null for area formatting - we are stripping another cities for posting in city-related channel
-const channelMain = new CityChannel(null, process.env.TELEGRAM_CHANNEL_MAIN ?? "skip")
+const channelMain = new CityChannel(null, null, process.env.TELEGRAM_CHANNEL_MAIN ?? "skip")
 
 function getChannelForCity(city: string): CityChannel | null {
   for (let channel of channels) {
@@ -151,9 +151,9 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
 }
 
 /*
- Edit all non-deleted posted alerts in channels
- @param onListCreated - callback to get list of links before actually editing
- @returns void
+  Edit all non-deleted posted alerts in channels
+  @param onListCreated - callback to get list of links before actually editing
+  @returns void
  */
 async function editAllPostedAlerts(onListCreated?: (links: string) => void | null): Promise<void> {
   try {
@@ -419,7 +419,7 @@ const run = async () => {
   app.listen(port, () => {
   });
 
-  batumi = new BatumiElectricityParser();
+  batumi = new BatumiElectricityParser(channels);
 
   if (process.env.NODE_ENV !== 'development') {
     await fetchAndSendNewAlerts();

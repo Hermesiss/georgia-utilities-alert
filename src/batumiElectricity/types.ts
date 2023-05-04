@@ -471,14 +471,16 @@ export class City {
 
 export class CityChannel {
   cityName: string | null;
+  cityNameGe: string | null;
   channelId: string;
 
   canPostPhotos: boolean = false;
 
   //constructor
-  constructor(cityName: string | null, channelId: string, canPostPhotos: boolean = false) {
+  constructor(cityName: string | null, cityNameGe: string | null, channelId: string, canPostPhotos: boolean = false) {
     console.log(`Creating CityChannel ${cityName}, channelId: ${channelId}, canPostPhotos: ${canPostPhotos}`)
     this.cityName = cityName;
+    this.cityNameGe = cityNameGe;
     this.channelId = channelId;
     this.canPostPhotos = canPostPhotos;
   }
