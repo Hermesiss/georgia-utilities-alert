@@ -364,7 +364,7 @@ export class Alert {
     if (level > 5) return text
 
     if (level == 1) {
-      if (cityName != null && cityName !== areaTree.name) {
+      if (cityName != null && cityName !== areaTree.nameEn) {
         return ""
       }
     }
