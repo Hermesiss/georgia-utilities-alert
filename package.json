@@ -13,7 +13,9 @@
     "dev:map:build-and-start": "npm run build && npm run dev:map:start",
     "test": "jest",
     "dev:stats:start": "node dist/batumiElectricity/stats.js",
-    "dev:stats:build-and-start": "npm run build && npm run dev:stats:start"
+    "dev:stats:build-and-start": "npm run build && npm run dev:stats:start",
+    "dev:matcher:start": "node dist/map/matcher.js",
+    "dev:matcher:build-and-start": "npm run build && npm run dev:matcher:start"
   },
   "keywords": [],
   "author": "hermesiss",
