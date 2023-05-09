@@ -308,7 +308,6 @@ export function optimizeGeometries(geometries: Geometry[]): Geometry[] {
   return Array.from(resultMap.values());
 }
 
-
 /**
  *
  * @param geometries
