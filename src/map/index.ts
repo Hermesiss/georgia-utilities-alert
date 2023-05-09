@@ -36,7 +36,6 @@ export async function prepareGeoJson() {
   const data = fs.readFileSync("./src/map/data/route_line.geojson", "utf8")
   const obj: GeoJsonData = JSON.parse(data)
   console.log("Total items", obj.features?.length)
-  let empty = 0
 
   for (let road of obj.features) {
     if (road.properties.name == null || typeof road.properties.name === 'undefined') continue
@@ -49,8 +48,6 @@ export async function prepareGeoJson() {
       }
       road.properties['name:en'] = translatedRouteMap.get(road.properties.name) || road.properties.name
       name = road.properties['name:en']
-      //empty++
-      //continue
     }
 
     const saved = {
@@ -71,11 +68,10 @@ export async function prepareGeoJson() {
   realStreetsNames = Array.from(realStreets.keys());
 }
 
-export function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): string | null {
-  const streets = getStreets(alert.areaTree, city)
+export async function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): Promise<string | null> {
+  const streets = await getStreets(alert.areaTree, city)
   const result: StreetFinderResult[] = [];
-  const realStreets = getRealStreets(streets, result)
-  //return drawMapFromStreets(realStreets, color)
+  getRealStreets(streets, result)
   return drawMapFromStreetFinderResults(result, color)
 }
 
@@ -83,8 +79,7 @@ export function drawMapFromInput(input: string, color: AlertColor): string | nul
   const streets = getStreetsFromInput(input)
 
   const result: StreetFinderResult[] = [];
-  const realStreets = getRealStreets(streets, result)
-  //return drawMapFromStreets(realStreets, color)
+  getRealStreets(streets, result)
   return drawMapFromStreetFinderResults(result, color)
 }
 
@@ -104,26 +99,28 @@ export function drawMapFromStreetFinderResults(results: StreetFinderResult[], co
  * @param city if set, only streets from this city will be returned
  * @param level
  */
-export function getStreets(tree: AreaTree, city: string | null, level = 0): Set<string> {
+export async function getStreets(tree: AreaTree, city: string | null, level = 0): Promise<Set<string>> {
+  await tree.prepareTranslation()
+  if (!tree.nameEn) throw new Error("tree.nameEn is null")
   const result = new Set<string>()
   if (level > 5) return result
   if (level == 1) {
     if (city) {
-      if (tree.name != city) {
+      if (tree.nameEn != city) {
         return result
       } else if (tree.children.size == 0) {
-        result.add(tree.name) //if this is out city, and it has no children, add it
+        result.add(tree.nameEn) //if this is our city, and it has no children, add it
       }
     }
   }
 
   // do no add root
   if (level >= 2) {
-    result.add(tree.name)
+    result.add(tree.nameEn)
   }
   for (let child of tree.children.values()) {
     if (!city || child.name == city) {
-      const streets = getStreets(child, null, level + 1)
+      const streets = await getStreets(child, null, level + 1)
       streets.forEach(s => result.add(s))
     }
   }
@@ -189,14 +186,8 @@ export function getRealStreets(streets: Set<string>, result: StreetFinderResult[
       // trying to find matches with rating > threshold
       if (best.rating > threshold) {
         console.log(`Find similar for ${street} is ${best.target} with ${best.rating}`)
-        /*if (processed.has(best.target) && result == null) {
-          continue
-        }*/
 
         bestMatches.push(best)
-
-        //processed.add(best.target)
-        //result?.push({input: street, match: best.target, rating: best.rating})
       }
     }
     if (bestMatches.length != 0) {
@@ -293,7 +284,6 @@ export function optimizeGeometries(geometries: Geometry[]): Geometry[] {
 }
 
 
-
 /**
  *
  * @param geometries
@@ -304,10 +294,6 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
   if (geometries.length == 0) return null
   const optGeometries = optimizeGeometries(geometries)
   const mapPaths: Path[] = []
-
-  //const paths: number[][][] = geometries.map(g => g.coordinates)
-  //const length = paths.length
-  //let i = 0
 
   const gradient = tinygradient([
     {color: '#000000', pos: 0.25},
@@ -326,9 +312,7 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
     const gradientColor = gradient.rgbAt(geometry.rating ?? 1)
     console.log(`Color for ${geometry.rating} is ${gradientColor.toHex()}`)
 
-    const color =
-      //selectedColor.lineMapFormatted ??
-      "0x" + gradientColor.toHex() + 'ff'
+    const color = "0x" + gradientColor.toHex() + 'ff'
 
     const encodedPoints = polyline.encode(points)
     mapPaths.push({points: `enc:${encodedPoints}`, color: color, weight: 4})

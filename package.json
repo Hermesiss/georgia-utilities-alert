@@ -11,7 +11,9 @@
     "start:dev:bot": "concurrently \"npx tsc --watch\" \"nodemon -q dist/bot/index.js\"",
     "dev:map:start": "node dist/map/index.js",
     "dev:map:build-and-start": "npm run build && npm run dev:map:start",
-    "test": "jest"
+    "test": "jest",
+    "dev:stats:start": "node dist/batumiElectricity/stats.js",
+    "dev:stats:build-and-start": "npm run build && npm run dev:stats:start"
   },
   "keywords": [],
   "author": "hermesiss",

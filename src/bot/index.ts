@@ -118,7 +118,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
       let msg: TelegramMessage | null;
       if (postPhoto) {
         const alertColor: AlertColor = alert.getAlertColor()
-        const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
+        const mapUrl = await drawMapFromAlert(alert, alertColor, channel.cityName)
           ?? MapPlaceholderLink
         const image = await drawSingleAlert(alert, alertColor, mapUrl, channel.channelId)
         msg = await telegramFramework.sendPhoto({
@@ -277,7 +277,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
       console.log(`==== SEND DAILY TO CHANNEL ${channelId} : ${channel?.cityName}, photo ${channel?.canPostPhotos} ====`)
       console.log(post)
       if (channelAlerts.photo) {
-        const streets = getStreets(areaTree, channel?.cityName ?? null)
+        const streets = await getStreets(areaTree, channel?.cityName ?? null)
         const result = new Array<StreetFinderResult>()
         const realStreets = getRealStreets(streets, result)
         const color = Alert.colorDaily
@@ -529,7 +529,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     let msg: string | null = `Changing post ${getLinkFromPost(post)}`;
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
-      const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
+      const mapUrl = await drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
         ?? MapPlaceholderLink
 
       const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
@@ -673,7 +673,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         }
         const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         const alertColor: AlertColor = alertFromId.getAlertColor()
-        const mapUrl = drawMapFromAlert(alertFromId, alertColor, "Batumi")
+        const mapUrl = await drawMapFromAlert(alertFromId, alertColor, "Batumi")
           ?? MapPlaceholderLink
 
         const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
@@ -748,7 +748,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const formatted = await Alert.formatAreas(area, cityName)
         console.log(`Merged ${formatted}`)
         if (showMap) {
-          const streets = getStreets(area, cityName)
+          const streets = await getStreets(area, cityName)
           const result = new Array<StreetFinderResult>()
           const realStreets = getRealStreets(streets, result)
           const color = Alert.colorDaily
