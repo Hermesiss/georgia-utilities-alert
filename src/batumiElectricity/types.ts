@@ -55,15 +55,14 @@ export class AreaTree {
   public async getTranslated(): Promise<string> {
     if (this.nameEn) return this.nameEn
     let translated = citiesMap.get(this.name)
-    if (translated) {
-      {
-        translated = districtsMap.get(this.name)
-      }
-
-      if (!translated) {
-        translated = await Translator.getTranslation(this.name);
-      }
+    if (!translated) {
+      translated = districtsMap.get(this.name)
     }
+
+    if (!translated) {
+      translated = await Translator.getTranslation(this.name);
+    }
+
     if (!translated) translated = this.name
     this.nameEn = translated
     return translated
