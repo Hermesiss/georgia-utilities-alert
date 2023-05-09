@@ -35,7 +35,7 @@ export enum PlanType {
 }
 
 export class AreaTree {
-  name: string;
+  nameGe: string;
   nameEn: string | null = null;
   children = new Map<string, AreaTree>()
 
@@ -54,16 +54,16 @@ export class AreaTree {
    */
   public async getTranslated(): Promise<string> {
     if (this.nameEn) return this.nameEn
-    let translated = citiesMap.get(this.name)
+    let translated = citiesMap.get(this.nameGe)
     if (!translated) {
-      translated = districtsMap.get(this.name)
+      translated = districtsMap.get(this.nameGe)
     }
 
     if (!translated) {
-      translated = await Translator.getTranslation(this.name);
+      translated = await Translator.getTranslation(this.nameGe);
     }
 
-    if (!translated) translated = this.name
+    if (!translated) translated = this.nameGe
     this.nameEn = translated
     return translated
   }
@@ -134,7 +134,7 @@ export class AreaTree {
   }
 
   constructor(name: string = "") {
-    this.name = name;
+    this.nameGe = name;
   }
 
   public has(name: string) {
@@ -157,7 +157,7 @@ export class AreaTreeWithData<T> extends AreaTree {
   }
 
   public static fromAreaTree<T>(area: AreaTree, data: T | null = null): AreaTreeWithData<T> {
-    const result = new AreaTreeWithData<T>(area.name)
+    const result = new AreaTreeWithData<T>(area.nameGe)
     result.data = data
     for (let child of area.children) {
       result.add(child[0], AreaTreeWithData.fromAreaTree(child[1], data))
@@ -186,7 +186,7 @@ export class AreaTreeWithArray<T> extends AreaTree {
   }
 
   public static fromAreaTree<T>(area: AreaTree, data: T | null = null): AreaTreeWithArray<T> {
-    const result = new AreaTreeWithArray<T>(area.name)
+    const result = new AreaTreeWithArray<T>(area.nameGe)
     if (data && !result.data.includes(data)) {
       result.data.push(data)
     }

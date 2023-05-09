@@ -15,9 +15,9 @@ const getAreaStats = (areas: Array<AreaTree>): Map<string, number> => {
 }
 
 function getStatsRecursively(area: AreaTree, result: Map<string, number>) {
-  if (area.name) {
-    const current = result.get(area.name) ?? 0
-    result.set(area.name, current + 1)
+  if (area.nameGe) {
+    const current = result.get(area.nameGe) ?? 0
+    result.set(area.nameGe, current + 1)
   }
 
   if (area.children) {

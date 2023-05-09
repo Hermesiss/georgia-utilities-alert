@@ -1,4 +1,4 @@
-import {findClosest, hasIntersection, prepare} from "../../src/map/matcher";
+import {getAllMatches, hasIntersection, prepare} from "../../src/map/matcher";
 
 describe('crossroads', () => {
   const intersected = [
@@ -19,10 +19,10 @@ describe('crossroads', () => {
         throw new Error("intersection.street1 || intersection.street2 is undefined")
       }
 
-      let match = findClosest(intersection.street1)
+      let match = getAllMatches(intersection.street1)
       expect(match[0].street.name).toEqual(datum.output[0])
       console.log(match[0].street.name)
-      match = findClosest(intersection.street2)
+      match = getAllMatches(intersection.street2)
       expect(match[0].street.name).toEqual(datum.output[1])
     })
   }
@@ -49,7 +49,7 @@ describe('matching', () => {
   for (let datum of data) {
     it("matching " + datum.input, () => {
       console.log(datum.input)
-      const match = findClosest(datum.input)
+      const match = getAllMatches(datum.input)
       expect(match[0].street.name).toEqual(datum.output)
     })
   }

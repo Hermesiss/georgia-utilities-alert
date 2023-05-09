@@ -4,10 +4,15 @@ import {compareTwoStrings} from "string-similarity";
 
 type StreetType = keyof typeof StreetTypes
 
-
 export class MatchResult {
+  original: string
   similarity: number = 0
   partSimilarity: Array<{ name: string; similarity: number, reason: string }> = []
+
+  constructor(original: string) {
+    this.original = MatcherStreet.removeStreetType(original)
+    // TODO remove street type from original
+  }
 
   toString(): string {
     return `similarity: ${this.similarity}, partSimilarity: ${this.partSimilarity.map((x) => `${x.name}: ${x.similarity} [${x.reason}]`).join(", ")}`
@@ -72,8 +77,22 @@ export class MatcherStreet {
     this.geometries.push(feature.geometry)
   }
 
+  public static removeStreetType(street: string): string {
+    for (let streetTypesKey in StreetTypes) {
+      const streetType = StreetTypes[streetTypesKey as StreetType]
+      for (let string of streetType.ge) {
+        street = street.replace(string, "")
+      }
+    }
+    return street
+  }
+
   public static cleanName(geoName: string) {
-    return geoName.trim().replace(/\s+/g, " ");
+    return geoName
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/[“”"‘’'«»`„]+/g, '')
+      .replace(/[-_]+/g, ' ')
   }
 
   public combine(feature: FeaturesEntity) {
@@ -99,7 +118,7 @@ export class MatcherStreet {
   }
 
   getSimilarity(street: string): MatchResult {
-    const matchResult = new MatchResult()
+    const matchResult = new MatchResult(street)
     const streetParts = street.replace(".", " ").split(" ").sort((a, b) => b.length - a.length)
     let globalSimilarity = 0
     let ignored = new Set<string>()
@@ -111,7 +130,7 @@ export class MatcherStreet {
         if (streetPart.length <= similarity) continue
 
         if (streetPart === part) {
-          similarity = part.length * 2
+          similarity = part.length * 4
           reason = `Exact match of ${streetPart}`
           ignored.add(streetPart)
         } else if (streetPart.startsWith(part)) {
@@ -125,8 +144,7 @@ export class MatcherStreet {
           }
 
         } else {
-
-          const comparing = compareTwoStrings(streetPart, part) * part.length
+          const comparing = compareTwoStrings(streetPart, part) * part.length * 2
           if (comparing > similarity) {
             reason = `Comparing ${streetPart} vs ${part}`
             similarity = Math.max(comparing, similarity)
@@ -143,45 +161,59 @@ export class MatcherStreet {
   }
 }
 
+function loadGeoJsons(): GeoJsonData[] {
+  const result = []
+  const files = ["batumi", "chakvi", "gonio"]
+  for (let file of files) {
+    const data = fs.readFileSync(`./src/map/data/${file}.geojson`, "utf8")
+    const obj: GeoJsonData = JSON.parse(data)
+    result.push(obj)
+  }
+  return result
+}
+
 export const prepare = () => {
-  const data = fs.readFileSync("./src/map/data/route_line.geojson", "utf8")
-  const obj: GeoJsonData = JSON.parse(data)
+  const geoJsons = loadGeoJsons()
   const entityTypesCount = new Map<string | null | undefined, number>
   let hasName = 0
   let hasGeoName = 0
   let hasEnName = 0
   let hasRuName = 0
-  for (let feature of obj.features) {
-    const name = feature.properties.name;
-    if (name) hasName++
-    const nameGe = feature.properties["name:ka"];
-    if (nameGe) hasGeoName++
-    const nameEn = feature.properties["name:en"];
-    if (nameEn) hasEnName++
-    const nameRu = feature.properties["name:ru"];
-    if (nameRu) hasRuName++
 
-    // continue if it has no names
-    if (!name && !nameGe && !nameEn && !nameRu) continue
+  for (let obj of geoJsons) {
 
-    const type = feature.properties.highway
-    const count = entityTypesCount.get(type) ?? 0
-    entityTypesCount.set(type, count + 1)
-    const street = new MatcherStreet(feature)
+    for (let feature of obj.features) {
+      const name = feature.properties.name;
+      if (name) hasName++
+      const nameGe = feature.properties["name:ka"];
+      if (nameGe) hasGeoName++
+      const nameEn = feature.properties["name:en"];
+      if (nameEn) hasEnName++
+      const nameRu = feature.properties["name:ru"];
+      if (nameRu) hasRuName++
 
-    const existing = entitiesByName.get(street.name)
-    if (existing) {
-      existing.combine(feature)
-      continue
-    } else {
-      entitiesByName.set(street.name, street)
+      // continue if it has no names
+      if (!name && !nameGe && !nameEn && !nameRu) continue
+
+      const type = feature.properties.highway
+      const count = entityTypesCount.get(type) ?? 0
+      entityTypesCount.set(type, count + 1)
+      const street = new MatcherStreet(feature)
+
+      const existing = entitiesByName.get(street.name)
+      if (existing) {
+        existing.combine(feature)
+        continue
+      } else {
+        entitiesByName.set(street.name, street)
+      }
+
+      if (!streetsByType.has(street.streetType)) {
+        streetsByType.set(street.streetType, [])
+      }
+
+      streetsByType.get(street.streetType)?.push(street)
     }
-
-    if (!streetsByType.has(street.streetType)) {
-      streetsByType.set(street.streetType, [])
-    }
-
-    streetsByType.get(street.streetType)?.push(street)
   }
 
   /* const sorted = [...entityTypesCount.entries()].sort((a, b) => b[1] - a[1])
@@ -209,6 +241,8 @@ export const prepare = () => {
   console.log(byNameSorted)*/
 }
 
+prepare()
+
 export const hasIntersection = (street: string): { result: boolean, street1?: string, street2?: string } => {
   const crossroadWords = ["კვეთა", "გადაკვეთა"]
 
@@ -226,18 +260,20 @@ export const hasIntersection = (street: string): { result: boolean, street1?: st
   return {result: false}
 }
 
-export const findClosest = (rawStreet: string): Array<{ street: MatcherStreet, similarity: MatchResult }> => {
+export const getAllMatches = (rawStreet: string): Array<{ street: MatcherStreet, similarity: MatchResult }> => {
   rawStreet = MatcherStreet.cleanName(rawStreet)
   const streetType = MatcherStreet.getStreetType(rawStreet)
   const results = new Array<{ street: MatcherStreet, similarity: MatchResult }>()
 
   let types: string[];
 
-  if (streetType) {
+  types = Object.keys(StreetTypes);
+
+  /*if (streetType) {
     types = [streetType]
   } else {
     types = Object.keys(StreetTypes);
-  }
+  }*/
 
   for (let type of types) {
     const streets = streetsByType.get(type as StreetType)
@@ -252,8 +288,28 @@ export const findClosest = (rawStreet: string): Array<{ street: MatcherStreet, s
   const sliced = sorted.slice(0, 10).map((x) => {
     return {name: x.street.name, similarity: x.similarity.toString()}
   })
-  console.log(sliced)
+  console.log("SLICED", sliced)
   return sorted
+}
+
+export const getBestMatches = (rawStreet: string): Array<{ street: MatcherStreet, similarity: MatchResult }> => {
+  const result = []
+  const intersections = hasIntersection(rawStreet)
+  if (intersections.result) {
+    if (intersections.street1 === undefined || intersections.street2 === undefined) throw new Error("Intersection is not defined")
+    const street1 = getAllMatches(intersections.street1)[0]
+    const street2 = getAllMatches(intersections.street2)[0]
+    if (street1)
+      result.push(street1)
+    if (street2)
+      result.push(street2)
+  } else {
+    const street = getAllMatches(rawStreet)[0]
+    if (street)
+      result.push(street)
+  }
+  console.log(`Return ${result.length} results for ${rawStreet}`)
+  return result
 }
 
 

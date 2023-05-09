@@ -11,7 +11,7 @@ describe('AreaTree', () => {
   it('should add a new child', () => {
     root.add('Child1', new AreaTree('Child1'));
     expect(root.has('Child1')).toBe(true);
-    expect(root.get('Child1')?.name).toBe('Child1');
+    expect(root.get('Child1')?.nameGe).toBe('Child1');
   });
 
   it('should sort children by key', () => {
