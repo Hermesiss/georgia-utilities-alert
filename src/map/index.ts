@@ -119,7 +119,7 @@ export async function getStreets(tree: AreaTree, city: string | null, level = 0)
     result.add(tree.nameEn)
   }
   for (let child of tree.children.values()) {
-    if (!city || child.name == city) {
+    if (!city || child.nameEn == city) {
       const streets = await getStreets(child, null, level + 1)
       streets.forEach(s => result.add(s))
     }
