@@ -261,8 +261,14 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 
       let date: Dayjs | null = null
 
+      const cities = new Set<string>()
+
       for (let alert of channelAlerts.alerts) {
         const a = alerts.get(alert.taskId) ?? await Alert.fromOriginal(alert)
+
+        for (let city of a.citiesList) {
+          cities.add(city)
+        }
         const post = alert.posts.find(p => p.channel == channelId)
         if (!date) date = a.startDate
         if (post)
@@ -279,7 +285,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
       if (channelAlerts.photo) {
         const streets = await getStreets(areaTree, channel?.cityNameGe ?? null)
         const result = new Array<StreetFinderResult>()
-        const realStreets = getRealStreets(streets, result)
+        const realStreets = getRealStreets(streets, Array.from(cities), result)
         const color = Alert.colorDaily
 
         const mapUrl = drawMapFromStreetFinderResults(result, color)
@@ -692,7 +698,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const cities = text.replace("/draw", "")
         const streets = getStreetsFromInput(cities)
         const results = new Array<StreetFinderResult>()
-        const realStreets = getRealStreets(streets, results)
+        const realStreets = getRealStreets(streets, null, results)
         const resultFormatted = results.map(x => `${x.input} -> ${x.match}    ${(x.rating * 100).toLocaleString('en-US', {
           minimumIntegerDigits: 2,
           useGrouping: false

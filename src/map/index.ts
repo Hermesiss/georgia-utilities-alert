@@ -72,7 +72,7 @@ export async function prepareGeoJson() {
 export async function drawMapFromAlert(alert: Alert, color: AlertColor, cityGe: string | null): Promise<string | null> {
   const streets = await getStreets(alert.areaTree, cityGe)
   const result: StreetFinderResult[] = [];
-  getRealStreets(streets, result)
+  getRealStreets(streets, Array.from(alert.citiesList), result)
   return drawMapFromStreetFinderResults(result, color)
 }
 
@@ -80,7 +80,7 @@ export function drawMapFromInput(input: string, color: AlertColor): string | nul
   const streets = getStreetsFromInput(input)
 
   const result: StreetFinderResult[] = [];
-  getRealStreets(streets, result)
+  getRealStreets(streets, null, result)
   return drawMapFromStreetFinderResults(result, color)
 }
 
@@ -148,16 +148,17 @@ export function getStreetsFromInput(input: string): Set<string> {
 /**
  *
  * @param streets - streets to draw, georgian names
+ * @param cities - cities from which streets should be taken
  * @param result - if set, will be filled with match results
  * @return realStreets
  */
-export function getRealStreets(streets: Set<string>, result: StreetFinderResult[] | null = null): Set<string> {
+export function getRealStreets(streets: Set<string>, cities: string[] | null, result: StreetFinderResult[] | null = null): Set<string> {
   const threshold = 0.25
 
   const processed = new Set<string>()
 
   for (let street of streets) {
-    const matches = getBestMatches(street)
+    const matches = getBestMatches(street, cities)
     if (matches.length == 0) continue
 
     for (let match of matches) {

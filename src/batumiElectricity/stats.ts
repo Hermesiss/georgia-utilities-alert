@@ -31,7 +31,7 @@ function getStatsRecursively(area: AreaTree, result: Map<string, number>) {
   }
 }
 
-async function run() {
+async function run(maxLevel = -1) {
   console.log("Loading all alerts")
   const mongoConnectString = process.env.MONGODB_CONNECT_STRING;
 
@@ -57,7 +57,11 @@ async function run() {
     for (let originalAlert of allAlerts) {
       if (!originalAlert.disconnectionArea) continue
       const split = originalAlert.disconnectionArea.split(',');
-      for (let splitElement of split) {
+      for (let j = split.length - 1; j >= 0; j--) {
+        if (maxLevel > 0 && j >= maxLevel) {
+          continue
+        }
+        const splitElement = split[j];
         const e = splitElement.trim()
         const current = areaLines.get(e) ?? 0
         areaLines.set(e, current + 1)
@@ -91,4 +95,30 @@ async function run() {
   process.exit(0)
 }
 
-run().then()
+async function getAllRegions() {
+  const mongoConnectString = process.env.MONGODB_CONNECT_STRING;
+
+  if (!mongoConnectString) {
+    throw new Error("MONGODB_CONNECT_STRING env variable is missing")
+  }
+
+  await mongoose.connect(mongoConnectString)
+
+  // get only regionName from all alerts
+  const regions = await OriginalAlert.find({}).select("regionName")
+  console.log(regions)
+
+  //count all unique regions
+  const regionCount = new Map<string, number>()
+  for (let region of regions) {
+    const current = regionCount.get(region.regionName) ?? 0
+    regionCount.set(region.regionName, current + 1)
+  }
+
+  console.log(regionCount)
+
+  //const allAlerts = await OriginalAlert.find({}).limit(10000)
+}
+
+//run(1).then()
+getAllRegions().then()

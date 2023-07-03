@@ -50,8 +50,12 @@ const StreetTypes = {
   }
 }
 
-const streetsByType = new Map<StreetType | null, MatcherStreet[]>()
-const entitiesByName = new Map<string, MatcherStreet>()
+export class StreetMaps {
+  public streetsByType = new Map<StreetType | null, MatcherStreet[]>()
+  public entitiesByName = new Map<string, MatcherStreet>()
+}
+
+const streetMapsByCity = new Map<string, StreetMaps>()
 
 export class MatcherStreet {
   public streetType: StreetType | null = null
@@ -64,7 +68,8 @@ export class MatcherStreet {
 
   constructor(feature: FeaturesEntity) {
     this.features.push(feature)
-    const geoName = feature.properties.name ?? feature.properties["name:ka"] ?? ""
+    const geoName = (feature.properties.name ?? feature.properties["name:ka"] ?? "").toString()
+    console.log("Geo name", geoName)
     this.name = MatcherStreet.cleanName(geoName)
     this.streetType = MatcherStreet.getStreetType(this.name)
     this.streetParts = this.name.split(" ")
@@ -161,27 +166,31 @@ export class MatcherStreet {
   }
 }
 
-function loadGeoJsons(): GeoJsonData[] {
+function loadGeoJsons(city: string): GeoJsonData[] {
   const result = []
-  const files = ["batumi", "chakvi", "gonio"]
-  for (let file of files) {
-    const data = fs.readFileSync(`./src/map/data/${file}.geojson`, "utf8")
-    const obj: GeoJsonData = JSON.parse(data)
-    result.push(obj)
-  }
+
+
+  const data = fs.readFileSync(`./src/map/data/${city}.geojson`, "utf8")
+  const obj: GeoJsonData = JSON.parse(data)
+  result.push(obj)
+
   return result
 }
 
-export const prepare = () => {
-  const geoJsons = loadGeoJsons()
+export const prepareCity = (city: string) => {
+  const geoJsons = loadGeoJsons(city)
   const entityTypesCount = new Map<string | null | undefined, number>
   let hasName = 0
   let hasGeoName = 0
   let hasEnName = 0
   let hasRuName = 0
 
-  for (let obj of geoJsons) {
+  const streetMaps = new StreetMaps()
+  const entitiesByName = streetMaps.entitiesByName
+  const streetsByType = streetMaps.streetsByType
+  streetMapsByCity.set(city.toLowerCase(), streetMaps)
 
+  for (let obj of geoJsons) {
     for (let feature of obj.features) {
       const name = feature.properties.name;
       if (name) hasName++
@@ -241,6 +250,13 @@ export const prepare = () => {
   console.log(byNameSorted)*/
 }
 
+export const prepare = () => {
+  const files = ["batumi", "makhinjauri", "gonio"]
+  for (let file of files) {
+    prepareCity(file)
+  }
+}
+
 prepare()
 
 export const hasIntersection = (street: string): { result: boolean, street1?: string, street2?: string } => {
@@ -260,7 +276,15 @@ export const hasIntersection = (street: string): { result: boolean, street1?: st
   return {result: false}
 }
 
-export const getAllMatches = (rawStreet: string): Array<{ street: MatcherStreet, similarity: MatchResult }> => {
+/**
+ * Returns all matches for given street
+ * @param rawStreet
+ * @param cities - Cities to search in. If null, searches in all cities
+ */
+export const getAllMatches = (rawStreet: string, cities: string[] | null): Array<{
+  street: MatcherStreet,
+  similarity: MatchResult
+}> => {
   rawStreet = MatcherStreet.cleanName(rawStreet)
   const streetType = MatcherStreet.getStreetType(rawStreet)
   const results = new Array<{ street: MatcherStreet, similarity: MatchResult }>()
@@ -269,6 +293,10 @@ export const getAllMatches = (rawStreet: string): Array<{ street: MatcherStreet,
 
   types = Object.keys(StreetTypes);
 
+  if (cities === null) {
+    cities = Object.keys(streetMapsByCity)
+  }
+
   /*if (streetType) {
     types = [streetType]
   } else {
@@ -276,11 +304,13 @@ export const getAllMatches = (rawStreet: string): Array<{ street: MatcherStreet,
   }*/
 
   for (let type of types) {
-    const streets = streetsByType.get(type as StreetType)
-    if (!streets) continue
-    for (let street of streets) {
-      const similarity = street.getSimilarity(rawStreet)
-      results.push({street, similarity})
+    for (let city of cities) {
+      const streets = streetMapsByCity.get(city.toLowerCase())?.streetsByType.get(type as StreetType)
+      if (!streets) continue
+      for (let street of streets) {
+        const similarity = street.getSimilarity(rawStreet)
+        results.push({street, similarity})
+      }
     }
   }
 
@@ -292,19 +322,27 @@ export const getAllMatches = (rawStreet: string): Array<{ street: MatcherStreet,
   return sorted
 }
 
-export const getBestMatches = (rawStreet: string): Array<{ street: MatcherStreet, similarity: MatchResult }> => {
+/**
+ * Returns best matches for given street
+ * @param rawStreet
+ * @param cities - Cities to search in. If null, searches in all cities
+ */
+export const getBestMatches = (rawStreet: string, cities: string[] | null): Array<{
+  street: MatcherStreet,
+  similarity: MatchResult
+}> => {
   const result = []
   const intersections = hasIntersection(rawStreet)
   if (intersections.result) {
     if (intersections.street1 === undefined || intersections.street2 === undefined) throw new Error("Intersection is not defined")
-    const street1 = getAllMatches(intersections.street1)[0]
-    const street2 = getAllMatches(intersections.street2)[0]
+    const street1 = getAllMatches(intersections.street1, cities)[0]
+    const street2 = getAllMatches(intersections.street2, cities)[0]
     if (street1)
       result.push(street1)
     if (street2)
       result.push(street2)
   } else {
-    const street = getAllMatches(rawStreet)[0]
+    const street = getAllMatches(rawStreet, cities)[0]
     if (street)
       result.push(street)
   }

@@ -422,6 +422,14 @@ export class Alert {
 
     this.areaTree.populate(areas)
 
+    if (areas.some(x => x.includes("მახინჯაური"))) {
+      this.citiesList.add("Makhinjauri")
+    }
+
+    if (areas.some(x => x.includes("გონიო"))) {
+      this.citiesList.add("Gonio")
+    }
+
     const scNames = this.scName.split("/")
 
     //Merged alerts have several cities in format "City A / City B / City C"
