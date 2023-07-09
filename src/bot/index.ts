@@ -118,7 +118,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
       let msg: TelegramMessage | null;
       if (postPhoto) {
         const alertColor: AlertColor = alert.getAlertColor()
-        const mapUrl = drawMapFromAlert(alert, alertColor, channel.cityName)
+        const mapUrl = await drawMapFromAlert(alert, alertColor, channel.cityNameGe)
           ?? MapPlaceholderLink
         const image = await drawSingleAlert(alert, alertColor, mapUrl, channel.channelId)
         msg = await telegramFramework.sendPhoto({
@@ -261,8 +261,14 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 
       let date: Dayjs | null = null
 
+      const cities = new Set<string>()
+
       for (let alert of channelAlerts.alerts) {
         const a = alerts.get(alert.taskId) ?? await Alert.fromOriginal(alert)
+
+        for (let city of a.citiesList) {
+          cities.add(city)
+        }
         const post = alert.posts.find(p => p.channel == channelId)
         if (!date) date = a.startDate
         if (post)
@@ -277,9 +283,9 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
       console.log(`==== SEND DAILY TO CHANNEL ${channelId} : ${channel?.cityName}, photo ${channel?.canPostPhotos} ====`)
       console.log(post)
       if (channelAlerts.photo) {
-        const streets = getStreets(areaTree, channel?.cityName ?? null)
+        const streets = await getStreets(areaTree, channel?.cityNameGe ?? null)
         const result = new Array<StreetFinderResult>()
-        const realStreets = getRealStreets(streets, result)
+        const realStreets = getRealStreets(streets, Array.from(cities), result)
         const color = Alert.colorDaily
 
         const mapUrl = drawMapFromStreetFinderResults(result, color)
@@ -357,7 +363,7 @@ const run = async () => {
 
   await mongoose.connect(mongoConnectString)
 
-  await prepareGeoJson()
+  //await prepareGeoJson()
 
   const app: Express = express();
 
@@ -529,7 +535,7 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
     let msg: string | null = `Changing post ${getLinkFromPost(post)}`;
     if (photo) {
       const alertColor: AlertColor = alert.getAlertColor()
-      const mapUrl = drawMapFromAlert(alert, alertColor, channel?.cityName ?? null)
+      const mapUrl = await drawMapFromAlert(alert, alertColor, channel?.cityNameGe ?? null)
         ?? MapPlaceholderLink
 
       const image = await drawSingleAlert(alert, alertColor, mapUrl, post.channel)
@@ -673,7 +679,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         }
         const formatSingleAlert = await alertFromId.formatSingleAlert(city);
         const alertColor: AlertColor = alertFromId.getAlertColor()
-        const mapUrl = drawMapFromAlert(alertFromId, alertColor, "Batumi")
+        const mapUrl = await drawMapFromAlert(alertFromId, alertColor, "ბათუმი") //batumi
           ?? MapPlaceholderLink
 
         const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
@@ -692,7 +698,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const cities = text.replace("/draw", "")
         const streets = getStreetsFromInput(cities)
         const results = new Array<StreetFinderResult>()
-        const realStreets = getRealStreets(streets, results)
+        const realStreets = getRealStreets(streets, null, results)
         const resultFormatted = results.map(x => `${x.input} -> ${x.match}    ${(x.rating * 100).toLocaleString('en-US', {
           minimumIntegerDigits: 2,
           useGrouping: false
@@ -711,59 +717,6 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
         const alert = await batumi.getOriginalAlertFromId(id)
         if (alert)
           await updatePost(alert)
-      }
-
-      if (text.startsWith("/merge")) {
-        const commands = text.replace("/merge", "").split(",")
-        const ids = commands[0].split(" ").map(x => Number.parseInt(x))
-        let cityName: string | null = null
-        if (commands.length > 1) {
-          cityName = commands[1].trim()
-        }
-        let showMap = false
-        if (commands.length > 2) {
-          showMap = commands[2].trim() == "map"
-        }
-        const area = new AreaTreeWithArray<PostWithTime>("Root")
-        for (let id of ids) {
-          if (isNaN(id)) {
-            console.log(`Invalid id ${id}`)
-            continue
-          }
-          const orAlert = await batumi.getOriginalAlertFromId(id)
-          if (!orAlert) {
-            console.log(`Cannot find alert with id ${id}`)
-            continue
-          }
-          const alert = await Alert.fromOriginal(orAlert)
-          if (!alert) {
-            console.log(`Cannot convert alert with id ${id}`)
-            continue
-          }
-          console.log(`Merging ${alert.areaTree}`)
-          const alertArea = AreaTreeWithArray.fromAreaTree<PostWithTime>(alert.areaTree, new PostWithTime(alert.startDate, alert.endDate))
-          area.merge(alertArea)
-        }
-
-        const formatted = await Alert.formatAreas(area, cityName)
-        console.log(`Merged ${formatted}`)
-        if (showMap) {
-          const streets = getStreets(area, cityName)
-          const result = new Array<StreetFinderResult>()
-          const realStreets = getRealStreets(streets, result)
-          const color = Alert.colorDaily
-
-          const mapUrl = drawMapFromStreetFinderResults(result, color) ?? MapPlaceholderLink
-          const img = await drawCustom(Alert.colorDaily, mapUrl, "@alerts_batumi", "Debug", "Debug", "MyFile")
-
-          if (formatted.length > 1024) {
-            const url = await uploadImage(img)
-            const imgText = TelegramFramework.formatImageMarkdown(url)
-            context.send(imgText + formatted, {parse_mode: 'Markdown'})
-          } else
-            context.sendPhoto(MediaSource.path(img), {caption: formatted, parse_mode: 'Markdown'})
-        } else
-          context.send(formatted, {parse_mode: 'Markdown'})
       }
     } else {
       console.log(`Simple text ${context.text}`)

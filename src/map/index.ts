@@ -11,6 +11,7 @@ import aliases from "./data/aliases.json";
 import {Alert, AreaTree} from "../batumiElectricity/types";
 import {AlertColor} from "../imageGeneration";
 import tinygradient from "tinygradient";
+import {getBestMatches} from "./matcher";
 
 dotenv.config();
 
@@ -36,7 +37,6 @@ export async function prepareGeoJson() {
   const data = fs.readFileSync("./src/map/data/route_line.geojson", "utf8")
   const obj: GeoJsonData = JSON.parse(data)
   console.log("Total items", obj.features?.length)
-  let empty = 0
 
   for (let road of obj.features) {
     if (road.properties.name == null || typeof road.properties.name === 'undefined') continue
@@ -49,8 +49,6 @@ export async function prepareGeoJson() {
       }
       road.properties['name:en'] = translatedRouteMap.get(road.properties.name) || road.properties.name
       name = road.properties['name:en']
-      //empty++
-      //continue
     }
 
     const saved = {
@@ -71,11 +69,10 @@ export async function prepareGeoJson() {
   realStreetsNames = Array.from(realStreets.keys());
 }
 
-export function drawMapFromAlert(alert: Alert, color: AlertColor, city: string | null): string | null {
-  const streets = getStreets(alert.areaTree, city)
+export async function drawMapFromAlert(alert: Alert, color: AlertColor, cityGe: string | null): Promise<string | null> {
+  const streets = await getStreets(alert.areaTree, cityGe)
   const result: StreetFinderResult[] = [];
-  const realStreets = getRealStreets(streets, result)
-  //return drawMapFromStreets(realStreets, color)
+  getRealStreets(streets, Array.from(alert.citiesList), result)
   return drawMapFromStreetFinderResults(result, color)
 }
 
@@ -83,8 +80,7 @@ export function drawMapFromInput(input: string, color: AlertColor): string | nul
   const streets = getStreetsFromInput(input)
 
   const result: StreetFinderResult[] = [];
-  const realStreets = getRealStreets(streets, result)
-  //return drawMapFromStreets(realStreets, color)
+  getRealStreets(streets, null, result)
   return drawMapFromStreetFinderResults(result, color)
 }
 
@@ -101,29 +97,32 @@ export function drawMapFromStreetFinderResults(results: StreetFinderResult[], co
 /**
  * Get unique streets from area tree
  * @param tree
- * @param city if set, only streets from this city will be returned
+ * @param cityGe if set, only streets from this cityGe will be returned
  * @param level
+ * @return streets - unique streets, georgian names
  */
-export function getStreets(tree: AreaTree, city: string | null, level = 0): Set<string> {
+export async function getStreets(tree: AreaTree, cityGe: string | null, level = 0): Promise<Set<string>> {
+  await tree.prepareTranslation()
+  if (!tree.nameGe) throw new Error("tree.nameGe is null")
   const result = new Set<string>()
   if (level > 5) return result
   if (level == 1) {
-    if (city) {
-      if (tree.name != city) {
+    if (cityGe) {
+      if (tree.nameGe != cityGe) {
         return result
       } else if (tree.children.size == 0) {
-        result.add(tree.name) //if this is out city, and it has no children, add it
+        result.add(tree.nameGe) //if this is our cityGe, and it has no children, add it
       }
     }
   }
 
   // do no add root
   if (level >= 2) {
-    result.add(tree.name)
+    result.add(tree.nameGe)
   }
   for (let child of tree.children.values()) {
-    if (!city || child.name == city) {
-      const streets = getStreets(child, null, level + 1)
+    if (!cityGe || child.nameGe == cityGe) {
+      const streets = await getStreets(child, null, level + 1)
       streets.forEach(s => result.add(s))
     }
   }
@@ -148,16 +147,38 @@ export function getStreetsFromInput(input: string): Set<string> {
 
 /**
  *
- * @param streets
+ * @param streets - streets to draw, georgian names
+ * @param cities - cities from which streets should be taken
  * @param result - if set, will be filled with match results
  * @return realStreets
  */
-export function getRealStreets(streets: Set<string>, result: StreetFinderResult[] | null = null): Set<string> {
-  const threshold = 0.5
+export function getRealStreets(streets: Set<string>, cities: string[] | null, result: StreetFinderResult[] | null = null): Set<string> {
+  const threshold = 0.25
 
   const processed = new Set<string>()
 
   for (let street of streets) {
+    const matches = getBestMatches(street, cities)
+    if (matches.length == 0) continue
+
+    for (let match of matches) {
+      let relativeRating = match.similarity.similarity / match.similarity.original.length / 4
+      console.log(`Similarity: ${match.similarity.similarity} / ${match.similarity.original} / 4 = ${relativeRating}`)
+      console.log("relativeRating", relativeRating, match.street.name, street)
+      // clamp to 1
+      relativeRating = Math.min(relativeRating, 1)
+      if (relativeRating > threshold) {
+        if (result) {
+          result.push({input: street, match: match.street.name, rating: relativeRating, street: match.street})
+          processed.add(match.street.name)
+        }
+      }
+    }
+  }
+
+  return processed
+
+  /*for (let street of streets) {
     const similar = stringSimilarity.findBestMatch(street, realStreetsNames)
     const similarAlias = stringSimilarity.findBestMatch(street, aliasesNames)
     if (similarAlias.bestMatch.rating > 0.8) {
@@ -189,14 +210,8 @@ export function getRealStreets(streets: Set<string>, result: StreetFinderResult[
       // trying to find matches with rating > threshold
       if (best.rating > threshold) {
         console.log(`Find similar for ${street} is ${best.target} with ${best.rating}`)
-        /*if (processed.has(best.target) && result == null) {
-          continue
-        }*/
 
         bestMatches.push(best)
-
-        //processed.add(best.target)
-        //result?.push({input: street, match: best.target, rating: best.rating})
       }
     }
     if (bestMatches.length != 0) {
@@ -226,7 +241,7 @@ export function getRealStreets(streets: Set<string>, result: StreetFinderResult[
     }
   }
 
-  return processed
+  return processed*/
 }
 
 /**
@@ -250,9 +265,11 @@ function createGeometryFromStreetFinderResults(results: StreetFinderResult[]): G
   const geometries: Geometry[] = []
 
   for (let result of results) {
-    const geometry = getGeometry(result.match);
+    const geometry: Geometry[] = JSON.parse(JSON.stringify(result.street.geometries))
     if (geometry) {
       for (let g of geometry) {
+        if (g.rating && g.rating > result.rating)
+          continue
         g.rating = result.rating
         geometries.push(g)
       }
@@ -293,7 +310,6 @@ export function optimizeGeometries(geometries: Geometry[]): Geometry[] {
 }
 
 
-
 /**
  *
  * @param geometries
@@ -305,12 +321,8 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
   const optGeometries = optimizeGeometries(geometries)
   const mapPaths: Path[] = []
 
-  //const paths: number[][][] = geometries.map(g => g.coordinates)
-  //const length = paths.length
-  //let i = 0
-
   const gradient = tinygradient([
-    {color: '#000000', pos: 0.25},
+    {color: '#000000', pos: 0.0},
     {color: '#0000ff', pos: 0.5},
     {color: '#ff0000', pos: 0.7},
     {color: '#ff5800', pos: 1},
@@ -326,9 +338,7 @@ function drawMap(geometries: Geometry[], selectedColor: AlertColor): string | nu
     const gradientColor = gradient.rgbAt(geometry.rating ?? 1)
     console.log(`Color for ${geometry.rating} is ${gradientColor.toHex()}`)
 
-    const color =
-      //selectedColor.lineMapFormatted ??
-      "0x" + gradientColor.toHex() + 'ff'
+    const color = "0x" + gradientColor.toHex() + 'ff'
 
     const encodedPoints = polyline.encode(points)
     mapPaths.push({points: `enc:${encodedPoints}`, color: color, weight: 4})

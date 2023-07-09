@@ -1,3 +1,5 @@
+import {MatcherStreet} from "./matcher";
+
 export interface GeoJsonData {
   type: string;
   name: string;
@@ -11,6 +13,7 @@ export interface StreetFinderResult {
   input: string
   match: string
   rating: number
+  street: MatcherStreet
 }
 
 export interface Crs {
@@ -66,7 +69,7 @@ export interface FeatureProperties {
 
 export interface Geometry {
   type: "LineString";
-  coordinates: number[] [] ;
+  coordinates: number[] [];
 
   rating?: number
 }

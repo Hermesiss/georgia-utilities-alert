@@ -8,9 +8,7 @@ import {Markdown} from "puregram";
 import {AlertColor} from "../imageGeneration";
 
 const citiesMap = new Map(Object.entries(cities))
-const newCitiesMap = new Map()
 const districtsMap = new Map(Object.entries(districts))
-const newDistrictsMap = new Map()
 
 export class AlertDiff {
   oldAlert: Alert | null;
@@ -37,8 +35,81 @@ export enum PlanType {
 }
 
 export class AreaTree {
-  name: string;
+  nameGe: string;
+  nameEn: string | null = null;
   children = new Map<string, AreaTree>()
+
+  /**
+   * Recursively prepares the translation for the current node and all its descendants.
+   */
+  public async prepareTranslation(): Promise<void> {
+    await this.getTranslated()
+    for (let [key, value] of this.children) {
+      await value.prepareTranslation()
+    }
+  }
+
+  /**
+   * Returns the translated name of the current node.
+   */
+  public async getTranslated(): Promise<string> {
+    if (this.nameEn) return this.nameEn
+    let translated = citiesMap.get(this.nameGe)
+    if (!translated) {
+      translated = districtsMap.get(this.nameGe)
+    }
+
+    if (!translated) {
+      translated = await Translator.getTranslation(this.nameGe);
+    }
+
+    if (!translated) translated = this.nameGe
+    this.nameEn = translated
+    return translated
+  }
+
+  /**
+   * Populates the AreaTree with the given areas. Each area string should contain
+   * a hierarchical structure of street names or other entities separated by slashes.
+   * The method creates the tree structure based on the provided areas.
+   *
+   * @param {string[]} areas - An array of strings, where each string represents a hierarchical
+   *                            structure of street names or other entities separated by slashes.
+   *                            Example: "street name / another street name / another thing".
+   *                            There can be an unlimited number of entities separated by slashes.
+   */
+  public populate(areas: string[]): void {
+    for (let area of areas) {
+      const sub = area.split("/")
+      let tree: AreaTree = this
+      for (let i = 0; i < sub.length; i++) {
+        let item = sub[i].trim()
+        // remove all quotation marks
+        item = item.replace(/[“”"‘’'«»_`„]+/g, '')
+
+        const existingTree = tree.get(item)
+        if (!existingTree) {
+          const childTree = new AreaTree(item)
+          tree.add(item, childTree)
+          tree = childTree
+        } else {
+          tree = existingTree
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns the number of children of the current node and all its descendants.
+   */
+  public count(): number {
+    let result = 0
+    result += this.children.size
+    this.children.forEach(child => {
+      result += child.count()
+    })
+    return result
+  }
 
   public get(name: string) {
     return this.children.get(name)
@@ -63,7 +134,7 @@ export class AreaTree {
   }
 
   constructor(name: string = "") {
-    this.name = name;
+    this.nameGe = name;
   }
 
   public has(name: string) {
@@ -86,7 +157,7 @@ export class AreaTreeWithData<T> extends AreaTree {
   }
 
   public static fromAreaTree<T>(area: AreaTree, data: T | null = null): AreaTreeWithData<T> {
-    const result = new AreaTreeWithData<T>(area.name)
+    const result = new AreaTreeWithData<T>(area.nameGe)
     result.data = data
     for (let child of area.children) {
       result.add(child[0], AreaTreeWithData.fromAreaTree(child[1], data))
@@ -115,7 +186,7 @@ export class AreaTreeWithArray<T> extends AreaTree {
   }
 
   public static fromAreaTree<T>(area: AreaTree, data: T | null = null): AreaTreeWithArray<T> {
-    const result = new AreaTreeWithArray<T>(area.name)
+    const result = new AreaTreeWithArray<T>(area.nameGe)
     if (data && !result.data.includes(data)) {
       result.data.push(data)
     }
@@ -181,8 +252,8 @@ export class Alert {
     /*if (newDistrictsMap.size > 0)
       console.log("==== NEW TRANSLATED DISTRICTS\n", JSON.stringify(Object.fromEntries(newDistrictsMap)))*/
 
-    if (newCitiesMap.size > 0)
-      console.log("==== NEW TRANSLATED CITIES\n", JSON.stringify(Object.fromEntries(newCitiesMap)))
+    /*if (newCitiesMap.size > 0)
+      console.log("==== NEW TRANSLATED CITIES\n", JSON.stringify(Object.fromEntries(newCitiesMap)))*/
   }
 
   static async from(from: Alert): Promise<Alert> {
@@ -288,17 +359,18 @@ export class Alert {
   }
 
   public static async formatAreas(areaTree: AreaTree, cityName: string | null, compact = true, level = 0): Promise<string> {
+    await areaTree.prepareTranslation()
     let text = ""
     if (level > 5) return text
 
     if (level == 1) {
-      if (cityName != null && cityName !== areaTree.name) {
+      if (cityName != null && cityName !== areaTree.nameEn) {
         return ""
       }
     }
 
     if (level != 0) {
-      let translatedName = areaTree.name
+      let translatedName = areaTree.nameEn ?? await areaTree.getTranslated()
 
       text += Markdown.escape(translatedName);
 
@@ -325,6 +397,7 @@ export class Alert {
     return text
   }
 
+
   async init(): Promise<void> {
     this.startDate = dayjs(this.disconnectionDate, 'YYYY-MMMM-DD HH:mm')
     this.endDate = dayjs(this.reconnectionDate, 'YYYY-MMMM-DD HH:mm')
@@ -339,42 +412,22 @@ export class Alert {
     //const citiesArr = Array.from(citiesMap)
 
     for (let area of areas) {
-      const sub = area.split("/")
-      let tree = this.areaTree
-      for (let i = 0; i < sub.length; i++) {
-        let item = sub[i].trim()
-
-        // remove all quotation marks
-        item = item.replace(/[“”"‘’'«»_`„]+/g, '')
-
-        let translated = citiesMap.get(item)
-        if (translated) {
-          if (i == 0
-            // don't remember why I added this
-            // && citiesArr.some(x => item.includes(x[0]))
-          ) {
-            this.citiesList.add(translated)
-          }
-        } else {
-          translated = districtsMap.get(item)
-        }
-
-        if (!translated) {
-          translated = await Translator.getTranslation(item);
-          if (item != translated)
-            newDistrictsMap.set(item, translated)
-        }
-
-        item = translated
-        const existingTree = tree.get(item)
-        if (!existingTree) {
-          const childTree = new AreaTree(item)
-          tree.add(item, childTree)
-          tree = childTree
-        } else {
-          tree = existingTree
-        }
+      const item = area.split("/")[0].trim()
+      let nTranslate = citiesMap.get(item)
+      if (!nTranslate) {
+        nTranslate = await Translator.getTranslation(item)
       }
+      this.citiesList.add(nTranslate)
+    }
+
+    this.areaTree.populate(areas)
+
+    if (areas.some(x => x.includes("მახინჯაური"))) {
+      this.citiesList.add("Makhinjauri")
+    }
+
+    if (areas.some(x => x.includes("გონიო"))) {
+      this.citiesList.add("Gonio")
     }
 
     const scNames = this.scName.split("/")
@@ -385,7 +438,6 @@ export class Alert {
       let nTranslate = citiesMap.get(nTrimmed)
       if (!nTranslate) {
         nTranslate = await Translator.getTranslation(nTrimmed)
-        newCitiesMap.set(nTrimmed, nTranslate)
       }
       //scNamesTranslated.push(nTranslate)
       this.citiesList.add(nTranslate)
