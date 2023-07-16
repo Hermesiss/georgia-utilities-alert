@@ -294,7 +294,7 @@ export const getAllMatches = (rawStreet: string, cities: string[] | null): Array
   types = Object.keys(StreetTypes);
 
   if (cities === null) {
-    cities = Object.keys(streetMapsByCity)
+    cities = Array.from(streetMapsByCity.keys())
   }
 
   /*if (streetType) {
