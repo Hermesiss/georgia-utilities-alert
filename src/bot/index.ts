@@ -24,7 +24,6 @@ import {
   drawMapFromAlert, drawMapFromStreetFinderResults,
   getRealStreets, getStreets,
   getStreetsFromInput,
-  prepareGeoJson
 } from "../map";
 import {MapPlaceholderLink, StreetFinderResult} from "../map/types";
 import {uploadImage} from "../imageGeneration/hosting";
