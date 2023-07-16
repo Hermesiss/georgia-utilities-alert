@@ -289,9 +289,9 @@ export const getAllMatches = (rawStreet: string, cities: string[] | null): Array
   const streetType = MatcherStreet.getStreetType(rawStreet)
   const results = new Array<{ street: MatcherStreet, similarity: MatchResult }>()
 
-  let types: string[];
+  let types: Array<string | null>;
 
-  types = Object.keys(StreetTypes);
+  types = [...Object.keys(StreetTypes), null];
 
   if (cities === null) {
     cities = Array.from(streetMapsByCity.keys())
