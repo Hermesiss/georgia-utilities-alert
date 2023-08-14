@@ -394,7 +394,7 @@ const run = async () => {
       async () => {
         await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
         const date = dayjs().format('YYYY-MM-DD')
-        await postAlertsForDay(dayjs(), `Today, ${date}!`)
+        await postAlertsForDay(dayjs(), `Today! ${date}`)
       }, "postAlertsForToday"
     ).then()
     res.send("OK")
