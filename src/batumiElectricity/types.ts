@@ -302,6 +302,8 @@ export class Alert {
         text += " 🔥 Today 🔥 "
       } else if (this.startDate.isSame(dayjs().add(1, 'day'), "day")) {
         text += " 🌅 Tomorrow 🌅 "
+      } else if (this.startDate.isSame(dayjs().subtract(1, 'day'), "day")) {
+        text += " 🕰 Yesterday 🕰 "
       } else if (this.startDate.isBefore(dayjs(), 'day')) {
         text += " 👽 Back to the Future! 👽 "
       } else if (this.startDate.isSame(dayjs(), "week")) {

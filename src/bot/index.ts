@@ -393,7 +393,8 @@ const run = async () => {
     callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await postAlertsForDay(dayjs(), "Today!")
+        const date = dayjs().format('YYYY-MM-DD')
+        await postAlertsForDay(dayjs(), `Today, ${date}!`)
       }, "postAlertsForToday"
     ).then()
     res.send("OK")
@@ -403,7 +404,8 @@ const run = async () => {
     callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        await postAlertsForDay(dayjs().add(1, 'day'), "Tomorrow")
+        const tomorrowDate = dayjs().add(1, 'day').format('YYYY-MM-DD')
+        await postAlertsForDay(dayjs().add(1, 'day'), `Tomorrow, ${tomorrowDate}`)
       }, "postAlertsForTomorrow"
     ).then()
     res.send("OK")
