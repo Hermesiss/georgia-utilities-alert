@@ -16,6 +16,13 @@ export class AlertDiff {
   translatedAlert: Alert
   diffs = new Array<DiffElement>()
   deletedAlert?: HydratedDocument<IOriginalAlert>
+  error: string | null = null
+
+  static FromError(error: string): AlertDiff {
+    const result = new AlertDiff()
+    result.error = error
+    return result
+  }
 }
 
 export class DiffElement {
