@@ -10,6 +10,11 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 
 dayjs.extend(isSameOrAfter)
 
+//set axios timeout to 2 seconds
+if (process.env.NODE_ENV === 'development') {
+  axios.defaults.timeout = 2000
+}
+
 export class BatumiElectricityParser {
   public alertsUrl = "https://my.energo-pro.ge/owback/alerts"
   public alertsSearchUrl = "https://my.energo-pro.ge/owback/searchAlerts"
@@ -133,7 +138,6 @@ export class BatumiElectricityParser {
       return changedAlerts
     }
     if (force || this.alertsLastFetch === null || Date.now() - this.alertsLastFetch.getTime() > this.alertsFetchIntervalMs) {
-      console.time("fetchAlert")
       this.alertsFetching = true
       this.alertsById.clear()
       this.alertsByDate.clear()
@@ -145,8 +149,15 @@ export class BatumiElectricityParser {
       // Get alerts for each city
       for (let city of this.includedCities) {
         if (city.cityNameGe == null) continue
-        const cityData = await this.fetchAlertsForCity(city.cityNameGe)
-        console.log(`Fetching alerts for ${city.cityName}: ${cityData.length} alerts`)
+        let cityData: Array<Alert>;
+        try {
+          cityData = await this.fetchAlertsForCity(city.cityNameGe);
+        } catch (e) {
+          this.alertsFetching = false
+          throw e
+        }
+
+        console.log(`Alerts for ${city.cityName}: ${cityData.length} alerts`)
         for (let alert of cityData) {
           dataDict.add(alert)
         }
@@ -255,7 +266,6 @@ export class BatumiElectricityParser {
       }
 
       Alert.printTranslations()
-      console.timeEnd("fetchAlert")
     }
 
     return changedAlerts
