@@ -7,8 +7,11 @@ import * as readline from 'readline'
 import dayjs, {Dayjs} from 'dayjs'
 
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+import dotenv from "dotenv";
 
 dayjs.extend(isSameOrAfter)
+
+dotenv.config();
 
 //set axios timeout to 2 seconds
 if (process.env.NODE_ENV === 'development') {
@@ -154,7 +157,10 @@ export class BatumiElectricityParser {
           cityData = await this.fetchAlertsForCity(city.cityNameGe);
         } catch (e) {
           this.alertsFetching = false
-          throw e
+          const errorString = `Error fetching alerts for ${city.cityName}: ${e}`;
+          console.log(errorString)
+          changedAlerts.push(AlertDiff.FromError(errorString))
+          continue;
         }
 
         console.log(`Alerts for ${city.cityName}: ${cityData.length} alerts`)

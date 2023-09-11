@@ -321,6 +321,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 
 
 async function fetchAndSendNewAlerts() {
+  let errors = []
   try {
     const changedAlerts = await batumi.fetchAlerts(true)
     if (changedAlerts.length == 0) {
@@ -328,7 +329,10 @@ async function fetchAndSendNewAlerts() {
     } else {
       for (let changedAlert of changedAlerts) {
         let text: string | null = null
-        if (changedAlert.deletedAlert) {
+        if(changedAlert.error!==null) {
+          errors.push(changedAlert.error)
+        }
+        else if (changedAlert.deletedAlert) {
           await updatePost(changedAlert.deletedAlert)
         } else if (changedAlert.oldAlert == null) {
           await sendAlertToChannels(changedAlert.translatedAlert)
@@ -348,6 +352,7 @@ async function fetchAndSendNewAlerts() {
   } catch (e) {
     await sendToOwnerError(e, "fetchAndSendNewAlerts")
   }
+  await sendToOwnerError(errors, "fetchAndSendNewAlerts")
   await sendToOwner("Done sending new alerts")
 }
 
@@ -575,7 +580,13 @@ async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMod
 }
 
 async function sendToOwnerError(error: any, context: any) {
-  const errorText = `🌋🌋🌋 Unhandled error:\n${JSON.stringify(error)}\nContext: ${JSON.stringify(context)}`;
+  let errorBody;
+  if (Array.isArray(error)) {
+    errorBody = error.map(x => JSON.stringify(x)).join("\n")
+  }else{
+    errorBody = JSON.stringify(error)
+  }
+  const errorText = `🌋🌋🌋 Unhandled error:\n\n${errorBody}\n\nContext: ${JSON.stringify(context)}`;
   console.error(error, context)
   console.error(errorText)
   const message = await sendToOwner(errorText)
