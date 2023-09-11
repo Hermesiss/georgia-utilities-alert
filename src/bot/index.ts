@@ -323,7 +323,6 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 async function fetchAndSendNewAlerts() {
   try {
     const changedAlerts = await batumi.fetchAlerts(true)
-    console.time("fetchAndSendNewAlerts")
     if (changedAlerts.length == 0) {
       await sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
     } else {
@@ -349,7 +348,6 @@ async function fetchAndSendNewAlerts() {
   } catch (e) {
     await sendToOwnerError(e, "fetchAndSendNewAlerts")
   }
-  console.timeEnd("fetchAndSendNewAlerts")
   await sendToOwner("Done sending new alerts")
 }
 
