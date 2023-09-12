@@ -329,10 +329,9 @@ async function fetchAndSendNewAlerts() {
     } else {
       for (let changedAlert of changedAlerts) {
         let text: string | null = null
-        if(changedAlert.error!==null) {
+        if (changedAlert.error !== null) {
           errors.push(changedAlert.error)
-        }
-        else if (changedAlert.deletedAlert) {
+        } else if (changedAlert.deletedAlert) {
           await updatePost(changedAlert.deletedAlert)
         } else if (changedAlert.oldAlert == null) {
           await sendAlertToChannels(changedAlert.translatedAlert)
@@ -352,7 +351,8 @@ async function fetchAndSendNewAlerts() {
   } catch (e) {
     await sendToOwnerError(e, "fetchAndSendNewAlerts")
   }
-  await sendToOwnerError(errors, "fetchAndSendNewAlerts")
+  if (errors.length > 0)
+    await sendToOwnerError(errors, "fetchAndSendNewAlerts")
   await sendToOwner("Done sending new alerts")
 }
 
@@ -583,7 +583,7 @@ async function sendToOwnerError(error: any, context: any) {
   let errorBody;
   if (Array.isArray(error)) {
     errorBody = error.map(x => JSON.stringify(x)).join("\n")
-  }else{
+  } else {
     errorBody = JSON.stringify(error)
   }
   const errorText = `🌋🌋🌋 Unhandled error:\n\n${errorBody}\n\nContext: ${JSON.stringify(context)}`;
