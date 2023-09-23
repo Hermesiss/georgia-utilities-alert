@@ -67,9 +67,6 @@ process.on('SIGTERM', async () => {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  console.log("Closing mongoose")
-  await mongoose.connection.close()
-
   console.log("Exiting")
   process.exit(0);
 });
