@@ -30,7 +30,7 @@
     "google-polyline": "^1.0.3",
     "imgbox-js": "^1.0.35",
     "mongoose": "^6.7.5",
-    "puregram": "^2.9.8",
+    "puregram": "^2.12.2",
     "static-google-map": "^0.0.5",
     "string-similarity": "^4.0.4",
     "tinygradient": "^1.1.5"

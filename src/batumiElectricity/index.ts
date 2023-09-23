@@ -28,6 +28,10 @@ export class BatumiElectricityParser {
   private alertsLastFetch: Date | null = null
   private alertsFetching = false
 
+  public get isFetching(): boolean {
+    return this.alertsFetching;
+  }
+
   private alertsFetchIntervalMs = 15 * 60 * 1000;
 
   /**

@@ -40,6 +40,11 @@ export class TelegramFramework {
     return await this.telegram.updates.startPolling()
   }
 
+  stopPollingUpdates() {
+    console.log("==== STOP POLLING")
+    this.telegram.updates.stopPolling()
+  }
+
   /**
    * A hack to post image with longer caption
    * Normally, telegram api doesn't allow to post image with caption longer than 1024 symbols

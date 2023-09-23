@@ -27,6 +27,7 @@ import {
 } from "../map";
 import {MapPlaceholderLink, StreetFinderResult} from "../map/types";
 import {uploadImage} from "../imageGeneration/hosting";
+import http from "http";
 
 dotenv.config();
 
@@ -43,6 +44,35 @@ telegramFramework.setUnknownErrorHandler((e, c) => sendToOwnerError(e, c))
 let batumi: BatumiElectricityParser;
 
 const channels = new Array<CityChannel>()
+
+let app: Express;
+let server: http.Server;
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received. Shutting down.');
+
+  if (server) {
+    server.close(() => {
+      console.log('Express server closed');
+    });
+  } else {
+    console.log("No server to close")
+  }
+
+  console.log("Stopping telegram")
+  telegramFramework.stopPollingUpdates()
+
+  while (batumi.isFetching) {
+    console.log("Waiting for fetch to finish")
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  console.log("Closing mongoose")
+  await mongoose.connection.close()
+
+  console.log("Exiting")
+  process.exit(0);
+});
 
 function addChannel(cityName: string, cityNameGe: string | null, env: string) {
   const canPostPhotos = process.env[env + "_PHOTOS"] == "true"
@@ -367,7 +397,7 @@ const run = async () => {
 
   //await prepareGeoJson()
 
-  const app: Express = express();
+  app = express();
 
   app.use(express.static('public'))
 
@@ -426,7 +456,7 @@ const run = async () => {
     res.send("OK")
   })
 
-  app.listen(port, () => {
+  server = app.listen(port, () => {
   });
 
   batumi = new BatumiElectricityParser(channels);
@@ -589,7 +619,10 @@ async function sendToOwnerError(error: any, context: any) {
   const errorText = `🌋🌋🌋 Unhandled error:\n\n${errorBody}\n\nContext: ${JSON.stringify(context)}`;
   console.error(error, context)
   console.error(errorText)
-  const message = await sendToOwner(errorText)
+  const message = await sendToOwner(errorText).catch(e => {
+    console.error("Error sending to owner", e)
+    return null
+  })
   if (!message) return
   await telegramFramework.telegram.api.pinChatMessage({
     chat_id: ownerId,
