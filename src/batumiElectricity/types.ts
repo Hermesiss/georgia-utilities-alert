@@ -348,7 +348,7 @@ export class Alert {
 
   public async formatSingleAlert(cityName: string | null): Promise<string> {
     const taskName = Markdown.escape(await Translator.getTranslation(this.taskName))
-    const regionName = Markdown.escape(await Translator.getTranslation(this.regionName))
+    const regionName = cityName ? Markdown.escape(await Translator.getTranslation(this.regionName)) : null
     const cities = Array.from(this.citiesList).join(", ");
     const planText = this.planType != PlanType.Planned ? ` ${Markdown.italic(this.getPlanText(), true)} ` : ""
     const areas = await Alert.formatAreas(this.areaTree, cityName);
@@ -359,8 +359,9 @@ export class Alert {
     //TODO replace ** with Markdown.bold
 
     return `${this.getPlanEmoji()}${planText} *[${this.scName}]* ${taskName}\n\n` +
+      "⚡ Electricity outage\n\n" +
       `*Date:* ${this.formatTimeSpan()}\n\n` +
-      `*Region:* ${regionName}\n\n` +
+      (regionName ? `*Region:* ${regionName}\n\n` : "") +
       `*Cities:* ${cities}\n\n` +
       `*Area:*\n${areas}\n` +
       `${this.taskId} ` + taskNote + "\n\n" +
