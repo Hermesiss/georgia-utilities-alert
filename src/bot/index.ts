@@ -361,6 +361,10 @@ async function fetchAndSendNewAlerts() {
         } else if (changedAlert.deletedAlert) {
           await updatePost(changedAlert.deletedAlert)
         } else if (changedAlert.oldAlert == null) {
+          if (changedAlert.translatedAlert.taskNote?.toLowerCase().includes("from call center")) {
+            //skip call center alerts
+            continue
+          }
           await sendAlertToChannels(changedAlert.translatedAlert)
         } else if (changedAlert.diffs.length > 0) {
           const diffPrint = JSON.stringify(changedAlert.diffs)
