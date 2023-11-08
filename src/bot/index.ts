@@ -363,6 +363,7 @@ async function fetchAndSendNewAlerts() {
         } else if (changedAlert.oldAlert == null) {
           if (changedAlert.translatedAlert.taskNote?.toLowerCase().includes("from call center")) {
             //skip call center alerts
+            errors.push(`Skipping call center alert: ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}`)
             continue
           }
           await sendAlertToChannels(changedAlert.translatedAlert)
