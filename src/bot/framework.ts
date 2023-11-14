@@ -14,7 +14,7 @@ import {Updates} from "puregram/lib/updates";
 
 export class TelegramFramework {
   public telegram: Telegram;
-  private unknownErrorHandler: ((error: any, context: any) => any) | null;
+  private unknownErrorHandler: ((error: any, context: any) => Promise<any>) | null;
 
   get botUsername() {
     return this.telegram.bot.username
@@ -28,7 +28,7 @@ export class TelegramFramework {
     return await this.telegram.api.setMyCommands(params)
   }
 
-  setUnknownErrorHandler(handler: ((error: any, context: any) => any) | null) {
+  setUnknownErrorHandler(handler: ((error: any, context: any) => Promise<any>) | null) {
     this.unknownErrorHandler = handler
   }
 
@@ -58,16 +58,32 @@ export class TelegramFramework {
 
 
   async sendPhoto(params: SendPhotoParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
+    if (!onError) {
+      onError = (e: any) => {
+        console.log(`Error sending photo to ${params.channelId}\nText:\n`, params.text, "\nError:\n", e)
+      }
+    }
     console.log("==== SEND PHOTO")
     return await this.tgActionWithRetry(() => this.telegram.api.sendPhoto(params), onError)
   }
 
   async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
+    if (!onError) {
+      onError = (e: any) => {
+        console.log(`Error sending message to ${params.chat_id}\nText:\n`, params.text, "\nError:\n", e)
+      }
+    }
     console.log(`==== SEND MESSAGE to ${params.chat_id}`)
     return await this.tgActionWithRetry(() => this.telegram.api.sendMessage(params), onError)
   }
 
   private async tgActionWithRetry<T>(tgAction: () => Promise<Interfaces.TelegramMessage | T>, onError?: (e: any) => any) {
+    if (!onError) {
+      console.log("No error handler")
+      onError = (e: any) => {
+        console.error(e)
+      }
+    }
     let tries = 3
     let result: Interfaces.TelegramMessage | T = null as any
     while (tries > 0) {
@@ -86,6 +102,12 @@ export class TelegramFramework {
               }
               break
             }
+
+            // too long
+            if (typeof e.message === "string" && e.message?.includes("message is too long")) {
+              console.log("Too long")
+              //TODO: split message
+            }
           }
           // Too Many Requests
           if (e.code == 429) {
@@ -100,12 +122,12 @@ export class TelegramFramework {
             continue
           }
         }
-        if (onError) {
-          onError(e)
-        }
+
+        onError(e)
+
         // Unknown error
         if (this.unknownErrorHandler) {
-          this.unknownErrorHandler(e, tgAction)
+          await this.unknownErrorHandler(e, tgAction)
         }
 
         break
