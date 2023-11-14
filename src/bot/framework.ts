@@ -70,7 +70,7 @@ export class TelegramFramework {
   async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
     if (!onError) {
       onError = (e: any) => {
-        console.log(`Error sending message to ${params.channelId}\nText:\n`, params.text, "\nError:\n", e)
+        console.log(`Error sending message to ${params.chat_id}\nText:\n`, params.text, "\nError:\n", e)
       }
     }
     console.log(`==== SEND MESSAGE to ${params.chat_id}`)

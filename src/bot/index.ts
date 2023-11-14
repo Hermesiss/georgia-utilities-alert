@@ -155,6 +155,7 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
           disable_notification: !notify
         })
       } else {
+        console.log("==++ 1")
         msg = await telegramFramework.sendMessage({
           chat_id: channel.channelId,
           text,
@@ -320,6 +321,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
           if (post.length > 1024) {
             const url = await uploadImage(image)
             const imgText = TelegramFramework.formatImageMarkdown(url)
+            console.log("==++ 2")
             await telegramFramework.sendMessage(
               {
                 chat_id: channelId,
@@ -338,8 +340,10 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
               }
             )
         }
-      } else
+      } else {
+        console.log("==++ 3")
         await telegramFramework.sendMessage({chat_id: channelId, text: post, parse_mode: 'Markdown'})
+      }
     }
   } catch (e) {
     await sendToOwnerError(e, {name: "postAlertsForDay", date: date.format('YYYY-MM-DD'), caption: caption})
@@ -349,6 +353,7 @@ async function postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 
 async function fetchAndSendNewAlerts() {
   let errors = []
+  let callCenterAlerts = 0
   try {
     const changedAlerts = await batumi.fetchAlerts(true)
     if (changedAlerts.length == 0) {
@@ -363,7 +368,9 @@ async function fetchAndSendNewAlerts() {
         } else if (changedAlert.oldAlert == null) {
           if (changedAlert.translatedAlert.taskNote?.toLowerCase().includes("from call center")) {
             //skip call center alerts
-            errors.push(`Skipping call center alert: ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}`)
+            callCenterAlerts++
+            console.log(`Skipping call center alert: ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}`)
+            //errors.push(`Skipping call center alert: ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}`)
             continue
           }
           await sendAlertToChannels(changedAlert.translatedAlert)
@@ -383,8 +390,12 @@ async function fetchAndSendNewAlerts() {
   } catch (e) {
     await sendToOwnerError(e, "fetchAndSendNewAlerts")
   }
-  if (errors.length > 0)
+  if (errors.length > 0) {
     await sendToOwnerError(errors, "fetchAndSendNewAlerts")
+  }
+  if (callCenterAlerts > 0) {
+    await sendToOwnerError(`Skipping ${callCenterAlerts} call center alerts`, "fetchAndSendNewAlerts")
+  }
   await sendToOwner("Done sending new alerts")
 }
 
@@ -608,6 +619,8 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
 async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined): Promise<Interfaces.TelegramMessage | null> {
   if (!ownerId) return null
   console.log("==== SEND TO OWNER")
+  console.log(text)
+  console.log("==++ 4")
   const result = await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
   await new Promise(r => setTimeout(r, 100))
   return result
