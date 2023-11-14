@@ -14,7 +14,7 @@ import {Updates} from "puregram/lib/updates";
 
 export class TelegramFramework {
   public telegram: Telegram;
-  private unknownErrorHandler: ((error: any, context: any) => any) | null;
+  private unknownErrorHandler: ((error: any, context: any) => Promise<any>) | null;
 
   get botUsername() {
     return this.telegram.bot.username
@@ -28,7 +28,7 @@ export class TelegramFramework {
     return await this.telegram.api.setMyCommands(params)
   }
 
-  setUnknownErrorHandler(handler: ((error: any, context: any) => any) | null) {
+  setUnknownErrorHandler(handler: ((error: any, context: any) => Promise<any>) | null) {
     this.unknownErrorHandler = handler
   }
 
@@ -58,8 +58,8 @@ export class TelegramFramework {
 
 
   async sendPhoto(params: SendPhotoParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
-    if (!onError){
-      onError = e => {
+    if (!onError) {
+      onError = (e: any) => {
         console.log(`Error sending photo to ${params.channelId}\nText:\n`, params.text, "\nError:\n", e)
       }
     }
@@ -68,8 +68,8 @@ export class TelegramFramework {
   }
 
   async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
-    if (!onError){
-      onError = e => {
+    if (!onError) {
+      onError = (e: any) => {
         console.log(`Error sending message to ${params.channelId}\nText:\n`, params.text, "\nError:\n", e)
       }
     }
@@ -79,6 +79,7 @@ export class TelegramFramework {
 
   private async tgActionWithRetry<T>(tgAction: () => Promise<Interfaces.TelegramMessage | T>, onError?: (e: any) => any) {
     if (!onError) {
+      console.log("No error handler")
       onError = (e: any) => {
         console.error(e)
       }
@@ -126,7 +127,7 @@ export class TelegramFramework {
 
         // Unknown error
         if (this.unknownErrorHandler) {
-          this.unknownErrorHandler(e, tgAction)
+          await this.unknownErrorHandler(e, tgAction)
         }
 
         break

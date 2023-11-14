@@ -608,10 +608,12 @@ async function updatePost(originalAlert: HydratedDocument<IOriginalAlert>) {
 async function sendToOwner(text: string, parse_mode: Interfaces.PossibleParseMode | undefined = undefined): Promise<Interfaces.TelegramMessage | null> {
   if (!ownerId) return null
   console.log("==== SEND TO OWNER")
-  return await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
+  const result = await telegramFramework.sendMessage({chat_id: ownerId, text: text, parse_mode})
+  await new Promise(r => setTimeout(r, 100))
+  return result
 }
 
-async function sendToOwnerError(error: any, context: any) {
+async function sendToOwnerError(error: any, context: any): Promise<void> {
   let errorBody;
   if (Array.isArray(error)) {
     errorBody = error.map(x => JSON.stringify(x)).join("\n")
@@ -643,27 +645,27 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
       console.log(`Command ${context.text}`)
       switch (text) {
         case "/start":
-          context.send(`Let's start!\nMy commands:\n/today\n/tomorrow\n/upcoming\n/cities\n`,
+          await context.send(`Let's start!\nMy commands:\n/today\n/tomorrow\n/upcoming\n/cities\n`,
             {reply_markup: new RemoveKeyboard(),})
           return
         case "/today": {
-          context.sendChatAction("typing")
+          await context.sendChatAction("typing")
           const date = dayjs();
           const caption = "Today's alerts:"
           const s = await getAlertSummaryForDate(date, caption);
-          context.send(s)
+          await context.send(s)
           return
         }
         case "/tomorrow": {
-          context.sendChatAction("typing")
+          await context.sendChatAction("typing")
           let tomorrow = dayjs().add(1, "day")
           const caption = "Tomorrow's alerts:"
           const s = await getAlertSummaryForDate(tomorrow, caption);
-          context.send(s)
+          await context.send(s)
           return
         }
         case "/upcoming": {
-          context.sendChatAction("typing")
+          await context.sendChatAction("typing")
           const upcomingDays: Array<Dayjs> = await batumi.getUpcomingDays()
 
           if (upcomingDays.length == 0) {
@@ -680,7 +682,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
           return
         }
         case "/cities": {
-          context.sendChatAction("typing")
+          await context.sendChatAction("typing")
           const cities = await batumi.getCitiesList()
           let text = "Cities with upcoming alerts:\n"
           const citiesSorted = Array.from(cities.values()).sort();
@@ -710,14 +712,14 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
       }
 
       if (text.startsWith("/alert_")) {
-        context.sendChatAction("typing")
+        await context.sendChatAction("typing")
         const taskId = Number.parseInt(text.replace("/alert_", ""));
         const city = text.split(" ")[1] ?? null
         let alertFromId = await batumi.getAlertFromId(taskId);
         if (!alertFromId) {
           const originalAlert = await OriginalAlert.findOne({taskId})
           if (!originalAlert) {
-            context.send(`Cannot find alert with id ${taskId}`)
+            await context.send(`Cannot find alert with id ${taskId}`)
             return
           }
           alertFromId = await Alert.fromOriginal(originalAlert)
@@ -728,7 +730,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
           ?? MapPlaceholderLink
 
         const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
-        context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
+        await context.sendPhoto(MediaSource.path(image), {caption: formatSingleAlert, parse_mode: 'Markdown'})
 
         return
       }
@@ -754,7 +756,7 @@ telegramFramework.onUpdates(UpdateType.Message, async context => {
           const image = await drawCustom(Alert.colorRandom, mapUrl, "@alerts_batumi", "Debug", "Debug", "MyFile")
           await context.sendPhoto(MediaSource.path(image),)
         }
-        context.send(returnText, {parse_mode: 'Markdown'})
+        await context.send(returnText, {parse_mode: 'Markdown'})
       }
 
       if (text.startsWith("/update")) {
