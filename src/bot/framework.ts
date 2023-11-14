@@ -86,6 +86,12 @@ export class TelegramFramework {
               }
               break
             }
+
+            // too long
+            if (typeof e.message === "string" && e.message?.includes("message is too long")) {
+              console.log("Too long")
+              //TODO: split message
+            }
           }
           // Too Many Requests
           if (e.code == 429) {
