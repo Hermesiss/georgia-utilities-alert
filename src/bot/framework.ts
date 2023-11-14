@@ -58,16 +58,31 @@ export class TelegramFramework {
 
 
   async sendPhoto(params: SendPhotoParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
+    if (!onError){
+      onError = e => {
+        console.log(`Error sending photo to ${params.channelId}\nText:\n`, params.text, "\nError:\n", e)
+      }
+    }
     console.log("==== SEND PHOTO")
     return await this.tgActionWithRetry(() => this.telegram.api.sendPhoto(params), onError)
   }
 
   async sendMessage(params: SendMessageParams, onError?: (e: any) => any): Promise<Interfaces.TelegramMessage | null> {
+    if (!onError){
+      onError = e => {
+        console.log(`Error sending message to ${params.channelId}\nText:\n`, params.text, "\nError:\n", e)
+      }
+    }
     console.log(`==== SEND MESSAGE to ${params.chat_id}`)
     return await this.tgActionWithRetry(() => this.telegram.api.sendMessage(params), onError)
   }
 
   private async tgActionWithRetry<T>(tgAction: () => Promise<Interfaces.TelegramMessage | T>, onError?: (e: any) => any) {
+    if (!onError) {
+      onError = (e: any) => {
+        console.error(e)
+      }
+    }
     let tries = 3
     let result: Interfaces.TelegramMessage | T = null as any
     while (tries > 0) {
@@ -106,9 +121,9 @@ export class TelegramFramework {
             continue
           }
         }
-        if (onError) {
-          onError(e)
-        }
+
+        onError(e)
+
         // Unknown error
         if (this.unknownErrorHandler) {
           this.unknownErrorHandler(e, tgAction)

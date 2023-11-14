@@ -153,8 +153,6 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
           caption: text,
           parse_mode: 'Markdown',
           disable_notification: !notify
-        }, e => {
-          console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
         })
       } else {
         msg = await telegramFramework.sendMessage({
@@ -162,8 +160,6 @@ async function sendAlertToChannels(alert: Alert): Promise<void> {
           text,
           parse_mode: 'Markdown',
           disable_notification: !notify
-        }, e => {
-          console.log(`Error sending to ${channel.channelId}\nText:\n`, text, "Error:\n", e)
         });
       }
       if (msg)
