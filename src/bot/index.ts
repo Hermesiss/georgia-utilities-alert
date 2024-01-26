@@ -359,19 +359,22 @@ async function fetchAndSendNewAlerts() {
       for (let changedAlert of changedAlerts) {
         let text: string | null = null
         if (changedAlert.error !== null) {
+          //don't post anything if error
           errors.push(changedAlert.error)
         } else if (changedAlert.deletedAlert) {
+          //update posted alert as finished
           await updatePost(changedAlert.deletedAlert)
         } else if (changedAlert.oldAlert == null) {
+          //new alert - post it
           if (changedAlert.translatedAlert.taskNote?.toLowerCase().includes("from call center")) {
             //skip call center alerts
             callCenterAlerts++
             console.log(`Skipping call center alert: ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}`)
-            //errors.push(`Skipping call center alert: ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}`)
             continue
           }
           await sendAlertToChannels(changedAlert.translatedAlert)
         } else if (changedAlert.diffs.length > 0) {
+          //changed alert - update posts
           const diffPrint = JSON.stringify(changedAlert.diffs)
           text = `Changed alert ${changedAlert.translatedAlert.scName} /alert_${changedAlert.translatedAlert.taskId}\n${diffPrint}`
         } else {
@@ -418,11 +421,12 @@ const run = async () => {
   app.post('/api/actions/updatePostedAlerts', (req: Request, res: Response) => {
     callAsyncAndMeasureTime(
       async () => {
-        await sendToOwner("Daily midnight renaming " + dayjs().format('YYYY-MM-DD HH:mm'))
+        const day = dayjs().format('YYYY-MM-DD HH:mm')
+        await sendToOwner("Daily midnight renaming " + day)
         await editAllPostedAlerts(links => {
           res.send(links);
         })
-        await sendToOwner("Daily midnight renaming ended " + dayjs().format('YYYY-MM-DD HH:mm'))
+        await sendToOwner("Daily midnight renaming ended " + day)
       }, "updatePostedAlerts"
     )
   })
@@ -436,8 +440,8 @@ const run = async () => {
     callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily morning report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        const date = dayjs().format('YYYY-MM-DD')
-        await postAlertsForDay(dayjs(), `Today! ${date}`)
+        const date = dayjs()
+        await postAlertsForDay(date, `Today! ${date.format('YYYY-MM-DD')}`)
       }, "postAlertsForToday"
     ).then()
     res.send("OK")
@@ -447,8 +451,8 @@ const run = async () => {
     callAsyncAndMeasureTime(
       async () => {
         await sendToOwner("Daily evening report " + dayjs().format('YYYY-MM-DD HH:mm'))
-        const tomorrowDate = dayjs().add(1, 'day').format('YYYY-MM-DD')
-        await postAlertsForDay(dayjs().add(1, 'day'), `Tomorrow, ${tomorrowDate}`)
+        const tomorrowDate = dayjs().add(1, 'day')
+        await postAlertsForDay(tomorrowDate, `Tomorrow, ${tomorrowDate.format('YYYY-MM-DD')}`)
       }, "postAlertsForTomorrow"
     ).then()
     res.send("OK")
