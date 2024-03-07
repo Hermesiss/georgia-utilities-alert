@@ -9,7 +9,7 @@ export interface IOriginalAlert {
   regionName: string;
   scName: string;
   disconnectionDate: string;
-  reconnectionDate: string;
+  reconnectionDate?: string;
   dif?: string;
   taskType: string;
 
