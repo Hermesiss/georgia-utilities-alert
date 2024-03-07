@@ -345,6 +345,6 @@ export class BatumiElectricityParser {
   private async fetchAlertsForCity(cityGe: string): Promise<Array<Alert>> {
     const json = await axios.post<AlertsRoot>(this.alertsSearchUrl, {search: cityGe})
     const {status, data} = json.data
-    return data
+    return data.filter(x => x.disconnectionDate != null)
   }
 }
