@@ -1,6 +1,6 @@
 import {createCanvas, Image, loadImage} from "canvas";
 import fs from "fs";
-import {Alert, PlanType} from "../batumiElectricity/types";
+import {Alert} from "../parsers/energoPro/types";
 import {MapPlaceholderLink} from "../map/types";
 
 export class AlertColor {

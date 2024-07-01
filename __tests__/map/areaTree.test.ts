@@ -1,4 +1,4 @@
-import {AreaTree} from "../../src/batumiElectricity/types";
+import {AreaTree} from "../../src/parsers/energoPro/types";
 import {getStreets} from "../../src/map";
 
 describe('AreaTree', () => {

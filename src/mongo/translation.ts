@@ -1,5 +1,4 @@
-import {Schema, model, connection, Model, Types} from "mongoose";
-import {IOriginalAlert} from "./originalAlert";
+import {Schema, model, Model} from "mongoose";
 
 export interface ITranslation {
   keyGe: string;
