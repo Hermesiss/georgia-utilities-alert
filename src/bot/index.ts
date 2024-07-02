@@ -344,6 +344,7 @@ export class TelegramController {
 				let errors = []
 				let callCenterAlerts = 0
 				try {
+						await this.socarParser.fetchAlerts()
 						for (let channel of this.channels) {
 								if (channel.cityNameGe == null) continue
 								const channelAlerts = await this.socarParser.getAlertsByCity(channel.cityNameGe)

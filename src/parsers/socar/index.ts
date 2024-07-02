@@ -37,7 +37,6 @@ export class SocarParser {
 		}
 
 		public async getAlertsByCity(city: string): Promise<Array<HydratedDocument<ISocarAlert>>> {
-				await this.fetchAlerts()
 				return this.alertsByCity.get(city) || []
 		}
 
