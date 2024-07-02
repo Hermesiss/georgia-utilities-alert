@@ -39,7 +39,7 @@ export class EnergoProParser {
    * @private
    */
   private citiesTwoWayMap = new TwoWayMap<string, string>()
-  private includedCities: Array<CityChannel>;
+  private readonly includedCities: Array<CityChannel>;
 
   public async getAlertFromId(id: number): Promise<Alert | undefined> {
     await this.fetchAlerts()
@@ -72,12 +72,12 @@ export class EnergoProParser {
     const today = date.format("YYYY-MM-DD")
     const future = date.add(1, 'day').format("YYYY-MM-DD")
 
-    return await OriginalAlert.find({
+    return OriginalAlert.find({
       disconnectionDate: {
         $gt: today,
         $lt: future
       }
-    }).exec()
+    }).exec();
   }
 
   /**

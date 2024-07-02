@@ -24,11 +24,13 @@ import {
 import {MapPlaceholderLink, StreetFinderResult} from "../map/types";
 import {uploadImage} from "../imageGeneration/hosting";
 import {envError} from "../common/utils";
+import {SocarParser} from "../parsers/socar";
+import {ISocarAlert} from "../mongo/socarAlert";
 
 export class TelegramController {
 		public get isFetching(): boolean {
 				if (!this.energoProParser) return false
-				return this.energoProParser.isFetching
+				return this.energoProParser.isFetching || this.socarParser.isFetching
 		}
 
 		private readonly token: string;
@@ -37,6 +39,7 @@ export class TelegramController {
 		private telegramFramework: TelegramFramework;
 
 		private energoProParser: EnergoProParser;
+		private socarParser: SocarParser;
 		private channels = new Array<CityChannel>()
 
 		private channelMain: CityChannel;
@@ -341,6 +344,15 @@ export class TelegramController {
 				let errors = []
 				let callCenterAlerts = 0
 				try {
+						for (let channel of this.channels) {
+								if (channel.cityNameGe == null) continue
+								const channelAlerts = await this.socarParser.getAlertsByCity(channel.cityNameGe)
+								await this.sendSocarAlerts(channelAlerts, channel)
+						}
+				} catch (e) {
+						await this.sendToOwnerError(e, "fetchAndSendNewAlerts socar")
+				}
+				try {
 						const changedAlerts = await this.energoProParser.fetchAlerts(true)
 						if (changedAlerts.length == 0) {
 								await this.sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
@@ -377,7 +389,7 @@ export class TelegramController {
 								}
 						}
 				} catch (e) {
-						await this.sendToOwnerError(e, "fetchAndSendNewAlerts")
+						await this.sendToOwnerError(e, "fetchAndSendNewAlerts energo pro")
 				}
 				if (errors.length > 0) {
 						await this.sendToOwnerError(errors, "fetchAndSendNewAlerts")
@@ -704,6 +716,7 @@ export class TelegramController {
 				await mongoose.connect(mongoConnectString)
 
 				this.energoProParser = new EnergoProParser(this.channels);
+				this.socarParser = new SocarParser(this.channels);
 
 				if (process.env.NODE_ENV !== 'development') {
 						await this.fetchAndSendNewAlerts();
@@ -719,5 +732,18 @@ export class TelegramController {
 
 		stopPollingUpdates() {
 				this.telegramFramework.stopPollingUpdates()
+		}
+
+		private async sendSocarAlerts(channelAlerts: Array<HydratedDocument<ISocarAlert>>, channel: CityChannel) {
+				for (let alert of channelAlerts) {
+						if (!alert.isActual()) continue
+						const text = await alert.format()
+
+						await this.telegramFramework.sendMessage({
+								chat_id: channel.channelId,
+								text,
+								parse_mode: 'Markdown',
+						});
+				}
 		}
 }
