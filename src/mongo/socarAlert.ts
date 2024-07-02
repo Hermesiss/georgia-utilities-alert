@@ -94,7 +94,7 @@ socarAlertSchema.methods.format = async function () {
 		} else {
 				range = `${from.format('YYYY-MM-DD HH:mm')} - ${to.format('YYYY-MM-DD HH:mm')}`;
 		}
-		return `*${title}*\n\n💨 Gas shutdown\n\n*Date:*  ${range}\n\n${this.detail.notificationTitleEN}\n\n${this.detail.notificationDescriptionEN}`
+		return `*${title}*\n\n?? Gas shutdown\n\n*Date:*  ${range}\n\n${this.detail.notificationTitleEN}\n\n${this.detail.notificationDescriptionEN}  ${this.objectId}`;
 }
 
 export const SocarAlert = model<ISocarAlert, SocarAlertType>('SocarAlert', socarAlertSchema);
