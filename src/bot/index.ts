@@ -57,7 +57,7 @@ export class TelegramController {
 
 				this.addChannel("Batumi", "ბათუმი", "TELEGRAM_CHANNEL_BATUMI")
 				this.addChannel("Kutaisi", "ქუთაისი", "TELEGRAM_CHANNEL_KUTAISI")
-				this.addChannel("Kobuleti", "ქობულეთი", "TELEGRAM_CHANNEL_KOBULETI")
+				this.addChannel("Kobuleti District", "ქობულეთი", "TELEGRAM_CHANNEL_KOBULETI")
 
 // city name is null for area formatting - we are stripping another cities for posting in city-related channel
 
