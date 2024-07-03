@@ -359,7 +359,7 @@ export class Alert {
     //TODO replace ** with Markdown.bold
 
     return `${this.getPlanEmoji()}${planText} *[${this.scName}]* ${taskName}\n\n` +
-      "⚡ Electricity outage\n\n" +
+      "⚡ #EnergoPro Electricity outage\n\n" +
       `*Date:* ${this.formatTimeSpan()}\n\n` +
       (regionName ? `*Region:* ${regionName}\n\n` : "") +
       `*Cities:* ${cities}\n\n` +
