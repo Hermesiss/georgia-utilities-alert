@@ -1,6 +1,5 @@
 import {Translation} from "../mongo/translation";
-
-const {translate} = require('bing-translate-api');
+import {translate} from 'bing-translate-api';
 
 export class Translator {
   private static translations = new Map<string, any | undefined>()
@@ -18,16 +17,20 @@ export class Translator {
         const translationFromBase = await Translation.findOne({keyGe: phrase})
         if (translationFromBase) {
           console.log(`Loading from base ${phrase} -> ${translationFromBase.valueEn}`)
-          if (typeof translationFromBase.valueEn === "string" && translationFromBase.valueEn.length > 0) {
+          if (typeof translationFromBase.valueEn === "string" && translationFromBase.valueEn.length > 0 && translationFromBase.valueEn !== phrase) {
             this.translations.set(phrase, {translation: translationFromBase.valueEn})
             return translationFromBase.valueEn
           } else {
-            // somehow the translation is empty, delete it
+            // the translation is empty or not translated, delete it
             await Translation.deleteOne({keyGe: phrase})
           }
         }
 
         result = await translate(phrase, "ka", "en", false)
+        if (result.translation === phrase) {
+          console.log(`Phrase ${phrase} is untranslated`)
+          return phrase
+        }
         console.log(`Translating ${phrase} -> ${result.translation}`)
         await Translation.create({keyGe: phrase, valueEn: result.translation})
         //await new Promise(r => setTimeout(r, 50)) //wait to avoid ECONNRESET
