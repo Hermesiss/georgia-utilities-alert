@@ -73,9 +73,9 @@ const socarAlertSchema = new Schema<ISocarAlert, SocarAlertType>({
 });
 
 socarAlertSchema.methods.isCity = function (city: string) {
-		const cityRegex = new RegExp(`${city} მუნიციპალიტეტში`, 'i');
-		const cityRegex2 = new RegExp(`${city}ს მუნიციპალიტეტში`, 'i');
-		return cityRegex.test(this.detail.notificationDescription) || cityRegex2.test(this.detail.notificationDescription);
+		// City name + municipality
+		const cityRegex = new RegExp(`${city}ს? მუნიციპალიტეტში`, 'i');
+		return cityRegex.test(this.detail.notificationDescription)
 };
 
 socarAlertSchema.methods.isActual = function () {
@@ -94,7 +94,7 @@ socarAlertSchema.methods.format = async function () {
 		} else {
 				range = `${from.format('YYYY-MM-DD HH:mm')} - ${to.format('YYYY-MM-DD HH:mm')}`;
 		}
-		return `*${title}*\n\n💨 #Socar Gas shutdown\n\n*Date:*  ${range}\n\n${this.detail.notificationTitleEN}\n\n${this.detail.notificationDescriptionEN} [${this.objectId}]`;
+		return `*${title}*\n\n💨 #Socar Gas shutdown\n\n*Date:*  ${range}\n\n${this.detail.notificationTitleEN} [${this.objectId}]`;
 }
 
 export const SocarAlert = model<ISocarAlert, SocarAlertType>('SocarAlert', socarAlertSchema);

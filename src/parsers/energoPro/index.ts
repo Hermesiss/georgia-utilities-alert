@@ -138,6 +138,7 @@ export class EnergoProParser {
 
   public async fetchAlerts(force: boolean = false): Promise<Array<AlertDiff>> {
     const changedAlerts = new Array<AlertDiff>()
+    let hasErrors = false
     if (this.alertsFetching) {
       while (this.alertsFetching) {
         await new Promise(r => setTimeout(r, 300))
@@ -164,6 +165,7 @@ export class EnergoProParser {
           const errorString = `Error fetching alerts for ${city.cityName}: ${e}`;
           console.log(errorString)
           changedAlerts.push(AlertDiff.FromError(errorString))
+          hasErrors = true
           continue;
         }
 
@@ -189,13 +191,10 @@ export class EnergoProParser {
       }
 
       const fetchAlertsText = "Fetch alerts: ";
-      process.stdout.write(fetchAlertsText + "_".repeat(filteredData.length));
       readline.cursorTo(process.stdout, fetchAlertsText.length);
       for (let i = 0; i < filteredData.length; i++) {
         let diff = new AlertDiff();
         const alertData = filteredData[i]
-
-        process.stdout.write(`[${i}/${filteredData.length}]`);
 
         let original: HydratedDocument<IOriginalAlert> | null
           = await OriginalAlert.findOne({taskId: alertData.taskId}).exec()
@@ -238,7 +237,6 @@ export class EnergoProParser {
           changedAlerts.push(diff)
         }
       }
-      process.stdout.write("\n");
       this.alertsFetching = false
 
       const today = dayjs().format("YYYY-MM-DD")
@@ -251,31 +249,31 @@ export class EnergoProParser {
         }
       }).exec()
 
-      for (let futureAlert of dbData) {
-        if (futureAlert.deletedDate) continue
+      // delete alerts only if there are no errors during fetching
+      if (!hasErrors) {
+        for (let futureAlert of dbData) {
+          if (futureAlert.deletedDate) continue
 
-        futureAlert.deletedDate = new Date()
-
-        if (!this.alertsById.has(futureAlert.taskId)) {
-          console.log(`${futureAlert.taskId} was deleted`)
-          if (futureAlert.posts) {
-            if (futureAlert.posts.length == 0) {
-              console.log("Old post, has no link")
-            } else {
-              for (let post of futureAlert.posts) {
-                console.log(`==== NEED TO CHANGE POST ${post.messageId} IN CHANNEL ${post.channel}`)
-                const diff = new AlertDiff()
-                diff.deletedAlert = futureAlert
-                changedAlerts.push(diff)
+          if (!this.alertsById.has(futureAlert.taskId)) {
+            console.log(`${futureAlert.taskId} was deleted`)
+            futureAlert.deletedDate = new Date()
+            if (futureAlert.posts) {
+              if (futureAlert.posts.length == 0) {
+                console.log("Old post, has no link")
+              } else {
+                for (let post of futureAlert.posts) {
+                  console.log(`==== NEED TO CHANGE POST ${post.messageId} IN CHANNEL ${post.channel}`)
+                  const diff = new AlertDiff()
+                  diff.deletedAlert = futureAlert
+                  changedAlerts.push(diff)
+                }
               }
             }
-          }
 
-          await futureAlert.save()
+            await futureAlert.save()
+          }
         }
       }
-
-      Alert.printTranslations()
     }
 
     return changedAlerts
