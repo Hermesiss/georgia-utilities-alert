@@ -69,7 +69,6 @@ export class MatcherStreet {
   constructor(feature: FeaturesEntity) {
     this.features.push(feature)
     const geoName = (feature.properties.name ?? feature.properties["name:ka"] ?? "").toString()
-    console.log("Geo name", geoName)
     this.name = MatcherStreet.cleanName(geoName)
     this.streetType = MatcherStreet.getStreetType(this.name)
     this.streetParts = this.name.split(" ")

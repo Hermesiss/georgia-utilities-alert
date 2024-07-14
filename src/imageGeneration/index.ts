@@ -1,6 +1,6 @@
 import {createCanvas, Image, loadImage} from "canvas";
 import fs from "fs";
-import {Alert, PlanType} from "../batumiElectricity/types";
+import {Alert} from "../parsers/energoPro/types";
 import {MapPlaceholderLink} from "../map/types";
 
 export class AlertColor {
@@ -34,6 +34,10 @@ export async function drawSingleAlert(alert: Alert, alertColor: AlertColor, mapU
 
 export async function drawCustom(alertColor: AlertColor, mapUrl: string, channel: string, date: string, time: string, imgFilename: string): Promise<string> {
   return drawImage(mapUrl, date, time, imgFilename, alertColor.bg, alertColor.caption, channel)
+}
+
+export async function drawSocar(channel: string, date: string, time: string, imgFilename: string): Promise<string> {
+  return drawImage(MapPlaceholderLink, date, time, imgFilename, '#ffff00', channel)
 }
 
 /**

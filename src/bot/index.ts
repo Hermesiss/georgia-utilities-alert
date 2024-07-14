@@ -1,12 +1,11 @@
-import dotenv from 'dotenv';
 import {Markdown, MediaSource, RemoveKeyboard, UpdateType} from 'puregram'
-import {BatumiElectricityParser} from "../batumiElectricity";
+import {EnergoProParser} from "../parsers/energoPro";
 import {
 		Alert,
 		AreaTreeWithArray,
 		CityChannel,
 		PostWithTime
-} from "../batumiElectricity/types";
+} from "../parsers/energoPro/types";
 import {MessageContext} from "puregram/lib/contexts/message";
 import * as Interfaces from "puregram/lib/generated/telegram-interfaces";
 import {TelegramKeyboardButton, TelegramMessage} from "puregram/lib/generated/telegram-interfaces";
@@ -25,11 +24,13 @@ import {
 import {MapPlaceholderLink, StreetFinderResult} from "../map/types";
 import {uploadImage} from "../imageGeneration/hosting";
 import {envError} from "../common/utils";
+import {SocarParser} from "../parsers/socar";
+import {ISocarAlert} from "../mongo/socarAlert";
 
 export class TelegramController {
 		public get isFetching(): boolean {
-				if (!this.batumi) return false
-				return this.batumi.isFetching
+				if (!this.energoProParser) return false
+				return this.energoProParser.isFetching || this.socarParser.isFetching
 		}
 
 		private readonly token: string;
@@ -37,7 +38,8 @@ export class TelegramController {
 		private readonly ownerId: string;
 		private telegramFramework: TelegramFramework;
 
-		private batumi: BatumiElectricityParser;
+		private energoProParser: EnergoProParser;
+		private socarParser: SocarParser;
 		private channels = new Array<CityChannel>()
 
 		private channelMain: CityChannel;
@@ -55,7 +57,7 @@ export class TelegramController {
 
 				this.addChannel("Batumi", "ბათუმი", "TELEGRAM_CHANNEL_BATUMI")
 				this.addChannel("Kutaisi", "ქუთაისი", "TELEGRAM_CHANNEL_KUTAISI")
-				this.addChannel("Kobuleti", "ქობულეთი", "TELEGRAM_CHANNEL_KOBULETI")
+				this.addChannel("Kobuleti District", "ქობულეთი", "TELEGRAM_CHANNEL_KOBULETI")
 
 // city name is null for area formatting - we are stripping another cities for posting in city-related channel
 
@@ -221,7 +223,7 @@ export class TelegramController {
 
 		async postAlertsForDay(date: Dayjs, caption: string): Promise<void> {
 				try {
-						const originalAlerts = await this.batumi.getOriginalAlertsFromDay(date)
+						const originalAlerts = await this.energoProParser.getOriginalAlertsFromDay(date)
 						console.log(`Posting ${originalAlerts.length} alerts for ${date.format('YYYY-MM-DD')}`)
 						const orderedAlerts = originalAlerts.sort((a, b) => dayjs(a.disconnectionDate).unix() - dayjs(b.disconnectionDate).unix())
 
@@ -342,7 +344,17 @@ export class TelegramController {
 				let errors = []
 				let callCenterAlerts = 0
 				try {
-						const changedAlerts = await this.batumi.fetchAlerts(true)
+						await this.socarParser.fetchAlerts(true)
+						for (let channel of this.channels) {
+								if (channel.cityNameGe == null) continue
+								const channelAlerts = await this.socarParser.getAlertsByCity(channel.cityNameGe)
+								await this.sendSocarAlerts(channelAlerts, channel)
+						}
+				} catch (e) {
+						await this.sendToOwnerError(e, "fetchAndSendNewAlerts socar")
+				}
+				try {
+						const changedAlerts = await this.energoProParser.fetchAlerts(true)
 						if (changedAlerts.length == 0) {
 								await this.sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
 						} else {
@@ -378,7 +390,7 @@ export class TelegramController {
 								}
 						}
 				} catch (e) {
-						await this.sendToOwnerError(e, "fetchAndSendNewAlerts")
+						await this.sendToOwnerError(e, "fetchAndSendNewAlerts energo pro")
 				}
 				if (errors.length > 0) {
 						await this.sendToOwnerError(errors, "fetchAndSendNewAlerts")
@@ -404,7 +416,7 @@ export class TelegramController {
 
 
 		async getAlertSummaryForDate(date: Dayjs, caption: string, cityName: string | null = null): Promise<string> {
-				const alerts = await this.batumi.getAlertsFromDay(date)
+				const alerts = await this.energoProParser.getAlertsFromDay(date)
 				let regions = new Map<string, Array<Alert>>()
 				for (let alert of alerts) {
 						//Show only selected city if specified
@@ -444,13 +456,13 @@ export class TelegramController {
 
 		async sendUpcoming(context: MessageContext, cityCommand: string) {
 				await context.sendChatAction("typing")
-				const cities = await this.batumi.getCitiesList();
+				const cities = await this.energoProParser.getCitiesList();
 				const city = cities.revGet(cityCommand)
 				if (!city) {
 						await context.send(`No alerts for ${cityCommand}`)
 						return
 				}
-				const upcomingDays: Array<Dayjs> = await this.batumi.getUpcomingDays(city)
+				const upcomingDays: Array<Dayjs> = await this.energoProParser.getUpcomingDays(city)
 				if (upcomingDays.length == 0) {
 						await context.send(`No upcoming alerts for ${cityCommand}`)
 						return
@@ -576,7 +588,7 @@ export class TelegramController {
 												}
 												case "/upcoming": {
 														await context.sendChatAction("typing")
-														const upcomingDays: Array<Dayjs> = await controller.batumi.getUpcomingDays()
+														const upcomingDays: Array<Dayjs> = await controller.energoProParser.getUpcomingDays()
 
 														if (upcomingDays.length == 0) {
 																await context.send("No upcoming alerts")
@@ -593,13 +605,13 @@ export class TelegramController {
 												}
 												case "/cities": {
 														await context.sendChatAction("typing")
-														const cities = await controller.batumi.getCitiesList()
+														const cities = await controller.energoProParser.getCitiesList()
 														let text = "Cities with upcoming alerts:\n"
 														const citiesSorted = Array.from(cities.values()).sort();
 														for (let city of citiesSorted) {
 																const cityName = cities.revGet(city);
 																if (!cityName) continue
-																text += `${cityName}:  ${controller.batumi.getAlertCount(cityName)}    /upcoming_${city} \n`
+																text += `${cityName}:  ${controller.energoProParser.getAlertCount(cityName)}    /upcoming_${city} \n`
 														}
 
 														let kb: TelegramKeyboardButton[][] = []
@@ -625,7 +637,7 @@ export class TelegramController {
 												await context.sendChatAction("typing")
 												const taskId = Number.parseInt(text.replace("/alert_", ""));
 												const city = text.split(" ")[1] ?? null
-												let alertFromId = await controller.batumi.getAlertFromId(taskId);
+												let alertFromId = await controller.energoProParser.getAlertFromId(taskId);
 												if (!alertFromId) {
 														const originalAlert = await OriginalAlert.findOne({taskId})
 														if (!originalAlert) {
@@ -636,7 +648,7 @@ export class TelegramController {
 												}
 												const formatSingleAlert = await alertFromId.formatSingleAlert(city);
 												const alertColor: AlertColor = alertFromId.getAlertColor()
-												const mapUrl = await drawMapFromAlert(alertFromId, alertColor, "ბათუმი") //batumi
+												const mapUrl = await drawMapFromAlert(alertFromId, alertColor, "ბათუმი") //energoProParser
 													?? MapPlaceholderLink
 
 												const image = await drawSingleAlert(alertFromId, alertColor, mapUrl, "@bot")
@@ -674,7 +686,7 @@ export class TelegramController {
 
 										if (text.startsWith("/update")) {
 												const id = Number.parseInt(text.replace("/update", ""))
-												const alert = await controller.batumi.getOriginalAlertFromId(id)
+												const alert = await controller.energoProParser.getOriginalAlertFromId(id)
 												if (alert)
 														await controller.updatePost(alert)
 										}
@@ -704,7 +716,8 @@ export class TelegramController {
 
 				await mongoose.connect(mongoConnectString)
 
-				this.batumi = new BatumiElectricityParser(this.channels);
+				this.energoProParser = new EnergoProParser(this.channels);
+				this.socarParser = new SocarParser(this.channels);
 
 				if (process.env.NODE_ENV !== 'development') {
 						await this.fetchAndSendNewAlerts();
@@ -720,5 +733,18 @@ export class TelegramController {
 
 		stopPollingUpdates() {
 				this.telegramFramework.stopPollingUpdates()
+		}
+
+		private async sendSocarAlerts(channelAlerts: Array<HydratedDocument<ISocarAlert>>, channel: CityChannel) {
+				for (let alert of channelAlerts) {
+						if (!alert.isActual()) continue
+						const text = await alert.format()
+
+						await this.telegramFramework.sendMessage({
+								chat_id: channel.channelId,
+								text,
+								parse_mode: 'Markdown',
+						});
+				}
 		}
 }

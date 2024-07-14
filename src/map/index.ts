@@ -1,5 +1,4 @@
 import fs from "fs"
-import stringSimilarity, {Rating} from "string-similarity"
 import {GeoJsonData, Geometry, SavedStreet, StreetFinderResult} from "./types";
 import dotenv from "dotenv";
 import polyline from "google-polyline";
@@ -8,7 +7,7 @@ import {staticMapUrl} from 'static-google-map';
 import {Translator} from "../translator";
 import routeLineTranslations from "./data/route_line_translated.json";
 import aliases from "./data/aliases.json";
-import {Alert, AreaTree} from "../batumiElectricity/types";
+import {Alert, AreaTree} from "../parsers/energoPro/types";
 import {AlertColor} from "../imageGeneration";
 import tinygradient from "tinygradient";
 import {getBestMatches} from "./matcher";
