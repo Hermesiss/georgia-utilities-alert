@@ -36,6 +36,10 @@ export async function drawCustom(alertColor: AlertColor, mapUrl: string, channel
   return drawImage(mapUrl, date, time, imgFilename, alertColor.bg, alertColor.caption, channel)
 }
 
+export async function drawSocar(channel: string, date: string, time: string, imgFilename: string): Promise<string> {
+  return drawImage(MapPlaceholderLink, date, time, imgFilename, '#ffff00', channel)
+}
+
 /**
  *
  * @param url

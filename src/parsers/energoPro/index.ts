@@ -1,4 +1,5 @@
 import axios from "axios";
+import https from 'https';
 import {Alert, AlertDiff, AlertsRoot, CityChannel} from "./types";
 import {TwoWayMap} from "../../common/twoWayMap";
 import {IOriginalAlert, OriginalAlert} from "../../mongo/originalAlert";
@@ -12,6 +13,10 @@ import dotenv from "dotenv";
 dayjs.extend(isSameOrAfter)
 
 dotenv.config();
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false, // disable SSL verification
+});
 
 //set axios timeout to 2 seconds
 if (process.env.NODE_ENV === 'development') {
@@ -341,7 +346,7 @@ export class EnergoProParser {
   }
 
   private async fetchAlertsForCity(cityGe: string): Promise<Array<Alert>> {
-    const json = await axios.post<AlertsRoot>(this.alertsSearchUrl, {search: cityGe})
+    const json = await axios.post<AlertsRoot>(this.alertsSearchUrl, {search: cityGe}, {httpsAgent})
     const {status, data} = json.data
     return data.filter(x => x.disconnectionDate != null)
   }
