@@ -75,11 +75,16 @@ export class SocarParser {
 						for (let city of this.includedCities) {
 								if (city.cityNameGe == null) continue
 								console.log(`Fetching socar alerts for ${city.cityName}`)
+							try {
 								const alerts = await this.getOutages(1, 100, city.cityNameGe)
 								for (const alert of alerts) {
 										if (!dataDict.has(alert)) {
 												dataDict.add(alert)
 										}
+								}}
+								catch (e) {
+									this.alertsFetching = false
+									throw e
 								}
 						}
 
