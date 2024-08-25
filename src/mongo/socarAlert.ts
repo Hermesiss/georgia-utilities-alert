@@ -47,7 +47,7 @@ type SocarAlertType = Model<ISocarAlert, {}, SocarAlertDocumentProps>;
 const socarAlertSchema = new Schema<ISocarAlert, SocarAlertType>({
 		id: {type: String, required: true},
 		objectId: {type: Number, required: true},
-		description: {type: String, required: true},
+		description: {type: String, default: ''},
 		title: {type: String, required: true},
 		affectedCustomers: {type: Number, required: true},
 		start: {type: Date, required: true},
