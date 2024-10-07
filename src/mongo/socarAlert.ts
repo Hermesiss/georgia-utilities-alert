@@ -55,7 +55,7 @@ const socarAlertSchema = new Schema<ISocarAlert, SocarAlertType>({
 		notifiedCustomers: {type: Number, required: true},
 		isNotified: {type: Boolean, required: true},
 		type: {type: String, required: true},
-		docflowCode: {type: String, required: true},
+		docflowCode: {type: String, required: false, default: ""},
 		dateChanged: {type: Boolean, required: true},
 		created: {type: Date, required: true},
 		isPending: {type: Boolean, required: true},
