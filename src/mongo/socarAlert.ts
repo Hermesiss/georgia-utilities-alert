@@ -48,7 +48,7 @@ const socarAlertSchema = new Schema<ISocarAlert, SocarAlertType>({
 		id: {type: String, required: true},
 		objectId: {type: Number, required: true},
 		description: {type: String, default: ''},
-		title: {type: String, required: true},
+		title: {type: String, required: false, default: ""},
 		affectedCustomers: {type: Number, required: true},
 		start: {type: Date, required: true},
 		end: {type: Date, required: true},
