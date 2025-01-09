@@ -22,3 +22,7 @@ For Batumi, the bot creates a map with affected streets.
 2. Install the dependencies using `npm install`.
 3. Set up the environment variables. Use `.env.example` as a reference, and create a `.env` file.
 4. Run the bot using `npm start`.
+
+---
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V318MCBR)
