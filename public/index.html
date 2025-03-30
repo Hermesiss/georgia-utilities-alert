@@ -103,10 +103,10 @@
                 lastDisconnection: 'Last Disconnection',
                 recentAlerts: 'Recent Alerts',
                 error: 'Error fetching data',
-                maxDisconnections: 'Maximum Disconnections in a Day',
+                maxDisconnections: 'Max Disconnections in a Day',
                 disconnections: 'disconnections',
-                maxStreakWith: 'Maximum Consecutive Days with Disconnections',
-                maxStreakWithout: 'Maximum Consecutive Days without Disconnections',
+                maxStreakWith: 'Max Days in a Row with Disconnections',
+                maxStreakWithout: 'Max Days in a Row without Disconnections',
                 days: 'days',
                 percentageWith: 'Percentage of Year with Disconnections'
             },
@@ -122,10 +122,10 @@
                 lastDisconnection: 'Последнее отключение',
                 recentAlerts: 'Последние объявления',
                 error: 'Ошибка при получении данных',
-                maxDisconnections: 'Максимальное количество отключений за день',
+                maxDisconnections: 'Максимум отключений за день',
                 disconnections: 'отключений',
-                maxStreakWith: 'Максимальное количество дней подряд с отключениями',
-                maxStreakWithout: 'Максимальное количество дней подряд без отключений',
+                maxStreakWith: 'Максимум дней подряд с отключениями',
+                maxStreakWithout: 'Максимум дней подряд без отключений',
                 days: 'дней',
                 percentageWith: 'Процент дней в году с отключениями'
             }
@@ -326,34 +326,64 @@
                     </div>
                     <div class="row mt-4">
                         <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">${translations[currentLanguage].maxDisconnections}</h5>
-                                    <p class="card-text">${data.achievements.maxDisconnectionsInDay} ${translations[currentLanguage].disconnections} (${dayjs(data.achievements.maxDisconnectionsDate).format('MMMM D, YYYY')})</p>
+                            <div class="card achievement-card">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-icon bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxDisconnections}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxDisconnectionsInDay} ${translations[currentLanguage].disconnections}</p>
+                                        <small class="text-muted">${dayjs(data.achievements.maxDisconnectionsDate).format('MMMM D, YYYY')}</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">${translations[currentLanguage].maxStreakWith}</h5>
-                                    <p class="card-text">${data.achievements.maxStreakWithDisconnections} ${translations[currentLanguage].days}</p>
+                            <div class="card achievement-card">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-icon bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-fire"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWith}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxStreakWithDisconnections} ${translations[currentLanguage].days}</p>
+                                        <div class="progress mt-1" style="height: 4px;">
+                                            <div class="progress-bar bg-danger" style="width: ${Math.min(100, (data.achievements.maxStreakWithDisconnections / 30) * 100)}%"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">${translations[currentLanguage].maxStreakWithout}</h5>
-                                    <p class="card-text">${data.achievements.maxStreakWithoutDisconnections} ${translations[currentLanguage].days}</p>
+                            <div class="card achievement-card">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-icon bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-leaf"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWithout}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxStreakWithoutDisconnections} ${translations[currentLanguage].days}</p>
+                                        <div class="progress mt-1" style="height: 4px;">
+                                            <div class="progress-bar bg-success" style="width: ${Math.min(100, (data.achievements.maxStreakWithoutDisconnections / 30) * 100)}%"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">${translations[currentLanguage].percentageWith}</h5>
-                                    <p class="card-text">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
+                            <div class="card achievement-card">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-icon bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].percentageWith}</h5>
+                                        <p class="card-text mb-0">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
+                                        <div class="progress mt-1" style="height: 4px;">
+                                            <div class="progress-bar bg-warning" style="width: ${data.achievements.percentageWithDisconnections}%"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -405,6 +435,88 @@
                         }
                     }
                 });
+
+                // Add Font Awesome for icons
+                if (!document.querySelector('link[href*="font-awesome"]')) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+                    document.head.appendChild(link);
+                }
+
+                // Add custom styles for achievement cards
+                const style = document.createElement('style');
+                style.textContent = `
+                    .achievement-card {
+                        transition: transform 0.2s;
+                        border: none;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        height: 100%;
+                    }
+                    .achievement-card:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                    }
+                    .achievement-card .card-body {
+                        padding: 1.25rem;
+                        min-height: 120px;
+                        display: flex;
+                        align-items: center;
+                    }
+                    .achievement-icon {
+                        min-width: 56px;
+                        min-height: 56px;
+                        width: 56px;
+                        height: 56px;
+                        font-size: 28px;
+                        flex-shrink: 0;
+                    }
+                    .achievement-icon + div {
+                        min-width: 0;
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                    }
+                    .progress {
+                        background-color: rgba(0,0,0,0.1);
+                        margin-top: 0.5rem;
+                    }
+                    .card-title {
+                        font-size: 0.875rem;
+                        font-weight: 600;
+                        line-height: 1.2;
+                        margin-bottom: 0.5rem;
+                    }
+                    .card-text {
+                        font-size: 1.25rem;
+                        font-weight: 700;
+                        line-height: 1.2;
+                        margin-bottom: 0.25rem;
+                    }
+                    small.text-muted {
+                        display: block;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    @media (min-width: 768px) {
+                        .card-title {
+                            font-size: 1rem;
+                        }
+                        .card-text {
+                            font-size: 1.5rem;
+                        }
+                        .achievement-card .card-body {
+                            min-height: 140px;
+                        }
+                    }
+                    .row > [class*="col-"] {
+                        display: flex;
+                        flex-direction: column;
+                    }
+                `;
+                document.head.appendChild(style);
             } catch (error) {
                 console.error("Error loading city stats", error)
                 document.getElementById('statsLoading').style.display = 'none';
