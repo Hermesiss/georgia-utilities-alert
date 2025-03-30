@@ -393,6 +393,7 @@
     <script>
         let currentStreet = '';
         let currentLanguage = 'en';
+        let currentCity = '';
         const translations = {
             ka: {
                 searchTitle: 'მოიძიეთ ქუჩა',
@@ -460,6 +461,54 @@
             document.getElementById('statsTitle').textContent = translations[lang].statsTitle;
             document.getElementById('streetSearch').placeholder = translations[lang].searchPlaceholder;
             document.querySelector('.btn-primary').textContent = translations[lang].search;
+            updateUrl();
+        }
+
+        function updateUrl() {
+            const params = new URLSearchParams();
+            if (currentLanguage !== 'en') params.set('lang', currentLanguage);
+            if (currentStreet) {
+                // Store transliterated English version in URL
+                const englishStreet = transliterateFromGeorgian(currentStreet, 'en');
+                params.set('street', englishStreet);
+            }
+            if (currentCity) {
+                // Store transliterated English version in URL
+                const englishCity = transliterateFromGeorgian(currentCity, 'en');
+                params.set('city', englishCity);
+            }
+
+            const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+            window.history.pushState({}, '', newUrl);
+        }
+
+        function loadFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const lang = params.get('lang') || 'en';
+            const street = params.get('street');
+            const city = params.get('city');
+
+            if (lang) setLanguage(lang);
+            if (street) {
+                // Convert English street name back to Georgian for search
+                const georgianStreet = transliterateToGeorgian(street);
+                document.getElementById('streetSearch').value = street;
+                currentStreet = georgianStreet;
+                searchStreet();
+                if (city) {
+                    // Convert English city name back to Georgian
+                    const georgianCity = transliterateToGeorgian(city);
+                    currentCity = georgianCity;
+                    // Wait for cities to load then select the city
+                    setTimeout(() => {
+                        const cityElement = Array.from(document.getElementById('citiesList').children)
+                            .find(el => el.textContent.includes(city));
+                        if (cityElement) {
+                            cityElement.click();
+                        }
+                    }, 1000);
+                }
+            }
         }
 
         function transliterateToGeorgian(text) {
@@ -554,8 +603,9 @@
             return result.split('').map(char => mapping[char] || char).join('');
         }
 
-        function transliterateFromGeorgian(text) {
-            const mapping = currentLanguage === 'ru' ? {
+        function transliterateFromGeorgian(text, lang = null) {
+            if (!lang) lang = currentLanguage;
+            const mapping = lang === 'ru' ? {
                 'ძ': 'дз',
                 'ჯ': 'дж',
                 'ა': 'а',
@@ -890,6 +940,8 @@
             if (!street) return;
 
             currentStreet = street.trim();
+            currentCity = '';
+            updateUrl();
             document.getElementById('cities').style.display = 'block';
             document.getElementById('results').style.display = 'none';
             document.getElementById('citiesLoading').style.display = 'block';
@@ -921,6 +973,8 @@
                     `;
                     item.onclick = (e) => {
                         e.preventDefault();
+                        currentCity = city.name;
+                        updateUrl();
                         loadCityStats(georgianStreet, city.name);
                     };
                     document.getElementById('citiesList').appendChild(item);
@@ -932,8 +986,8 @@
             }
         }
 
-        // Set initial language
-        setLanguage('en');
+        // Set initial language and load from URL
+        loadFromUrl();
     </script>
 </body>
 
