@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Georgia Utilities Alert - Statistics</title>
+    <title>Worst Street Championship</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -437,6 +437,7 @@
         let currentCity = '';
         const translations = {
             ka: {
+                title: 'ყველაზე ცუდი ქუჩის ჩემპიონატი',
                 searchTitle: 'მოიძიეთ ქუჩა',
                 citiesTitle: 'აირჩიეთ ქალაქი',
                 selectedCity: 'არჩეული ქალაქი',
@@ -457,9 +458,12 @@
                 totalAffectedCustomers: 'სულ დაზარალებული მომხმარებელი',
                 customers: 'მომხმარებელი',
                 share: 'გაზიარება',
-                save: 'შენახვა'
+                save: 'შენახვა',
+                totalPoints: 'სულ ქულა',
+                points: 'ქულა'
             },
             en: {
+                title: 'Worst Street Championship',
                 searchTitle: 'Search by Street',
                 citiesTitle: 'Select City',
                 selectedCity: 'Selected City',
@@ -480,9 +484,12 @@
                 totalAffectedCustomers: 'Total Affected Customers',
                 customers: 'customers',
                 share: 'Share',
-                save: 'Save'
+                save: 'Save',
+                totalPoints: 'Total Points',
+                points: 'points'
             },
             ru: {
+                title: 'Чемпионат худших улиц',
                 searchTitle: 'Поиск по улице',
                 citiesTitle: 'Выберите город',
                 statsTitle: 'Статистика',
@@ -503,12 +510,15 @@
                 totalAffectedCustomers: 'Всего пострадавших потребителей',
                 customers: 'потребителей',
                 share: 'Поделиться',
-                save: 'Сохранить'
+                save: 'Сохранить',
+                totalPoints: 'Всего очков',
+                points: 'очков'
             }
         };
 
         function setLanguage(lang) {
             currentLanguage = lang;
+            document.querySelector('h1').textContent = translations[lang].title;
             document.getElementById('searchTitle').textContent = translations[lang].searchTitle;
             document.getElementById('citiesTitle').textContent = translations[lang].citiesTitle;
             document.getElementById('statsTitle').textContent = translations[lang].statsTitle;
@@ -815,43 +825,68 @@
         function getAchievementGrade(type, value) {
             switch (type) {
                 case 'maxDisconnections':
-                    if (value > 5) return 'worst';
-                    if (value > 3) return 'bronze';
+                    if (value > 5) return 'platinum';
+                    if (value > 3) return 'gold';
                     if (value > 2) return 'silver';
-                    if (value > 1) return 'gold';
-                    return 'platinum';
+                    if (value > 1) return 'bronze';
+                    return 'worst';
                 case 'maxStreakWith':
-                    if (value > 7) return 'worst';
-                    if (value > 5) return 'bronze';
+                    if (value > 7) return 'platinum';
+                    if (value > 5) return 'gold';
                     if (value > 2) return 'silver';
-                    if (value > 1) return 'gold';
-                    return 'platinum';
+                    if (value > 1) return 'bronze';
+                    return 'worst';
                 case 'maxStreakWithout':
-                    if (value <= 10) return 'worst';
-                    if (value <= 20) return 'bronze';
-                    if (value <= 50) return 'silver';
-                    if (value <= 90) return 'gold';
-                    return 'platinum';
-                case 'percentage':
-                    if (value > 75) return 'worst';
                     if (value <= 10) return 'platinum';
-                    if (value <= 25) return 'gold';
+                    if (value <= 20) return 'gold';
                     if (value <= 50) return 'silver';
-                    return 'bronze';
+                    if (value <= 90) return 'bronze';
+                    return 'worst';
+                case 'percentage':
+                    if (value > 75) return 'platinum';
+                    if (value <= 10) return 'worst';
+                    if (value <= 25) return 'bronze';
+                    if (value <= 50) return 'silver';
+                    return 'gold';
                 case 'totalDisconnections':
-                    if (value > 100) return 'worst';
-                    if (value > 50) return 'bronze';
+                    if (value > 100) return 'platinum';
+                    if (value > 50) return 'gold';
                     if (value > 25) return 'silver';
-                    if (value > 10) return 'gold';
-                    return 'platinum';
+                    if (value > 10) return 'bronze';
+                    return 'worst';
                 case 'totalAffectedCustomers':
-                    if (value > 200000) return 'worst';
-                    if (value > 100000) return 'bronze';
+                    if (value > 200000) return 'platinum';
+                    if (value > 100000) return 'gold';
                     if (value > 50000) return 'silver';
-                    if (value > 10000) return 'gold';
-                    return 'platinum';
+                    if (value > 10000) return 'bronze';
+                    return 'worst';
+                case 'totalPoints':
+                    if (value > 1000000) return 'platinum';
+                    if (value > 500000) return 'gold';
+                    if (value > 250000) return 'silver';
+                    if (value > 100000) return 'bronze';
+                    return 'worst';
                 default:
                     return 'worst';
+            }
+        }
+
+        function getAchievementPoints(type, value) {
+            switch (type) {
+                case 'maxDisconnections':
+                    return value * 10000; // 10k points per disconnection
+                case 'maxStreakWith':
+                    return value * 5000; // 5k points per day in streak
+                case 'maxStreakWithout':
+                    return (365 - value) * 100; // 100 points per day without disconnections (inverse)
+                case 'percentage':
+                    return value * 1000; // 1000 points per percentage point
+                case 'totalDisconnections':
+                    return value * 500; // 500 points per disconnection
+                case 'totalAffectedCustomers':
+                    return value; // 100 points per affected customer
+                default:
+                    return 0;
             }
         }
 
@@ -996,8 +1031,43 @@
 
                 document.getElementById('statsLoading').style.display = 'none';
 
+                // Calculate total points based on actual values
+                const maxDisconnectionsPoints = getAchievementPoints('maxDisconnections', data.achievements.maxDisconnectionsInDay);
+                const maxStreakWithPoints = getAchievementPoints('maxStreakWith', data.achievements.maxStreakWithDisconnections);
+                const maxStreakWithoutPoints = getAchievementPoints('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections);
+                const percentagePoints = getAchievementPoints('percentage', data.achievements.percentageWithDisconnections.toFixed(3));
+                const totalDisconnectionsPoints = getAchievementPoints('totalDisconnections', data.achievements.totalDisconnections);
+                const totalAffectedCustomersPoints = getAchievementPoints('totalAffectedCustomers', data.achievements.totalAffectedCustomers);
+
+                const totalPoints = maxDisconnectionsPoints +
+                    maxStreakWithPoints +
+                    maxStreakWithoutPoints +
+                    percentagePoints +
+                    totalDisconnectionsPoints +
+                    totalAffectedCustomersPoints;
+
+                // Format large numbers with commas
+                const formatNumber = (num) => num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
                 let html = `
                     <div class="row mt-4">
+                        <div class="col-12 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('totalPoints', totalPoints)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('totalPoints', totalPoints) !== 'worst' ? getAchievementGrade('totalPoints', totalPoints).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-trophy"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalPoints}</h5>
+                                        <p class="card-text mb-0">${formatNumber(totalPoints)} ${translations[currentLanguage].points}</p>
+                                        <small class="text-muted">
+                                            ${formatNumber(maxDisconnectionsPoints)} + ${formatNumber(maxStreakWithPoints)} + ${formatNumber(maxStreakWithoutPoints)} + ${formatNumber(percentagePoints)} + ${formatNumber(totalDisconnectionsPoints)} + ${formatNumber(totalAffectedCustomersPoints)}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
                                 <div class="card-body d-flex align-items-center">
@@ -1199,6 +1269,14 @@
             titleContainer.style.marginBottom = '30px';
             titleContainer.style.paddingBottom = '20px';
             titleContainer.style.borderBottom = '2px solid #4267B2';
+
+            // Add championship title
+            const championshipTitle = document.createElement('h2');
+            championshipTitle.style.color = '#4267B2';
+            championshipTitle.style.fontSize = '24px';
+            championshipTitle.style.marginBottom = '15px';
+            championshipTitle.textContent = translations[currentLanguage].title;
+            titleContainer.appendChild(championshipTitle);
 
             const title = document.createElement('h1');
             title.style.color = '#4267B2';
