@@ -764,7 +764,7 @@
                                 beginAtZero: true,
                                 ticks: {
                                     stepSize: 1,
-                                    color: 'var(--secondary-color)'
+                                    color: '#020202'
                                 },
                                 grid: {
                                     color: 'rgba(255, 255, 255, 0.2)'
@@ -773,10 +773,11 @@
                             x: {
                                 offset: true,
                                 ticks: {
-                                    color: 'var(--secondary-color)',
+                                    color: '#020202',
                                     maxRotation: 0,
                                     autoSkip: false,
                                     callback: function(value, index, ticks) {
+                                        if (index === 0) return '';
                                         // Skip if no dates
                                         if (!data.dailyData.dates[index]) return '';
 
@@ -838,7 +839,7 @@
                                         const startX = scales.x.getPixelForValue(monthStartIndex);
                                         const endX = scales.x.getPixelForValue(index - 1);
 
-                                        ctx.fillStyle = 'rgba(74, 144, 226, 0.05)';
+                                        ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
                                         ctx.fillRect(
                                             startX,
                                             chartArea.top,
@@ -857,7 +858,7 @@
                                     const startX = scales.x.getPixelForValue(monthStartIndex);
                                     const endX = scales.x.getPixelForValue(index);
 
-                                    ctx.fillStyle = 'rgba(74, 144, 226, 0.05)';
+                                    ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
                                     ctx.fillRect(
                                         startX,
                                         chartArea.top,
