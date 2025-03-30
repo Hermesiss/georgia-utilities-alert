@@ -88,6 +88,12 @@ const run = async () => {
 						const total = alerts.length;
 						const lastDisconnection = alerts[0]?.disconnectionDate;
 						
+						// Calculate total affected customers
+						const totalAffectedCustomers = alerts.reduce((sum, alert) => {
+							const customers = parseInt(alert.scEffectedCustomers || '0') || 0;
+							return sum + customers;
+						}, 0);
+						
 						// Group alerts by date, including all days between disconnection and reconnection
 						const dailyCounts = alerts.reduce((acc, alert) => {
 								const disconnectionDate = dayjs(alert.disconnectionDate);
@@ -163,7 +169,9 @@ const run = async () => {
 										maxDisconnectionsDate,
 										maxStreakWithDisconnections,
 										maxStreakWithoutDisconnections,
-										percentageWithDisconnections
+										percentageWithDisconnections,
+										totalDisconnections: total,
+										totalAffectedCustomers
 								}
 						});
 				} catch (error) {

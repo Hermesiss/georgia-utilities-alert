@@ -412,7 +412,9 @@
                 maxStreakWith: 'მაქსიმალური უწყვეტი გათიშვების დღეები',
                 maxStreakWithout: 'მაქსიმალური უწყვეტი დღეები გათიშვების გარეშე',
                 days: 'დღე',
-                percentageWith: 'გათიშვებით წლის პროცენტი'
+                percentageWith: 'გათიშვებით წლის პროცენტი',
+                totalAffectedCustomers: 'სულ დაზარალებული მომხმარებელი',
+                customers: 'მომხმარებელი'
             },
             en: {
                 searchTitle: 'Search by Street',
@@ -431,7 +433,9 @@
                 maxStreakWith: 'Max Days in a Row with Disconnections',
                 maxStreakWithout: 'Max Days in a Row without Disconnections',
                 days: 'days',
-                percentageWith: 'Percentage of Year with Disconnections'
+                percentageWith: 'Percentage of Year with Disconnections',
+                totalAffectedCustomers: 'Total Affected Customers',
+                customers: 'customers'
             },
             ru: {
                 searchTitle: 'Поиск по улице',
@@ -450,7 +454,9 @@
                 maxStreakWith: 'Максимум дней подряд с отключениями',
                 maxStreakWithout: 'Максимум дней подряд без отключений',
                 days: 'дней',
-                percentageWith: 'Процент дней в году с отключениями'
+                percentageWith: 'Процент дней в году с отключениями',
+                totalAffectedCustomers: 'Всего пострадавших потребителей',
+                customers: 'потребителей'
             }
         };
 
@@ -716,6 +722,16 @@
                     if (value <= 25) return 'gold';
                     if (value <= 50) return 'silver';
                     return 'bronze';
+                case 'totalDisconnections':
+                    if (value > 50) return 'bronze';
+                    if (value > 25) return 'silver';
+                    if (value > 10) return 'gold';
+                    return 'platinum';
+                case 'totalAffectedCustomers':
+                    if (value > 100000) return 'bronze';
+                    if (value > 50000) return 'silver';
+                    if (value > 10000) return 'gold';
+                    return 'platinum';
                 default:
                     return 'bronze';
             }
@@ -734,10 +750,6 @@
 
                 let html = `
                     <h6>${translations[currentLanguage].searchTitle}: "${transliterateFromGeorgian(street)}" ${translations[currentLanguage].citiesTitle.toLowerCase()}: ${transliterateFromGeorgian(city)}</h6>
-                    <ul class="list-group">
-                        <li class="list-group-item">${translations[currentLanguage].totalDisconnections}: ${data.total}</li>
-                        <li class="list-group-item">${translations[currentLanguage].lastDisconnection}: ${data.lastDisconnection || 'N/A'}</li>
-                    </ul>
                     <div class="row mt-4">
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
@@ -792,6 +804,34 @@
                                     <div>
                                         <h5 class="card-title mb-1">${translations[currentLanguage].percentageWith}</h5>
                                         <p class="card-text mb-0">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-plug"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalDisconnections}</h5>
+                                        <p class="card-text mb-0">${data.achievements.totalDisconnections} ${translations[currentLanguage].disconnections}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers).toUpperCase()}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalAffectedCustomers}</h5>
+                                        <p class="card-text mb-0">${data.achievements.totalAffectedCustomers} ${translations[currentLanguage].customers}</p>
                                     </div>
                                 </div>
                             </div>
