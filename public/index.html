@@ -12,14 +12,14 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <style>
          :root {
-            --primary-color: #4a90e2;
+            --primary-color: #4267B2;
             --secondary-color: #2c3e50;
             --accent-color: #e74c3c;
-            --background-dark: #1a1c24;
-            --card-bg: #242832;
-            --text-color: #ecf0f1;
-            --border-glow: 0 0 10px rgba(74, 144, 226, 0.3);
-            --hover-glow: 0 0 15px rgba(74, 144, 226, 0.5);
+            --background-dark: #1B2B65;
+            --card-bg: #2C4494;
+            --text-color: #ffffff;
+            --border-glow: 0 0 10px rgba(66, 103, 178, 0.3);
+            --hover-glow: 0 0 15px rgba(66, 103, 178, 0.5);
         }
         
         body {
@@ -95,73 +95,119 @@
         }
         
         .achievement-card {
-            background: linear-gradient(145deg, var(--card-bg), #2a2f3b);
+            transition: transform 0.2s;
             border: none;
-            box-shadow: var(--border-glow);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+        
+        .achievement-card:nth-child(1) .achievement-icon {
+            background: linear-gradient(145deg, #5C7FE6, #4267B2);
+        }
+        
+        .achievement-card:nth-child(2) .achievement-icon {
+            background: linear-gradient(145deg, #FF6B5E, #E74C3C);
+        }
+        
+        .achievement-card:nth-child(3) .achievement-icon {
+            background: linear-gradient(145deg, #2ECC71, #27AE60);
+        }
+        
+        .achievement-card:nth-child(4) .achievement-icon {
+            background: linear-gradient(145deg, #F4D03F, #F1C40F);
         }
         
         .achievement-card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--hover-glow);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .achievement-card .card-body {
+            padding: 1.25rem;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(145deg, #3557B8, #2C4494);
+            border-radius: 8px;
+            color: #ffffff;
         }
         
         .achievement-icon {
-            background: linear-gradient(145deg, var(--primary-color), #357abd);
-            box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
+            min-width: 56px;
+            min-height: 56px;
+            width: 56px;
+            height: 56px;
+            font-size: 28px;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+        
+        .achievement-icon+div {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         
         .progress {
-            background-color: rgba(236, 240, 241, 0.1);
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+            background-color: rgba(0, 0, 0, 0.1);
+            margin-top: 0.5rem;
         }
         
-        .progress-bar {
-            box-shadow: 0 0 10px rgba(74, 144, 226, 0.4);
+        .card-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+        
+        .card-text {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+        
+        small.text-muted {
+            color: rgba(255, 255, 255, 0.9);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        @media (min-width: 768px) {
+            .card-title {
+                font-size: 1rem;
+            }
+            .card-text {
+                font-size: 1.5rem;
+            }
+            .achievement-card .card-body {
+                min-height: 140px;
+            }
+        }
+        
+        .row>[class*="col-"] {
+            display: flex;
+            flex-direction: column;
         }
         
         h1,
-        h5.card-title {
-            color: var(--text-color);
-            text-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+        h5,
+        .card-title {
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
         }
         
-        .chart-container {
-            background: rgba(36, 40, 50, 0.8);
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: var(--border-glow);
-        }
-        /* Custom scrollbar */
-        
-         ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-         ::-webkit-scrollbar-track {
-            background: var(--background-dark);
-        }
-        
-         ::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 4px;
-        }
-        
-         ::-webkit-scrollbar-thumb:hover {
-            background: #357abd;
-        }
-        /* Glowing text effect */
-        
-        .glow-text {
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-        
-        @keyframes glow {
-            from {
-                text-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
-            }
-            to {
-                text-shadow: 0 0 10px rgba(74, 144, 226, 0.4);
-            }
+        .achievement-card h5.card-title {
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
     </style>
 </head>
@@ -624,6 +670,18 @@
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                         height: 100%;
                     }
+                    .achievement-card:nth-child(1) .achievement-icon {
+                        background: linear-gradient(145deg, #5C7FE6, #4267B2);
+                    }
+                    .achievement-card:nth-child(2) .achievement-icon {
+                        background: linear-gradient(145deg, #FF6B5E, #E74C3C);
+                    }
+                    .achievement-card:nth-child(3) .achievement-icon {
+                        background: linear-gradient(145deg, #2ECC71, #27AE60);
+                    }
+                    .achievement-card:nth-child(4) .achievement-icon {
+                        background: linear-gradient(145deg, #F4D03F, #F1C40F);
+                    }
                     .achievement-card:hover {
                         transform: translateY(-2px);
                         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
@@ -633,6 +691,9 @@
                         min-height: 120px;
                         display: flex;
                         align-items: center;
+                        background: linear-gradient(145deg, #3557B8, #2C4494);
+                        border-radius: 8px;
+                        color: #ffffff;
                     }
                     .achievement-icon {
                         min-width: 56px;
@@ -641,6 +702,7 @@
                         height: 56px;
                         font-size: 28px;
                         flex-shrink: 0;
+                        box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
                     }
                     .achievement-icon + div {
                         min-width: 0;
@@ -658,16 +720,17 @@
                         font-weight: 600;
                         line-height: 1.2;
                         margin-bottom: 0.5rem;
+                        color: #ffffff;
                     }
                     .card-text {
-                        color: #ecf0f1;
-                        font-size: 1.25rem;
+                        color: #ffffff;
+                        font-size: 1.5rem;
                         font-weight: 700;
                         line-height: 1.2;
                         margin-bottom: 0.25rem;
                     }
                     small.text-muted {
-                        color: #ecf0f1;
+                        color: rgba(255, 255, 255, 0.9);
                         display: block;
                         white-space: nowrap;
                         overflow: hidden;
