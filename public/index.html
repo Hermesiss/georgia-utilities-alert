@@ -11,358 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <style>
-         :root {
-            --primary-color: #4267B2;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --background-dark: #1B2B65;
-            --card-bg: #2C4494;
-            --text-color: #161616;
-            --border-glow: 0 0 10px rgba(66, 103, 178, 0.3);
-            --hover-glow: 0 0 15px rgba(66, 103, 178, 0.5);
-            --bs-heading-color: #5c5c5c;
-        }
-        
-        body {
-            background-color: var(--background-dark);
-            color: var(--text-color);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-        
-        .card {
-            background-color: #ffffff;
-            border: 1px solid rgba(74, 144, 226, 0.2);
-            box-shadow: var(--border-glow);
-            transition: all 0.3s ease;
-            color: var(--secondary-color) !important;
-        }
-        
-        .card-title {
-            color: var(--secondary-color) !important;
-        }
-        
-        .card:hover {
-            box-shadow: var(--hover-glow);
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border: none;
-            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:hover {
-            background-color: #357abd;
-            box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
-        }
-        
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border-color: var(--primary-color);
-            background: transparent;
-            box-shadow: var(--border-glow);
-        }
-        
-        .btn-outline-primary:hover {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            box-shadow: var(--hover-glow);
-        }
-        
-        .form-control {
-            background-color: #ffffff;
-            border: 1px solid rgba(74, 144, 226, 0.2);
-            color: var(--secondary-color);
-        }
-        
-        .form-control:focus {
-            background-color: #ffffff;
-            border-color: var(--primary-color);
-            color: var(--secondary-color);
-            box-shadow: var(--border-glow);
-        }
-        
-        .list-group-item {
-            background-color: #ffffff;
-            border-color: rgba(74, 144, 226, 0.2);
-            color: var(--secondary-color);
-            transition: all 0.3s ease;
-        }
-        
-        .list-group-item:hover {
-            background-color: rgba(74, 144, 226, 0.1);
-        }
-        
-        .badge {
-            box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
-        }
-        /* Achievement Cards Styles */
-        
-        .achievement-card {
-            transition: transform 0.2s;
-            border: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 100%;
-        }
-        
-        .achievement-card.bronze .card-body {
-            background: linear-gradient(145deg, #B87333, #8B4513);
-            border: 1px solid rgba(205, 127, 50, 0.3);
-            box-shadow: 0 0 15px rgba(205, 127, 50, 0.2);
-        }
-        
-        .achievement-card.silver .card-body {
-            background: linear-gradient(145deg, #A8A8A8, #808080);
-            border: 1px solid rgba(192, 192, 192, 0.3);
-            box-shadow: 0 0 15px rgba(192, 192, 192, 0.2);
-        }
-        
-        .achievement-card.gold .card-body {
-            background: linear-gradient(145deg, #DAA520, #B8860B);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-        }
-        
-        .achievement-card.platinum .card-body {
-            background: linear-gradient(145deg, #8E8E8E, #4A4A4A);
-            border: 1px solid rgba(229, 228, 226, 0.3);
-            box-shadow: 0 0 15px rgba(229, 228, 226, 0.2);
-        }
-        
-        .achievement-card.worst .card-body {
-            background: linear-gradient(145deg, #1b3f5e, #5281af);
-            border: 1px solid rgba(108, 117, 125, 0.3);
-            box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
-        }
-        
-        .achievement-card.worst .achievement-icon {
-            background: linear-gradient(145deg, #6c757d, #495057);
-            box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
-        }
-        
-        .achievement-card.worst .card-body::before {
-            display: none;
-        }
-        
-        .achievement-grade {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            padding: 2px 8px;
-            border-radius: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .achievement-card.bronze .achievement-grade {
-            background: rgba(205, 127, 50, 0.2);
-            color: #FFD700;
-        }
-        
-        .achievement-card.silver .achievement-grade {
-            background: rgba(192, 192, 192, 0.2);
-            color: #C0C0C0;
-        }
-        
-        .achievement-card.gold .achievement-grade {
-            background: rgba(255, 215, 0, 0.2);
-            color: #FFD700;
-        }
-        
-        .achievement-card.platinum .achievement-grade {
-            background: rgba(229, 228, 226, 0.2);
-            color: #FFFFFF;
-        }
-        
-        .statsData h6 {
-            color: #ffffff;
-        }
-        
-        .achievement-card:nth-child(1) .achievement-icon {
-            background: linear-gradient(145deg, #5C7FE6, #4267B2);
-        }
-        
-        .achievement-card:nth-child(2) .achievement-icon {
-            background: linear-gradient(145deg, #FF6B5E, #E74C3C);
-        }
-        
-        .achievement-card:nth-child(3) .achievement-icon {
-            background: linear-gradient(145deg, #2ECC71, #27AE60);
-        }
-        
-        .achievement-card:nth-child(4) .achievement-icon {
-            background: linear-gradient(145deg, #F4D03F, #F1C40F);
-        }
-        
-        .achievement-card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        .achievement-card .card-body {
-            padding: 1.25rem;
-            min-height: 140px;
-            display: flex;
-            align-items: center;
-            background: linear-gradient(145deg, #3557B8, #2C4494);
-            border-radius: 8px;
-            color: #ffffff !important;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .achievement-card .card-title {
-            color: #ffffff !important;
-        }
-        
-        @keyframes shine {
-            0% {
-                transform: translateX(-100%) rotate(45deg);
-            }
-            100% {
-                transform: translateX(100%) rotate(45deg);
-            }
-        }
-        
-        .achievement-card .card-body::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient( 45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-        
-        .achievement-card.silver .card-body::before {
-            animation: shine 2s infinite;
-        }
-        
-        .achievement-card.gold .card-body::before {
-            animation: shine 1.5s infinite;
-        }
-        
-        .achievement-card.platinum .card-body::before {
-            animation: shine 1s infinite;
-        }
-        
-        .achievement-icon {
-            min-width: 56px;
-            min-height: 56px;
-            width: 56px;
-            height: 56px;
-            font-size: 28px;
-            flex-shrink: 0;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-        }
-        
-        .achievement-icon+div {
-            min-width: 0;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .progress {
-            background-color: rgba(0, 0, 0, 0.1);
-            margin-top: 0.5rem;
-        }
-        
-        .card-title {
-            color: var(--secondary-color);
-            text-shadow: none;
-            font-size: 0.875rem;
-            font-weight: 600;
-            line-height: 1.2;
-            margin-bottom: 0.5rem;
-        }
-        
-        .card-text {
-            color: #ffffff;
-            font-size: 1.5rem;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 0.25rem;
-        }
-        
-        small.text-muted {
-            color: rgba(255, 255, 255, 0.9) !important;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        @media (min-width: 768px) {
-            .card-title {
-                font-size: 1rem;
-            }
-            .card-text {
-                font-size: 1.5rem;
-            }
-            .achievement-card .card-body {
-                min-height: 140px;
-            }
-        }
-        
-        .row>[class*="col-"] {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        h1,
-        h5,
-        .card-title {
-            color: #ffffff;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-        }
-        
-        .achievement-card h5.card-title {
-            color: #ffffff;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        /* Replace with new grade-specific icon styles */
-        
-        .achievement-card.bronze .achievement-icon {
-            background: linear-gradient(145deg, #FFD700, #CD7F32);
-            box-shadow: 0 0 15px rgba(205, 127, 50, 0.3);
-        }
-        
-        .achievement-card.silver .achievement-icon {
-            background: linear-gradient(145deg, #E8E8E8, #C0C0C0);
-            box-shadow: 0 0 15px rgba(192, 192, 192, 0.3);
-        }
-        
-        .achievement-card.gold .achievement-icon {
-            background: linear-gradient(145deg, #FFD700, #DAA520);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-        }
-        
-        .achievement-card.platinum .achievement-icon {
-            background: linear-gradient(145deg, #E5E4E2, #A9A9A9);
-            box-shadow: 0 0 15px rgba(229, 228, 226, 0.3);
-        }
-        
-        .list-group-item.active {
-            background-color: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
-            color: #ffffff !important;
-        }
-        
-        .list-group-item.active .badge {
-            background-color: #ffffff !important;
-            color: var(--primary-color) !important;
-        }
-    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -435,6 +85,16 @@
         let currentStreet = '';
         let currentLanguage = 'en';
         let currentCity = '';
+        // Add global variables for points
+        let maxDisconnectionsPoints = 0;
+        let maxStreakWithPoints = 0;
+        let maxStreakWithoutPoints = 0;
+        let percentagePoints = 0;
+        let totalDisconnectionsPoints = 0;
+        let totalAffectedCustomersPoints = 0;
+        let totalPoints = 0;
+        let currentData = null;
+
         const translations = {
             ka: {
                 title: 'ყველაზე ცუდი ქუჩის ჩემპიონატი',
@@ -460,7 +120,9 @@
                 share: 'გაზიარება',
                 save: 'შენახვა',
                 totalPoints: 'სულ ქულა',
-                points: 'ქულა'
+                points: 'ქულა',
+                breakdown: 'დეტალები',
+                total: 'სულ'
             },
             en: {
                 title: 'Worst Street Championship',
@@ -486,7 +148,9 @@
                 share: 'Share',
                 save: 'Save',
                 totalPoints: 'Total Points',
-                points: 'points'
+                points: 'points',
+                breakdown: 'Breakdown',
+                total: 'Total'
             },
             ru: {
                 title: 'Чемпионат худших улиц',
@@ -512,7 +176,9 @@
                 share: 'Поделиться',
                 save: 'Сохранить',
                 totalPoints: 'Всего очков',
-                points: 'очков'
+                points: 'очков',
+                breakdown: 'Разбивка',
+                total: 'Всего'
             }
         };
 
@@ -669,6 +335,10 @@
                 'ия': 'ია',
                 'иу': 'იუ',
                 'т\'': 'ტ',
+                'кх': 'ყ',
+                'к\'': 'კ',
+                'гх': 'ღ',
+                'цх': 'ც',
                 // Single characters
                 'а': 'ა',
                 'б': 'ბ',
@@ -676,12 +346,12 @@
                 'г': 'გ',
                 'д': 'დ',
                 'е': 'ე',
-                'ё': 'ო',
+                'ё': 'იო',
                 'ж': 'ჟ',
                 'з': 'ზ',
                 'и': 'ი',
                 'й': 'ი',
-                'к': 'კ',
+                'к': 'ქ',
                 'л': 'ლ',
                 'м': 'მ',
                 'н': 'ნ',
@@ -693,7 +363,7 @@
                 'у': 'უ',
                 'ф': 'ფ',
                 'х': 'ხ',
-                'ц': 'ც',
+                'ц': 'წ',
                 'ч': 'ჩ',
                 'ш': 'შ',
                 'щ': 'შჩ',
@@ -703,16 +373,20 @@
                 'э': 'ე',
                 'ю': 'იუ',
                 'я': 'ია',
+                'хв': 'ყ'
             } : {
                 // Two-character combinations first
                 'zh': 'ჟ',
                 'sh': 'შ',
                 'ch': 'ჩ',
-                'ts': 'ც',
+                'ts': 'წ',
                 'dz': 'ძ',
                 'kh': 'ხ',
+                'gh': 'ღ',
                 'dj': 'ჯ',
                 't\'': 'ტ',
+                'k\'': 'კ',
+                'q': 'ყ',
                 // Single characters
                 'a': 'ა',
                 'b': 'ბ',
@@ -723,7 +397,6 @@
                 'z': 'ზ',
                 't': 'თ',
                 'i': 'ი',
-                'k': 'კ',
                 'l': 'ლ',
                 'm': 'მ',
                 'n': 'ნ',
@@ -734,13 +407,14 @@
                 'j': 'ჯ',
                 'h': 'ჰ',
                 'u': 'უ',
+                'k': 'ქ'
             };
 
             let result = text.toLowerCase();
 
             // First handle two-character combinations
             for (const [key, value] of Object.entries(mapping)) {
-                if (key.length === 2) {
+                if (key.length > 1) {
                     result = result.replace(new RegExp(key, 'g'), value);
                 }
             }
@@ -748,6 +422,7 @@
             // Then handle single characters
             return result.split('').map(char => mapping[char] || char).join('');
         }
+
 
         function transliterateFromGeorgian(text, lang = null) {
             if (!lang) lang = currentLanguage;
@@ -763,7 +438,7 @@
                 'ზ': 'з',
                 'ტ': 'т\'',
                 'ი': 'и',
-                'კ': 'к',
+                'კ': 'к\'',
                 'ლ': 'л',
                 'მ': 'м',
                 'ნ': 'н',
@@ -793,7 +468,7 @@
                 'ზ': 'z',
                 'ტ': 't\'',
                 'ი': 'i',
-                'კ': 'k',
+                'კ': 'k\'',
                 'ლ': 'l',
                 'მ': 'm',
                 'ნ': 'n',
@@ -814,7 +489,7 @@
                 'ქ': 'k',
                 'წ': 'ts',
                 'ფ': 'f',
-                'ყ': 'k'
+                'ყ': 'q'
             };
 
             return text.split('').map(char => mapping[char] || char).join('');
@@ -861,10 +536,10 @@
                     if (value > 10000) return 'bronze';
                     return 'worst';
                 case 'totalPoints':
-                    if (value > 1000000) return 'platinum';
-                    if (value > 500000) return 'gold';
-                    if (value > 250000) return 'silver';
-                    if (value > 100000) return 'bronze';
+                    if (value > 10000) return 'platinum';
+                    if (value > 5000) return 'gold';
+                    if (value > 2500) return 'silver';
+                    if (value > 1000) return 'bronze';
                     return 'worst';
                 default:
                     return 'worst';
@@ -874,17 +549,17 @@
         function getAchievementPoints(type, value) {
             switch (type) {
                 case 'maxDisconnections':
-                    return value * 10000; // 10k points per disconnection
+                    return value * 100; // 10k points per disconnection
                 case 'maxStreakWith':
-                    return value * 5000; // 5k points per day in streak
+                    return value * 50; // 5k points per day in streak
                 case 'maxStreakWithout':
-                    return (365 - value) * 100; // 100 points per day without disconnections (inverse)
+                    return (365 - value); // 100 points per day without disconnections (inverse)
                 case 'percentage':
-                    return value * 1000; // 1000 points per percentage point
+                    return value * 10; // 1000 points per percentage point
                 case 'totalDisconnections':
-                    return value * 500; // 500 points per disconnection
+                    return value * 5; // 500 points per disconnection
                 case 'totalAffectedCustomers':
-                    return value; // 100 points per affected customer
+                    return Math.ceil(value / 100); // 100 points per affected customer
                 default:
                     return 0;
             }
@@ -1028,18 +703,19 @@
             try {
                 const response = await fetch(`/api/stats/street/${encodeURIComponent(street)}/city/${encodeURIComponent(city)}`);
                 const data = await response.json();
+                currentData = data; // Store the data globally
 
                 document.getElementById('statsLoading').style.display = 'none';
 
                 // Calculate total points based on actual values
-                const maxDisconnectionsPoints = getAchievementPoints('maxDisconnections', data.achievements.maxDisconnectionsInDay);
-                const maxStreakWithPoints = getAchievementPoints('maxStreakWith', data.achievements.maxStreakWithDisconnections);
-                const maxStreakWithoutPoints = getAchievementPoints('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections);
-                const percentagePoints = getAchievementPoints('percentage', data.achievements.percentageWithDisconnections.toFixed(3));
-                const totalDisconnectionsPoints = getAchievementPoints('totalDisconnections', data.achievements.totalDisconnections);
-                const totalAffectedCustomersPoints = getAchievementPoints('totalAffectedCustomers', data.achievements.totalAffectedCustomers);
+                maxDisconnectionsPoints = getAchievementPoints('maxDisconnections', data.achievements.maxDisconnectionsInDay);
+                maxStreakWithPoints = getAchievementPoints('maxStreakWith', data.achievements.maxStreakWithDisconnections);
+                maxStreakWithoutPoints = getAchievementPoints('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections);
+                percentagePoints = getAchievementPoints('percentage', data.achievements.percentageWithDisconnections.toFixed(1));
+                totalDisconnectionsPoints = getAchievementPoints('totalDisconnections', data.achievements.totalDisconnections);
+                totalAffectedCustomersPoints = getAchievementPoints('totalAffectedCustomers', data.achievements.totalAffectedCustomers);
 
-                const totalPoints = maxDisconnectionsPoints +
+                totalPoints = maxDisconnectionsPoints +
                     maxStreakWithPoints +
                     maxStreakWithoutPoints +
                     percentagePoints +
@@ -1060,10 +736,12 @@
                                     </div>
                                     <div>
                                         <h5 class="card-title mb-1">${translations[currentLanguage].totalPoints}</h5>
-                                        <p class="card-text mb-0">${formatNumber(totalPoints)} ${translations[currentLanguage].points}</p>
-                                        <small class="text-muted">
-                                            ${formatNumber(maxDisconnectionsPoints)} + ${formatNumber(maxStreakWithPoints)} + ${formatNumber(maxStreakWithoutPoints)} + ${formatNumber(percentagePoints)} + ${formatNumber(totalDisconnectionsPoints)} + ${formatNumber(totalAffectedCustomersPoints)}
-                                        </small>
+                                        <p class="card-text mb-0">
+                                            ${formatNumber(totalPoints)} ${translations[currentLanguage].points}
+                                            <button class="btn btn-link btn-sm p-0 ms-2" onclick="showPointsBreakdown()" style="color: inherit; text-decoration: none;">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1471,6 +1149,88 @@
                 alert(translations[currentLanguage].error);
             }
         }
+
+        // Format number with commas
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Add function to show modal
+        window.showPointsBreakdown = function() {
+            if (!currentData) return;
+
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('pointsBreakdownModal');
+            if (!modal) {
+                const modalHTML = `
+                    <div class="modal fade" id="pointsBreakdownModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">${translations[currentLanguage].totalPoints} - ${translations[currentLanguage].breakdown}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${translations[currentLanguage].maxDisconnections}</h6>
+                                                <small class="text-muted">${formatNumber(maxDisconnectionsPoints)} ${translations[currentLanguage].points}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">${currentData.achievements.maxDisconnectionsInDay} × 100</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${translations[currentLanguage].maxStreakWith}</h6>
+                                                <small class="text-muted">${formatNumber(maxStreakWithPoints)} ${translations[currentLanguage].points}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">${currentData.achievements.maxStreakWithDisconnections} × 50</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${translations[currentLanguage].maxStreakWithout}</h6>
+                                                <small class="text-muted">${formatNumber(maxStreakWithoutPoints)} ${translations[currentLanguage].points}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">${365 - currentData.achievements.maxStreakWithoutDisconnections} × 1</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${translations[currentLanguage].percentageWith}</h6>
+                                                <small class="text-muted">${formatNumber(percentagePoints)} ${translations[currentLanguage].points}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">${currentData.achievements.percentageWithDisconnections.toFixed(1)}% × 10</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${translations[currentLanguage].totalDisconnections}</h6>
+                                                <small class="text-muted">${formatNumber(totalDisconnectionsPoints)} ${translations[currentLanguage].points}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">${currentData.achievements.totalDisconnections} × 5</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">${translations[currentLanguage].totalAffectedCustomers}</h6>
+                                                <small class="text-muted">${formatNumber(totalAffectedCustomersPoints)} ${translations[currentLanguage].points}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">${Math.ceil(currentData.achievements.totalAffectedCustomers / 100)} × 100</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-center">
+                                        <h5 class="mb-0">${formatNumber(totalPoints)} ${translations[currentLanguage].points}</h5>
+                                        <small class="text-muted">${translations[currentLanguage].total}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                modal = document.getElementById('pointsBreakdownModal');
+            }
+
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        };
 
         // Set initial language and load from URL
         loadFromUrl();
