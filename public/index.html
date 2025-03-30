@@ -130,6 +130,21 @@
             box-shadow: 0 0 15px rgba(229, 228, 226, 0.2);
         }
         
+        .achievement-card.worst .card-body {
+            background: linear-gradient(145deg, #1b3f5e, #5281af);
+            border: 1px solid rgba(108, 117, 125, 0.3);
+            box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
+        }
+        
+        .achievement-card.worst .achievement-icon {
+            background: linear-gradient(145deg, #6c757d, #495057);
+            box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
+        }
+        
+        .achievement-card.worst .card-body::before {
+            display: none;
+        }
+        
         .achievement-grade {
             position: absolute;
             top: 10px;
@@ -193,9 +208,13 @@
             align-items: center;
             background: linear-gradient(145deg, #3557B8, #2C4494);
             border-radius: 8px;
-            color: #ffffff;
+            color: #ffffff !important;
             position: relative;
             overflow: hidden;
+        }
+        
+        .achievement-card .card-title {
+            color: #ffffff !important;
         }
         
         @keyframes shine {
@@ -703,37 +722,43 @@
         function getAchievementGrade(type, value) {
             switch (type) {
                 case 'maxDisconnections':
+                    if (value > 5) return 'worst';
                     if (value > 3) return 'bronze';
                     if (value > 2) return 'silver';
                     if (value > 1) return 'gold';
                     return 'platinum';
                 case 'maxStreakWith':
+                    if (value > 7) return 'worst';
                     if (value > 5) return 'bronze';
                     if (value > 2) return 'silver';
                     if (value > 1) return 'gold';
                     return 'platinum';
                 case 'maxStreakWithout':
+                    if (value <= 10) return 'worst';
                     if (value <= 20) return 'bronze';
                     if (value <= 50) return 'silver';
                     if (value <= 90) return 'gold';
                     return 'platinum';
                 case 'percentage':
+                    if (value > 75) return 'worst';
                     if (value <= 10) return 'platinum';
                     if (value <= 25) return 'gold';
                     if (value <= 50) return 'silver';
                     return 'bronze';
                 case 'totalDisconnections':
+                    if (value > 100) return 'worst';
                     if (value > 50) return 'bronze';
                     if (value > 25) return 'silver';
                     if (value > 10) return 'gold';
                     return 'platinum';
                 case 'totalAffectedCustomers':
+                    if (value > 200000) return 'worst';
                     if (value > 100000) return 'bronze';
                     if (value > 50000) return 'silver';
                     if (value > 10000) return 'gold';
                     return 'platinum';
                 default:
-                    return 'bronze';
+                    return 'worst';
             }
         }
 
@@ -754,7 +779,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-grade">${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay).toUpperCase()}</div>
+                                    <div class="achievement-grade">${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay) !== 'worst' ? getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay).toUpperCase() : ''}</div>
                                     <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-bolt"></i>
                                     </div>
@@ -769,7 +794,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections) !== 'worst' ? getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections).toUpperCase() : ''}</div>
                                     <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-fire"></i>
                                     </div>
@@ -783,7 +808,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections) !== 'worst' ? getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections).toUpperCase() : ''}</div>
                                     <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-leaf"></i>
                                     </div>
@@ -797,7 +822,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-grade">${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-grade">${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections) !== 'worst' ? getAchievementGrade('percentage', data.achievements.percentageWithDisconnections).toUpperCase() : ''}</div>
                                     <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-chart-pie"></i>
                                     </div>
@@ -811,7 +836,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-grade">${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-grade">${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections) !== 'worst' ? getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections).toUpperCase() : ''}</div>
                                     <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-plug"></i>
                                     </div>
@@ -825,7 +850,7 @@
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-grade">${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers).toUpperCase()}</div>
+                                    <div class="achievement-grade">${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers) !== 'worst' ? getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers).toUpperCase() : ''}</div>
                                     <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-users"></i>
                                     </div>
