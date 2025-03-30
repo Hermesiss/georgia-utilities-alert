@@ -120,7 +120,7 @@
         }
         
         .achievement-card.platinum .card-body {
-            background: linear-gradient(145deg, #C0C0C0, #A9A9A9);
+            background: linear-gradient(145deg, #8E8E8E, #4A4A4A);
             border: 1px solid rgba(229, 228, 226, 0.3);
             box-shadow: 0 0 15px rgba(229, 228, 226, 0.2);
         }
@@ -154,7 +154,7 @@
         
         .achievement-card.platinum .achievement-grade {
             background: rgba(229, 228, 226, 0.2);
-            color: #E5E4E2;
+            color: #FFFFFF;
         }
         
         .statsData h6 {
@@ -189,10 +189,41 @@
             background: linear-gradient(145deg, #3557B8, #2C4494);
             border-radius: 8px;
             color: #ffffff;
+            position: relative;
+            overflow: hidden;
         }
         
-        input::placeholder {
-            color: #94bdc7 !important;
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+        
+        .achievement-card .card-body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient( 45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+        
+        .achievement-card.silver .card-body::before {
+            animation: shine 2s infinite;
+        }
+        
+        .achievement-card.gold .card-body::before {
+            animation: shine 1.5s infinite;
+        }
+        
+        .achievement-card.platinum .card-body::before {
+            animation: shine 1s infinite;
         }
         
         .achievement-icon {
@@ -290,7 +321,7 @@
         }
         
         .achievement-card.platinum .achievement-icon {
-            background: linear-gradient(145deg, #E5E4E2, #C0C0C0);
+            background: linear-gradient(145deg, #E5E4E2, #A9A9A9);
             box-shadow: 0 0 15px rgba(229, 228, 226, 0.3);
         }
     </style>
