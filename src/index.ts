@@ -44,7 +44,11 @@ const run = async () => {
 		app.use(express.static('public'))
 
 		app.get('/', (req: Request, res: Response) => {
-				res.sendFile('index.html', { root: 'public' });
+				res.sendFile('index.html', { root: 'public' }, (err) => {
+						if (err) {
+								res.status(500).send('Error sending file');
+						}
+				});
 		});
 
 		app.get('/api/stats/street/:street/cities', async (req: Request, res: Response) => {
