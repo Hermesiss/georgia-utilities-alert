@@ -1273,13 +1273,6 @@
                 // Remove the temporary container
                 document.body.removeChild(container);
 
-                // Convert canvas to blob
-                const blob = await new Promise((resolve) => {
-                    canvas.toBlob((blob) => {
-                        resolve(blob);
-                    }, 'image/png');
-                });
-
                 // Transliterate street and city names to current language
                 const transliteratedStreet = transliterateFromGeorgian(currentStreet, currentLanguage);
                 const transliteratedCity = transliterateFromGeorgian(currentCity, currentLanguage);
@@ -1302,20 +1295,25 @@
                     title: `Georgia Utilities Alert`,
                     text: shareTexts[currentLanguage],
                     url: window.location.href,
-                    files: [new File([blob], 'stats.png', {
+                    files: [new File([await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))], 'stats.png', {
                         type: 'image/png'
                     })]
                 };
 
                 // Try to use the Web Share API
                 if (navigator.share && navigator.canShare(shareData)) {
+                    console.log('Using Web Share API');
                     await navigator.share(shareData);
                 } else {
-                    // Fallback to clipboard copy
+                    console.log('Using download');
+                    // Fallback to download
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
-                    link.href = canvas.toDataURL('image/png');
+                    link.href = url;
                     link.download = 'stats.png';
                     link.click();
+                    URL.revokeObjectURL(url);
                 }
             } catch (error) {
                 console.error('Error sharing stats:', error);
