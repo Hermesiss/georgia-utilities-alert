@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Georgia Utilities Alert - Statistics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+         :root {
+            --primary-color: #4267B2;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --background-dark: #1B2B65;
+            --card-bg: #2C4494;
+            --text-color: #161616;
+            --border-glow: 0 0 10px rgba(66, 103, 178, 0.3);
+            --hover-glow: 0 0 15px rgba(66, 103, 178, 0.5);
+            --bs-heading-color: #5c5c5c;
+        }
+        
+        body {
+            background-color: var(--background-dark);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        .card {
+            background-color: #ffffff;
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            box-shadow: var(--border-glow);
+            transition: all 0.3s ease;
+            color: var(--secondary-color) !important;
+        }
+        
+        .card-title {
+            color: var(--secondary-color) !important;
+        }
+        
+        .card:hover {
+            box-shadow: var(--hover-glow);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #357abd;
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            background: transparent;
+            box-shadow: var(--border-glow);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: var(--hover-glow);
+        }
+        
+        .form-control {
+            background-color: #ffffff;
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            color: var(--secondary-color);
+        }
+        
+        .form-control:focus {
+            background-color: #ffffff;
+            border-color: var(--primary-color);
+            color: var(--secondary-color);
+            box-shadow: var(--border-glow);
+        }
+        
+        .list-group-item {
+            background-color: #ffffff;
+            border-color: rgba(74, 144, 226, 0.2);
+            color: var(--secondary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .list-group-item:hover {
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+        
+        .badge {
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+        }
+        /* Achievement Cards Styles */
+        
+        .achievement-card {
+            transition: transform 0.2s;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+        
+        .achievement-card.bronze .card-body {
+            background: linear-gradient(145deg, #B87333, #8B4513);
+            border: 1px solid rgba(205, 127, 50, 0.3);
+            box-shadow: 0 0 15px rgba(205, 127, 50, 0.2);
+        }
+        
+        .achievement-card.silver .card-body {
+            background: linear-gradient(145deg, #A8A8A8, #808080);
+            border: 1px solid rgba(192, 192, 192, 0.3);
+            box-shadow: 0 0 15px rgba(192, 192, 192, 0.2);
+        }
+        
+        .achievement-card.gold .card-body {
+            background: linear-gradient(145deg, #DAA520, #B8860B);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+        
+        .achievement-card.platinum .card-body {
+            background: linear-gradient(145deg, #8E8E8E, #4A4A4A);
+            border: 1px solid rgba(229, 228, 226, 0.3);
+            box-shadow: 0 0 15px rgba(229, 228, 226, 0.2);
+        }
+        
+        .achievement-card.worst .card-body {
+            background: linear-gradient(145deg, #1b3f5e, #5281af);
+            border: 1px solid rgba(108, 117, 125, 0.3);
+            box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
+        }
+        
+        .achievement-card.worst .achievement-icon {
+            background: linear-gradient(145deg, #6c757d, #495057);
+            box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
+        }
+        
+        .achievement-card.worst .card-body::before {
+            display: none;
+        }
+        
+        .achievement-grade {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .achievement-card.bronze .achievement-grade {
+            background: rgba(205, 127, 50, 0.2);
+            color: #FFD700;
+        }
+        
+        .achievement-card.silver .achievement-grade {
+            background: rgba(192, 192, 192, 0.2);
+            color: #C0C0C0;
+        }
+        
+        .achievement-card.gold .achievement-grade {
+            background: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+        }
+        
+        .achievement-card.platinum .achievement-grade {
+            background: rgba(229, 228, 226, 0.2);
+            color: #FFFFFF;
+        }
+        
+        .statsData h6 {
+            color: #ffffff;
+        }
+        
+        .achievement-card:nth-child(1) .achievement-icon {
+            background: linear-gradient(145deg, #5C7FE6, #4267B2);
+        }
+        
+        .achievement-card:nth-child(2) .achievement-icon {
+            background: linear-gradient(145deg, #FF6B5E, #E74C3C);
+        }
+        
+        .achievement-card:nth-child(3) .achievement-icon {
+            background: linear-gradient(145deg, #2ECC71, #27AE60);
+        }
+        
+        .achievement-card:nth-child(4) .achievement-icon {
+            background: linear-gradient(145deg, #F4D03F, #F1C40F);
+        }
+        
+        .achievement-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .achievement-card .card-body {
+            padding: 1.25rem;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(145deg, #3557B8, #2C4494);
+            border-radius: 8px;
+            color: #ffffff !important;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .achievement-card .card-title {
+            color: #ffffff !important;
+        }
+        
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+        
+        .achievement-card .card-body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient( 45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+        
+        .achievement-card.silver .card-body::before {
+            animation: shine 2s infinite;
+        }
+        
+        .achievement-card.gold .card-body::before {
+            animation: shine 1.5s infinite;
+        }
+        
+        .achievement-card.platinum .card-body::before {
+            animation: shine 1s infinite;
+        }
+        
+        .achievement-icon {
+            min-width: 56px;
+            min-height: 56px;
+            width: 56px;
+            height: 56px;
+            font-size: 28px;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+        
+        .achievement-icon+div {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .progress {
+            background-color: rgba(0, 0, 0, 0.1);
+            margin-top: 0.5rem;
+        }
+        
+        .card-title {
+            color: var(--secondary-color);
+            text-shadow: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-text {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+        
+        small.text-muted {
+            color: rgba(255, 255, 255, 0.9) !important;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        @media (min-width: 768px) {
+            .card-title {
+                font-size: 1rem;
+            }
+            .card-text {
+                font-size: 1.5rem;
+            }
+            .achievement-card .card-body {
+                min-height: 140px;
+            }
+        }
+        
+        .row>[class*="col-"] {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1,
+        h5,
+        .card-title {
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        
+        .achievement-card h5.card-title {
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        /* Replace with new grade-specific icon styles */
+        
+        .achievement-card.bronze .achievement-icon {
+            background: linear-gradient(145deg, #FFD700, #CD7F32);
+            box-shadow: 0 0 15px rgba(205, 127, 50, 0.3);
+        }
+        
+        .achievement-card.silver .achievement-icon {
+            background: linear-gradient(145deg, #E8E8E8, #C0C0C0);
+            box-shadow: 0 0 15px rgba(192, 192, 192, 0.3);
+        }
+        
+        .achievement-card.gold .achievement-icon {
+            background: linear-gradient(145deg, #FFD700, #DAA520);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .achievement-card.platinum .achievement-icon {
+            background: linear-gradient(145deg, #E5E4E2, #A9A9A9);
+            box-shadow: 0 0 15px rgba(229, 228, 226, 0.3);
+        }
+        
+        .list-group-item.active {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+        
+        .list-group-item.active .badge {
+            background-color: #ffffff !important;
+            color: var(--primary-color) !important;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container mt-2 mt-md-4">
+        <div class="d-flex justify-content-between align-items-center mb-2 mb-md-4">
+            <h1 class="glow-text">Georgia Utilities Alert</h1>
+            <div class="btn-group d-none d-md-flex">
+                <button class="btn btn-outline-primary" onclick="setLanguage('ka')">ქართული</button>
+                <button class="btn btn-outline-primary active" onclick="setLanguage('en')">English</button>
+                <button class="btn btn-outline-primary" onclick="setLanguage('ru')">Русский</button>
+            </div>
+            <div class="dropdown d-md-none">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-globe"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                    <li><button class="dropdown-item" onclick="setLanguage('ka')">ქართული</button></li>
+                    <li><button class="dropdown-item" onclick="setLanguage('en')">English</button></li>
+                    <li><button class="dropdown-item" onclick="setLanguage('ru')">Русский</button></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title" id="searchTitle">Search by Street</h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="streetSearch" class="form-control" placeholder="Enter street name...">
+                    <button class="btn btn-primary" onclick="searchStreet()">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="cities" class="mt-4" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title" id="citiesTitle">Select City</h5>
+                    <div id="citiesContent">
+                        <div class="text-center py-4" id="citiesLoading" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="list-group" id="citiesList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="mt-4" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title" id="statsTitle">Statistics</h5>
+                    <div id="statsContent">
+                        <div class="text-center py-4" id="statsLoading" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="statsData">
+                            <p>Select a city to see statistics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStreet = '';
+        let currentLanguage = 'en';
+        let currentCity = '';
+        const translations = {
+            ka: {
+                searchTitle: 'მოიძიეთ ქუჩა',
+                citiesTitle: 'აირჩიეთ ქალაქი',
+                selectedCity: 'არჩეული ქალაქი',
+                statsTitle: 'სტატისტიკა',
+                searchPlaceholder: 'ქუჩის სახელი...',
+                search: 'ძებნა',
+                noCities: 'ამ ქუჩისთვის ქალაქები ვერ მოიძებნა',
+                totalDisconnections: 'სულ გათიშვები',
+                lastDisconnection: 'ბოლო გათიშვა',
+                recentAlerts: 'ბოლო განცხადებები',
+                error: 'შეცდომა მონაცემების მიღებისას',
+                maxDisconnections: 'მაქსიმალური გათიშვები დღეში',
+                disconnections: 'გათიშვა',
+                maxStreakWith: 'მაქსიმალური უწყვეტი გათიშვების დღეები',
+                maxStreakWithout: 'მაქსიმალური უწყვეტი დღეები გათიშვების გარეშე',
+                days: 'დღე',
+                percentageWith: 'გათიშვებით წლის პროცენტი',
+                totalAffectedCustomers: 'სულ დაზარალებული მომხმარებელი',
+                customers: 'მომხმარებელი',
+                share: 'გაზიარება',
+                save: 'შენახვა'
+            },
+            en: {
+                searchTitle: 'Search by Street',
+                citiesTitle: 'Select City',
+                selectedCity: 'Selected City',
+                statsTitle: 'Statistics',
+                searchPlaceholder: 'Enter street name...',
+                search: 'Search',
+                noCities: 'No cities found for this street',
+                totalDisconnections: 'Total Disconnections',
+                lastDisconnection: 'Last Disconnection',
+                recentAlerts: 'Recent Alerts',
+                error: 'Error fetching data',
+                maxDisconnections: 'Max Disconnections in a Day',
+                disconnections: 'disconnections',
+                maxStreakWith: 'Max Days in a Row with Disconnections',
+                maxStreakWithout: 'Max Days in a Row without Disconnections',
+                days: 'days',
+                percentageWith: 'Percentage of Year with Disconnections',
+                totalAffectedCustomers: 'Total Affected Customers',
+                customers: 'customers',
+                share: 'Share',
+                save: 'Save'
+            },
+            ru: {
+                searchTitle: 'Поиск по улице',
+                citiesTitle: 'Выберите город',
+                statsTitle: 'Статистика',
+                selectedCity: 'Выбранный город',
+                searchPlaceholder: 'Введите название улицы...',
+                search: 'Поиск',
+                noCities: 'Города не найдены для этой улицы',
+                totalDisconnections: 'Всего отключений',
+                lastDisconnection: 'Последнее отключение',
+                recentAlerts: 'Последние объявления',
+                error: 'Ошибка при получении данных',
+                maxDisconnections: 'Максимум отключений за день',
+                disconnections: 'отключений',
+                maxStreakWith: 'Максимум дней подряд с отключениями',
+                maxStreakWithout: 'Максимум дней подряд без отключений',
+                days: 'дней',
+                percentageWith: 'Процент дней в году с отключениями',
+                totalAffectedCustomers: 'Всего пострадавших потребителей',
+                customers: 'потребителей',
+                share: 'Поделиться',
+                save: 'Сохранить'
+            }
+        };
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.getElementById('searchTitle').textContent = translations[lang].searchTitle;
+            document.getElementById('citiesTitle').textContent = translations[lang].citiesTitle;
+            document.getElementById('statsTitle').textContent = translations[lang].statsTitle;
+            document.getElementById('streetSearch').placeholder = translations[lang].searchPlaceholder;
+            document.querySelector('.btn-primary').textContent = translations[lang].search;
+
+            // Update active state of language buttons
+            document.querySelectorAll('.btn-group .btn-outline-primary').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Find and activate the button for the current language
+            const langButton = Array.from(document.querySelectorAll('.btn-group .btn-outline-primary'))
+                .find(btn => btn.textContent.toLowerCase() === (lang === 'ka' ? 'ქართული' : lang === 'ru' ? 'русский' : 'english').toLowerCase());
+            if (langButton) {
+                langButton.classList.add('active');
+            }
+
+            // Update dropdown button text for mobile
+            const currentLangText = lang === 'ka' ? 'ქართული' : lang === 'ru' ? 'Русский' : 'English';
+            document.querySelector('#languageDropdown').innerHTML = `<i class="fas fa-globe"></i> ${currentLangText}`;
+
+            // Update achievement card translations if they exist
+            const achievementCards = document.querySelectorAll('.achievement-card');
+            if (achievementCards.length > 0) {
+                achievementCards.forEach(card => {
+                    const title = card.querySelector('.card-title');
+                    const text = card.querySelector('.card-text');
+                    const small = card.querySelector('small.text-muted');
+
+                    const includes = (text, translations, key) => {
+                        return text.includes(translations['en'][key]) ||
+                            text.includes(translations['ka'][key]) ||
+                            text.includes(translations['ru'][key]);
+                    }
+
+                    // Update title based on achievement type
+                    const titleText = title.textContent;
+                    if (includes(titleText, translations, 'maxDisconnections')) {
+                        title.textContent = translations[lang].maxDisconnections;
+                    } else if (includes(titleText, translations, 'maxStreakWith')) {
+                        title.textContent = translations[lang].maxStreakWith;
+                    } else if (includes(titleText, translations, 'maxStreakWithout')) {
+                        title.textContent = translations[lang].maxStreakWithout;
+                    } else if (includes(titleText, translations, 'percentageWith')) {
+                        title.textContent = translations[lang].percentageWith;
+                    } else if (includes(titleText, translations, 'totalDisconnections')) {
+                        title.textContent = translations[lang].totalDisconnections;
+                    } else if (includes(titleText, translations, 'totalAffectedCustomers')) {
+                        title.textContent = translations[lang].totalAffectedCustomers;
+                    }
+
+                    // Update text with translations
+                    if (text) {
+                        const count = text.textContent.split(' ')[0];
+                        const textContent = text.textContent;
+                        if (textContent.includes(translations['en'].disconnections) ||
+                            textContent.includes(translations['ka'].disconnections) ||
+                            textContent.includes(translations['ru'].disconnections)) {
+                            text.textContent = `${count} ${translations[lang].disconnections}`;
+                        } else if (textContent.includes(translations['en'].days) ||
+                            textContent.includes(translations['ka'].days) ||
+                            textContent.includes(translations['ru'].days)) {
+                            text.textContent = `${count} ${translations[lang].days}`;
+                        } else if (textContent.includes(translations['en'].customers) ||
+                            textContent.includes(translations['ka'].customers) ||
+                            textContent.includes(translations['ru'].customers)) {
+                            text.textContent = `${count} ${translations[lang].customers}`;
+                        }
+                    }
+                });
+            }
+
+            updateUrl();
+        }
+
+        function updateUrl() {
+            const params = new URLSearchParams();
+            const currentParams = new URLSearchParams(window.location.search);
+            if (currentLanguage !== 'en') params.set('lang', currentLanguage);
+            if (currentStreet) {
+                // Store transliterated English version in URL
+                const englishStreet = transliterateFromGeorgian(currentStreet, 'en');
+                params.set('street', englishStreet);
+            }
+            if (currentCity) {
+                // Store transliterated English version in URL
+                const englishCity = transliterateFromGeorgian(currentCity, 'en');
+                params.set('city', englishCity);
+            } else if (currentParams.get('city')) {
+                params.set('city', currentParams.get('city'));
+            }
+
+            const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+            window.history.pushState({}, '', newUrl);
+        }
+
+        function loadFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const lang = params.get('lang') || 'en';
+            const street = params.get('street');
+            const city = params.get('city');
+
+            if (lang) setLanguage(lang);
+            if (street) {
+                // Convert English street name back to Georgian for search
+                const georgianStreet = transliterateToGeorgian(street);
+                document.getElementById('streetSearch').value = street;
+                currentStreet = georgianStreet;
+                searchStreet();
+                if (city) {
+                    // City is always in English from URL, convert to Georgian for internal use
+                    const georgianCity = transliterateToGeorgian(city);
+                    currentCity = georgianCity;
+                    // Wait for cities to load then select the city
+                    setTimeout(async() => {
+                        const list = document.getElementById('citiesList');
+                        while (list.children.length === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        console.log(`trying to find ${currentCity}`);
+                        const cityElement = Array.from(list.children)
+                            .find(el => {
+                                console.log(`checking ${el.textContent.trim()}`);
+                                const elementText = el.textContent.trim().toLowerCase();
+                                // Check for both English and Russian versions of the city name
+                                const englishCity = city.toLowerCase();
+                                const russianCity = transliterateFromGeorgian(currentCity, 'ru').toLowerCase();
+                                return elementText.includes(englishCity) || elementText.includes(russianCity) || elementText.includes(currentCity);
+                            });
+                        if (cityElement) {
+                            cityElement.click();
+                        }
+                    }, 1000);
+                }
+            }
+        }
+
+        function transliterateToGeorgian(text) {
+            // Detect input language
+            const hasCyrillic = /[\u0400-\u04FF]/.test(text);
+            const hasGeorgian = /[\u10A0-\u10FF]/.test(text);
+
+            if (hasGeorgian) return text;
+
+            const mapping = hasCyrillic ? {
+                // Two-character combinations first
+                'дз': 'ძ',
+                'дж': 'ჯ',
+                'шч': 'შჩ',
+                'ия': 'ია',
+                'иу': 'იუ',
+                'т\'': 'ტ',
+                // Single characters
+                'а': 'ა',
+                'б': 'ბ',
+                'в': 'ვ',
+                'г': 'გ',
+                'д': 'დ',
+                'е': 'ე',
+                'ё': 'ო',
+                'ж': 'ჟ',
+                'з': 'ზ',
+                'и': 'ი',
+                'й': 'ი',
+                'к': 'კ',
+                'л': 'ლ',
+                'м': 'მ',
+                'н': 'ნ',
+                'о': 'ო',
+                'п': 'პ',
+                'р': 'რ',
+                'с': 'ს',
+                'т': 'თ',
+                'у': 'უ',
+                'ф': 'ფ',
+                'х': 'ხ',
+                'ц': 'ც',
+                'ч': 'ჩ',
+                'ш': 'შ',
+                'щ': 'შჩ',
+                'ъ': '',
+                'ы': 'ი',
+                'ь': '',
+                'э': 'ე',
+                'ю': 'იუ',
+                'я': 'ია',
+            } : {
+                // Two-character combinations first
+                'zh': 'ჟ',
+                'sh': 'შ',
+                'ch': 'ჩ',
+                'ts': 'ც',
+                'dz': 'ძ',
+                'kh': 'ხ',
+                'dj': 'ჯ',
+                't\'': 'ტ',
+                // Single characters
+                'a': 'ა',
+                'b': 'ბ',
+                'g': 'გ',
+                'd': 'დ',
+                'e': 'ე',
+                'v': 'ვ',
+                'z': 'ზ',
+                't': 'თ',
+                'i': 'ი',
+                'k': 'კ',
+                'l': 'ლ',
+                'm': 'მ',
+                'n': 'ნ',
+                'o': 'ო',
+                'p': 'პ',
+                'r': 'რ',
+                's': 'ს',
+                'j': 'ჯ',
+                'h': 'ჰ',
+                'u': 'უ',
+            };
+
+            let result = text.toLowerCase();
+
+            // First handle two-character combinations
+            for (const [key, value] of Object.entries(mapping)) {
+                if (key.length === 2) {
+                    result = result.replace(new RegExp(key, 'g'), value);
+                }
+            }
+
+            // Then handle single characters
+            return result.split('').map(char => mapping[char] || char).join('');
+        }
+
+        function transliterateFromGeorgian(text, lang = null) {
+            if (!lang) lang = currentLanguage;
+            const mapping = lang === 'ru' ? {
+                'ძ': 'дз',
+                'ჯ': 'дж',
+                'ა': 'а',
+                'ბ': 'б',
+                'გ': 'г',
+                'დ': 'д',
+                'ე': 'е',
+                'ვ': 'в',
+                'ზ': 'з',
+                'ტ': 'т\'',
+                'ი': 'и',
+                'კ': 'к',
+                'ლ': 'л',
+                'მ': 'м',
+                'ნ': 'н',
+                'ო': 'о',
+                'პ': 'п',
+                'ჟ': 'ж',
+                'რ': 'р',
+                'ს': 'с',
+                'შ': 'ш',
+                'ჩ': 'ч',
+                'ც': 'ц',
+                'ხ': 'х',
+                'ჰ': 'х',
+                'თ': 'т',
+                'უ': 'у',
+                'ქ': 'к',
+                'წ': 'ц',
+                'ფ': 'ф',
+                'ყ': 'к',
+            } : {
+                'ა': 'a',
+                'ბ': 'b',
+                'გ': 'g',
+                'დ': 'd',
+                'ე': 'e',
+                'ვ': 'v',
+                'ზ': 'z',
+                'ტ': 't\'',
+                'ი': 'i',
+                'კ': 'k',
+                'ლ': 'l',
+                'მ': 'm',
+                'ნ': 'n',
+                'ო': 'o',
+                'პ': 'p',
+                'ჟ': 'zh',
+                'რ': 'r',
+                'ს': 's',
+                'შ': 'sh',
+                'ჩ': 'ch',
+                'ც': 'ts',
+                'ძ': 'dz',
+                'ხ': 'kh',
+                'ჯ': 'j',
+                'ჰ': 'h',
+                'თ': 't',
+                'უ': 'u',
+                'ქ': 'k',
+                'წ': 'ts',
+                'ფ': 'f',
+                'ყ': 'k'
+            };
+
+            return text.split('').map(char => mapping[char] || char).join('');
+        }
+
+        let chart = null;
+
+        function getAchievementGrade(type, value) {
+            switch (type) {
+                case 'maxDisconnections':
+                    if (value > 5) return 'worst';
+                    if (value > 3) return 'bronze';
+                    if (value > 2) return 'silver';
+                    if (value > 1) return 'gold';
+                    return 'platinum';
+                case 'maxStreakWith':
+                    if (value > 7) return 'worst';
+                    if (value > 5) return 'bronze';
+                    if (value > 2) return 'silver';
+                    if (value > 1) return 'gold';
+                    return 'platinum';
+                case 'maxStreakWithout':
+                    if (value <= 10) return 'worst';
+                    if (value <= 20) return 'bronze';
+                    if (value <= 50) return 'silver';
+                    if (value <= 90) return 'gold';
+                    return 'platinum';
+                case 'percentage':
+                    if (value > 75) return 'worst';
+                    if (value <= 10) return 'platinum';
+                    if (value <= 25) return 'gold';
+                    if (value <= 50) return 'silver';
+                    return 'bronze';
+                case 'totalDisconnections':
+                    if (value > 100) return 'worst';
+                    if (value > 50) return 'bronze';
+                    if (value > 25) return 'silver';
+                    if (value > 10) return 'gold';
+                    return 'platinum';
+                case 'totalAffectedCustomers':
+                    if (value > 200000) return 'worst';
+                    if (value > 100000) return 'bronze';
+                    if (value > 50000) return 'silver';
+                    if (value > 10000) return 'gold';
+                    return 'platinum';
+                default:
+                    return 'worst';
+            }
+        }
+
+        function createChart(canvas, data, isStatic = false) {
+            return new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: data.dates.map(date => dayjs(date).format('MMM D')),
+                    datasets: [{
+                        label: translations[currentLanguage].totalDisconnections,
+                        data: data.counts,
+                        backgroundColor: 'rgba(74, 144, 226, 0.5)',
+                        borderColor: 'rgba(74, 144, 226, 1)',
+                        borderWidth: 0,
+                        barPercentage: 1,
+                        categoryPercentage: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: !isStatic,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                color: '#020202'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            }
+                        },
+                        x: {
+                            offset: true,
+                            ticks: {
+                                color: '#020202',
+                                maxRotation: 0,
+                                autoSkip: false,
+                                callback: function(value, index) {
+                                    if (index === 0) return '';
+                                    if (!data.dates[index]) return '';
+
+                                    const currentDate = dayjs(data.dates[index]);
+                                    const prevDate = index > 0 ? dayjs(data.dates[index - 1]) : null;
+
+                                    if (!prevDate || currentDate.month() !== prevDate.month()) {
+                                        return currentDate.format('MMM');
+                                    }
+                                    return '';
+                                },
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: isStatic ? {
+                            enabled: false
+                        } : {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return dayjs(data.dates[tooltipItems[0].dataIndex]).format('MMMM D, YYYY');
+                                }
+                            },
+                            backgroundColor: 'rgba(36, 40, 50, 0.9)',
+                            titleColor: '#ecf0f1',
+                            bodyColor: '#ecf0f1',
+                            borderColor: 'rgba(74, 144, 226, 0.3)',
+                            borderWidth: 1
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'monthBackground',
+                    beforeDraw: (chart) => {
+                        const {
+                            ctx,
+                            chartArea,
+                            scales
+                        } = chart;
+                        if (!chartArea) return;
+
+                        let currentMonth = -1;
+                        let isAlternate = false;
+                        let monthStartIndex = 0;
+
+                        data.dates.forEach((date, index) => {
+                            const month = dayjs(date).month();
+                            if (month !== currentMonth) {
+                                if (isAlternate && monthStartIndex < index) {
+                                    const startX = scales.x.getPixelForValue(monthStartIndex);
+                                    const endX = scales.x.getPixelForValue(index - 1);
+
+                                    ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
+                                    ctx.fillRect(
+                                        startX,
+                                        chartArea.top,
+                                        endX - startX,
+                                        chartArea.bottom - chartArea.top
+                                    );
+                                }
+
+                                currentMonth = month;
+                                isAlternate = !isAlternate;
+                                monthStartIndex = index;
+                            }
+
+                            if (index === data.dates.length - 1 && isAlternate) {
+                                const startX = scales.x.getPixelForValue(monthStartIndex);
+                                const endX = scales.x.getPixelForValue(index);
+
+                                ctx.fillStyle = 'rgba(74, 144, 226, 0.1)';
+                                ctx.fillRect(
+                                    startX,
+                                    chartArea.top,
+                                    endX - startX,
+                                    chartArea.bottom - chartArea.top
+                                );
+                            }
+                        });
+                    }
+                }]
+            });
+        }
+
+        async function loadCityStats(street, city) {
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('statsLoading').style.display = 'block';
+            document.getElementById('statsData').innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/stats/street/${encodeURIComponent(street)}/city/${encodeURIComponent(city)}`);
+                const data = await response.json();
+
+                document.getElementById('statsLoading').style.display = 'none';
+
+                let html = `
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay) !== 'worst' ? getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxDisconnections}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxDisconnectionsInDay} ${translations[currentLanguage].disconnections}</p>
+                                        <small class="text-muted">${dayjs(data.achievements.maxDisconnectionsDate).format('MMMM D, YYYY')}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections) !== 'worst' ? getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-fire"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWith}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxStreakWithDisconnections} ${translations[currentLanguage].days}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections) !== 'worst' ? getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-leaf"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWithout}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxStreakWithoutDisconnections} ${translations[currentLanguage].days}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections) !== 'worst' ? getAchievementGrade('percentage', data.achievements.percentageWithDisconnections).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].percentageWith}</h5>
+                                        <p class="card-text mb-0">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections) !== 'worst' ? getAchievementGrade('totalDisconnections', data.achievements.totalDisconnections).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-plug"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalDisconnections}</h5>
+                                        <p class="card-text mb-0">${data.achievements.totalDisconnections} ${translations[currentLanguage].disconnections}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card achievement-card ${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers)}">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="achievement-grade">${getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers) !== 'worst' ? getAchievementGrade('totalAffectedCustomers', data.achievements.totalAffectedCustomers).toUpperCase() : ''}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalAffectedCustomers}</h5>
+                                        <p class="card-text mb-0">${data.achievements.totalAffectedCustomers} ${translations[currentLanguage].customers}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4" id="disconnectionChartContainer">
+                        <canvas id="disconnectionChart" style="height: 300px !important;"></canvas>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-between align-items-center" id="disconnectionChartButtons">
+                        <a href="https://t.me/alerts_georgia" class="btn btn-primary">
+                            <i class="fab fa-telegram me-1 me-md-2"></i>Tg
+                        </a>
+                        <div>
+                            <button class="btn btn-primary me-1 me-md-2" onclick="saveStats()">
+                                <i class="fas fa-save me-1 me-md-2"></i>${translations[currentLanguage].save}
+                            </button>
+                            <button class="btn btn-primary" onclick="shareStats()">
+                                <i class="fas fa-share-alt me-1 me-md-2"></i>${translations[currentLanguage].share}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('statsData').innerHTML = html;
+
+                // Create new chart
+                const ctx = document.getElementById('disconnectionChart').getContext('2d');
+                chart = createChart(ctx, data.dailyData);
+
+                // Add Font Awesome for icons
+                if (!document.querySelector('link[href*="font-awesome"]')) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
+                    document.head.appendChild(link);
+                }
+            } catch (error) {
+                console.error("Error loading city stats", error)
+                document.getElementById('statsLoading').style.display = 'none';
+                document.getElementById('statsData').innerHTML = `<div class="alert alert-danger">${translations[currentLanguage].error}</div>`;
+            }
+        }
+
+        async function searchStreet() {
+            const street = document.getElementById('streetSearch').value;
+            if (!street) return;
+
+            currentStreet = street.trim();
+            currentCity = '';
+            updateUrl();
+            const citiesList = document.getElementById('citiesList');
+            document.getElementById('cities').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('citiesLoading').style.display = 'block';
+            citiesList.innerHTML = '';
+
+            try {
+                // Convert input to Georgian for search
+                const georgianStreet = transliterateToGeorgian(street);
+                console.log("Sending georgian street", georgianStreet)
+                const response = await fetch(`/api/stats/street/${encodeURIComponent(georgianStreet)}/cities`);
+                const data = await response.json();
+
+                document.getElementById('citiesLoading').style.display = 'none';
+
+                if (data.cities.length === 0) {
+                    citiesList.innerHTML = `<div class="list-group-item">${translations[currentLanguage].noCities}</div>`;
+                    return;
+                }
+
+                data.cities.forEach(city => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center ${city.name === currentCity ? 'active' : ''}`;
+                    // Convert city name to current language
+                    let cityName = currentLanguage !== 'ka' ? transliterateFromGeorgian(city.name) : city.name;
+                    cityName = cityName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    item.innerHTML = `
+                        ${cityName}
+                        <span class="badge bg-primary rounded-pill">${city.count}</span>
+                    `;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        // Remove active class from all items
+                        document.querySelectorAll('#citiesList .list-group-item').forEach(el => {
+                            el.classList.remove('active');
+                        });
+                        // Add active class to clicked item
+                        item.classList.add('active');
+                        currentCity = city.name;
+                        updateUrl();
+                        loadCityStats(georgianStreet, city.name);
+                    };
+                    citiesList.appendChild(item);
+                });
+            } catch (error) {
+                console.error("Error searching street", error)
+                document.getElementById('citiesLoading').style.display = 'none';
+                document.getElementById('citiesContent').innerHTML = `<div class="alert alert-danger">${translations[currentLanguage].error}</div>`;
+            }
+        }
+
+        async function prepareRenderContainer() {
+            // Create a temporary container for the stats
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.background = '#ffffff';
+            container.style.padding = '20px';
+            container.style.width = '1200px';
+            container.style.maxWidth = '1200px';
+            container.style.margin = '0 auto';
+            container.style.fontSize = '16px';
+            document.body.appendChild(container);
+
+            // Clone the stats content
+            const statsContent = document.getElementById('statsData').cloneNode(true);
+
+            // Force desktop-like layout
+            const row = statsContent.querySelector('.row');
+            if (row) {
+                row.style.display = 'flex';
+                row.style.flexWrap = 'wrap';
+                row.style.margin = '0 -15px';
+            }
+
+            const disconnectionChartContainer = statsContent.querySelector('#disconnectionChartContainer');
+            if (disconnectionChartContainer) {
+                disconnectionChartContainer.style.display = 'none';
+            }
+
+            const disconnectionChartButtons = statsContent.querySelector('#disconnectionChartButtons');
+            if (disconnectionChartButtons) {
+                disconnectionChartButtons.style.display = 'none';
+            }
+
+            // Force card widths to be desktop-like
+            const cards = statsContent.querySelectorAll('.col-md-6');
+            cards.forEach(card => {
+                card.style.flex = '0 0 50%';
+                card.style.maxWidth = '50%';
+                card.style.padding = '0 15px';
+                card.style.marginBottom = '20px';
+            });
+
+            container.appendChild(statsContent);
+
+            // Remove the buttons from the clone
+            const buttons = statsContent.querySelectorAll('.btn-primary');
+            buttons.forEach(button => button.remove());
+
+            // Recreate the chart in the container
+            if (chart) {
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'mt-4';
+                chartContainer.style.height = '300px';
+                chartContainer.style.width = '100%';
+                chartContainer.style.position = 'relative';
+
+                const chartCanvas = document.createElement('canvas');
+                chartCanvas.id = 'tempChart';
+                chartCanvas.style.width = '100%';
+                chartCanvas.style.height = '100%';
+                chartContainer.appendChild(chartCanvas);
+                container.appendChild(chartContainer);
+
+                // Create new static chart
+                const tempChart = createChart(chartCanvas, {
+                    dates: chart.data.labels.map(label => dayjs(label, 'MMM D').toDate()),
+                    counts: chart.data.datasets[0].data
+                }, true);
+
+                // Force chart to render
+                tempChart.update('none');
+            }
+
+            return container;
+        }
+
+        async function shareStats() {
+            try {
+                const container = await prepareRenderContainer();
+
+                // Convert the container to canvas
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 1200,
+                    height: container.scrollHeight
+                });
+
+                // Remove the temporary container
+                document.body.removeChild(container);
+
+                // Transliterate street and city names to current language
+                const transliteratedStreet = transliterateFromGeorgian(currentStreet, currentLanguage);
+                const transliteratedCity = transliterateFromGeorgian(currentCity, currentLanguage);
+
+                // Capitalize first letter for English and Russian
+                const formattedStreet = currentLanguage === 'ka' ? transliteratedStreet :
+                    transliteratedStreet.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const formattedCity = currentLanguage === 'ka' ? transliteratedCity :
+                    transliteratedCity.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                // Create share text based on current language
+                const shareTexts = {
+                    ka: `შეამოწმეთ კომუნალური მომსახურების გათიშვების სტატისტიკა ${formattedStreet} ქუჩაზე ${formattedCity} ქალაქში!`,
+                    en: `Check out the utility disconnection statistics for ${formattedStreet} street in ${formattedCity}!`,
+                    ru: `Посмотрите статистику отключений коммунальных услуг для улицы ${formattedStreet} в городе ${formattedCity}!`
+                };
+
+                // Create share data
+                const shareData = {
+                    title: `Georgia Utilities Alert`,
+                    text: shareTexts[currentLanguage],
+                    url: window.location.href,
+                    files: [new File([await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))], 'stats.png', {
+                        type: 'image/png'
+                    })]
+                };
+
+                // Try to use the Web Share API
+                if (navigator.share && navigator.canShare(shareData)) {
+                    console.log('Using Web Share API');
+                    await navigator.share(shareData);
+                } else {
+                    console.log('Using download');
+                    // Fallback to download
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'stats.png';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch (error) {
+                console.error('Error sharing stats:', error);
+                alert(translations[currentLanguage].error);
+            }
+        }
+
+        async function saveStats() {
+            try {
+                const container = await prepareRenderContainer();
+
+                // Convert the container to canvas
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 1200,
+                    height: container.scrollHeight
+                });
+
+                // Remove the temporary container
+                document.body.removeChild(container);
+
+                // Transliterate street and city names to current language
+                const transliteratedStreet = transliterateFromGeorgian(currentStreet, currentLanguage);
+                const transliteratedCity = transliterateFromGeorgian(currentCity, currentLanguage);
+
+                // Capitalize first letter for English and Russian
+                const formattedStreet = currentLanguage === 'ka' ? transliteratedStreet :
+                    transliteratedStreet.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const formattedCity = currentLanguage === 'ka' ? transliteratedCity :
+                    transliteratedCity.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                // Create filename
+                const filename = `stats_${formattedStreet.toLowerCase().replace(/\s+/g, '_')}_${formattedCity.toLowerCase().replace(/\s+/g, '_')}.png`;
+
+                // Download the image
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = filename;
+                link.click();
+            } catch (error) {
+                console.error('Error saving stats:', error);
+                alert(translations[currentLanguage].error);
+            }
+        }
+
+        // Set initial language and load from URL
+        loadFromUrl();
+    </script>
+</body>
+
+</html>

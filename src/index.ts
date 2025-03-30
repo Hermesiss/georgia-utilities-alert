@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import {envError} from "./common/utils";
 import dayjs from "dayjs";
 import {TelegramController} from "./bot";
+import statsRouter from "./routes/stats";
 
 const app = express();
 let server: http.Server;
@@ -43,8 +44,14 @@ const run = async () => {
 		app.use(express.static('public'))
 
 		app.get('/', (req: Request, res: Response) => {
-				res.send('Georgia Utilities Alert');
+				res.sendFile('index.html', { root: 'public' }, (err) => {
+						if (err) {
+								res.status(500).send('Error sending file');
+						}
+				});
 		});
+
+		app.use('/api/stats', statsRouter);
 
 		app.post('/api/actions/updatePostedAlerts', (req: Request, res: Response) => {
 				callAsyncAndMeasureTime(
@@ -99,6 +106,7 @@ const run = async () => {
 		})
 
 		server = app.listen(port, () => {
+			console.log(`Server is running on port ${port}`)
 		});
 
 		tgController.run().then()
