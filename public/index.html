@@ -944,10 +944,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <canvas id="disconnectionChart"></canvas>
+                    <div class="mt-4" id="disconnectionChartContainer">
+                        <canvas id="disconnectionChart" style="height: 300px !important;"></canvas>
                     </div>
-                    <div class="mt-4 text-end">
+                    <div class="mt-4 text-end" id="disconnectionChartButtons">
                         <button class="btn btn-primary me-2" onclick="saveStats()">
                             <i class="fas fa-save me-2"></i>${translations[currentLanguage].save}
                         </button>
@@ -1165,45 +1165,63 @@
             }
         }
 
+        async function prepareRenderContainer() {
+            // Create a temporary container for the stats
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.background = '#ffffff';
+            container.style.padding = '20px';
+            container.style.width = '1200px';
+            container.style.maxWidth = '1200px';
+            container.style.margin = '0 auto';
+            container.style.fontSize = '16px';
+            document.body.appendChild(container);
+
+            // Clone the stats content
+            const statsContent = document.getElementById('statsData').cloneNode(true);
+
+            // Force desktop-like layout
+            const row = statsContent.querySelector('.row');
+            if (row) {
+                row.style.display = 'flex';
+                row.style.flexWrap = 'wrap';
+                row.style.margin = '0 -15px';
+            }
+
+            const disconnectionChartContainer = statsContent.querySelector('#disconnectionChartContainer');
+            if (disconnectionChartContainer) {
+                disconnectionChartContainer.style.display = 'none';
+            }
+
+            const disconnectionChartButtons = statsContent.querySelector('#disconnectionChartButtons');
+            if (disconnectionChartButtons) {
+                disconnectionChartButtons.style.display = 'none';
+            }
+
+            // Force card widths to be desktop-like
+            const cards = statsContent.querySelectorAll('.col-md-6');
+            cards.forEach(card => {
+                card.style.flex = '0 0 50%';
+                card.style.maxWidth = '50%';
+                card.style.padding = '0 15px';
+                card.style.marginBottom = '20px';
+            });
+
+            container.appendChild(statsContent);
+
+            // Remove the buttons from the clone
+            const buttons = statsContent.querySelectorAll('.btn-primary');
+            buttons.forEach(button => button.remove());
+
+            console.log("Container", container)
+
+            return container;
+        }
+
         async function shareStats() {
             try {
-                // Create a temporary container for the stats
-                const container = document.createElement('div');
-                container.style.position = 'absolute';
-                container.style.left = '-9999px';
-                container.style.background = '#ffffff';
-                container.style.padding = '20px';
-                container.style.width = '1200px';
-                container.style.maxWidth = '1200px';
-                container.style.margin = '0 auto';
-                container.style.fontSize = '16px';
-                document.body.appendChild(container);
-
-                // Clone the stats content
-                const statsContent = document.getElementById('statsData').cloneNode(true);
-
-                // Force desktop-like layout
-                const row = statsContent.querySelector('.row');
-                if (row) {
-                    row.style.display = 'flex';
-                    row.style.flexWrap = 'wrap';
-                    row.style.margin = '0 -15px';
-                }
-
-                // Force card widths to be desktop-like
-                const cards = statsContent.querySelectorAll('.col-md-6');
-                cards.forEach(card => {
-                    card.style.flex = '0 0 50%';
-                    card.style.maxWidth = '50%';
-                    card.style.padding = '0 15px';
-                    card.style.marginBottom = '20px';
-                });
-
-                container.appendChild(statsContent);
-
-                // Remove the buttons from the clone
-                const buttons = statsContent.querySelectorAll('.btn-primary');
-                buttons.forEach(button => button.remove());
+                const container = await prepareRenderContainer();
 
                 // Convert the container to canvas
                 const canvas = await html2canvas(container, {
@@ -1211,7 +1229,7 @@
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     width: 1200,
-                    height: container.offsetHeight
+                    height: container.scrollHeight - 450
                 });
 
                 // Remove the temporary container
@@ -1243,7 +1261,7 @@
 
                 // Create share data
                 const shareData = {
-                    title: `Georgia Utilities Alert - ${formattedStreet}`,
+                    title: `Georgia Utilities Alert`,
                     text: shareTexts[currentLanguage],
                     url: window.location.href,
                     files: [new File([blob], 'stats.png', {
@@ -1267,45 +1285,11 @@
             }
         }
 
+
+
         async function saveStats() {
             try {
-                // Create a temporary container for the stats
-                const container = document.createElement('div');
-                container.style.position = 'absolute';
-                container.style.left = '-9999px';
-                container.style.background = '#ffffff';
-                container.style.padding = '20px';
-                container.style.width = '1200px';
-                container.style.maxWidth = '1200px';
-                container.style.margin = '0 auto';
-                container.style.fontSize = '16px';
-                document.body.appendChild(container);
-
-                // Clone the stats content
-                const statsContent = document.getElementById('statsData').cloneNode(true);
-
-                // Force desktop-like layout
-                const row = statsContent.querySelector('.row');
-                if (row) {
-                    row.style.display = 'flex';
-                    row.style.flexWrap = 'wrap';
-                    row.style.margin = '0 -15px';
-                }
-
-                // Force card widths to be desktop-like
-                const cards = statsContent.querySelectorAll('.col-md-6');
-                cards.forEach(card => {
-                    card.style.flex = '0 0 50%';
-                    card.style.maxWidth = '50%';
-                    card.style.padding = '0 15px';
-                    card.style.marginBottom = '20px';
-                });
-
-                container.appendChild(statsContent);
-
-                // Remove the buttons from the clone
-                const buttons = statsContent.querySelectorAll('.btn-primary');
-                buttons.forEach(button => button.remove());
+                const container = await prepareRenderContainer();
 
                 // Convert the container to canvas
                 const canvas = await html2canvas(container, {
@@ -1313,7 +1297,7 @@
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     width: 1200,
-                    height: container.offsetHeight
+                    height: container.scrollHeight
                 });
 
                 // Remove the temporary container
