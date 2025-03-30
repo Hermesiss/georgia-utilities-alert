@@ -83,7 +83,13 @@
                 totalDisconnections: 'სულ გათიშვები',
                 lastDisconnection: 'ბოლო გათიშვა',
                 recentAlerts: 'ბოლო განცხადებები',
-                error: 'შეცდომა მონაცემების მიღებისას'
+                error: 'შეცდომა მონაცემების მიღებისას',
+                maxDisconnections: 'მაქსიმალური გათიშვები დღეში',
+                disconnections: 'გათიშვა',
+                maxStreakWith: 'მაქსიმალური უწყვეტი გათიშვების დღეები',
+                maxStreakWithout: 'მაქსიმალური უწყვეტი დღეები გათიშვების გარეშე',
+                days: 'დღე',
+                percentageWith: 'წლის პროცენტი გათიშვებით'
             },
             en: {
                 searchTitle: 'Search by Street',
@@ -96,7 +102,13 @@
                 totalDisconnections: 'Total Disconnections',
                 lastDisconnection: 'Last Disconnection',
                 recentAlerts: 'Recent Alerts',
-                error: 'Error fetching data'
+                error: 'Error fetching data',
+                maxDisconnections: 'Maximum Disconnections in a Day',
+                disconnections: 'disconnections',
+                maxStreakWith: 'Maximum Consecutive Days with Disconnections',
+                maxStreakWithout: 'Maximum Consecutive Days without Disconnections',
+                days: 'days',
+                percentageWith: 'Percentage of Year with Disconnections'
             },
             ru: {
                 searchTitle: 'Поиск по улице',
@@ -109,7 +121,13 @@
                 totalDisconnections: 'Всего отключений',
                 lastDisconnection: 'Последнее отключение',
                 recentAlerts: 'Последние объявления',
-                error: 'Ошибка при получении данных'
+                error: 'Ошибка при получении данных',
+                maxDisconnections: 'Максимальное количество отключений за день',
+                disconnections: 'отключений',
+                maxStreakWith: 'Максимальное количество дней подряд с отключениями',
+                maxStreakWithout: 'Максимальное количество дней подряд без отключений',
+                days: 'дней',
+                percentageWith: 'Процент дней в году с отключениями'
             }
         };
 
@@ -305,6 +323,40 @@
                     </ul>
                     <div class="mt-4">
                         <canvas id="disconnectionChart"></canvas>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${translations[currentLanguage].maxDisconnections}</h5>
+                                    <p class="card-text">${data.achievements.maxDisconnectionsInDay} ${translations[currentLanguage].disconnections} (${dayjs(data.achievements.maxDisconnectionsDate).format('MMMM D, YYYY')})</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${translations[currentLanguage].maxStreakWith}</h5>
+                                    <p class="card-text">${data.achievements.maxStreakWithDisconnections} ${translations[currentLanguage].days}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${translations[currentLanguage].maxStreakWithout}</h5>
+                                    <p class="card-text">${data.achievements.maxStreakWithoutDisconnections} ${translations[currentLanguage].days}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${translations[currentLanguage].percentageWith}</h5>
+                                    <p class="card-text">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
 

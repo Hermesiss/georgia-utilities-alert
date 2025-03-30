@@ -118,6 +118,38 @@ const run = async () => {
 								dates.push(dateStr);
 								counts.push(dailyCounts[dateStr] || 0);
 						}
+
+						// Calculate achievements
+						const maxDisconnectionsInDay = Math.max(...counts);
+						const maxDisconnectionsDate = dates[counts.indexOf(maxDisconnectionsInDay)];
+
+						let currentStreak = 0;
+						let maxStreakWithDisconnections = 0;
+						let maxStreakWithoutDisconnections = 0;
+						let daysWithDisconnections = 0;
+
+						counts.forEach(count => {
+								if (count > 0) {
+										currentStreak++;
+										maxStreakWithDisconnections = Math.max(maxStreakWithDisconnections, currentStreak);
+										daysWithDisconnections++;
+								} else {
+										currentStreak = 0;
+								}
+						});
+
+						currentStreak = 0;
+						counts.forEach(count => {
+								if (count === 0) {
+										currentStreak++;
+										maxStreakWithoutDisconnections = Math.max(maxStreakWithoutDisconnections, currentStreak);
+								} else {
+										currentStreak = 0;
+								}
+						});
+
+						const totalDays = counts.length;
+						const percentageWithDisconnections = (daysWithDisconnections / totalDays) * 100;
 						
 						res.json({
 								total,
@@ -125,6 +157,13 @@ const run = async () => {
 								dailyData: {
 										dates,
 										counts
+								},
+								achievements: {
+										maxDisconnectionsInDay,
+										maxDisconnectionsDate,
+										maxStreakWithDisconnections,
+										maxStreakWithoutDisconnections,
+										percentageWithDisconnections
 								}
 						});
 				} catch (error) {
