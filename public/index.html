@@ -752,7 +752,9 @@
                             data: data.dailyData.counts,
                             backgroundColor: 'rgba(74, 144, 226, 0.5)',
                             borderColor: 'rgba(74, 144, 226, 1)',
-                            borderWidth: 1
+                            borderWidth: 1,
+                            barPercentage: 0.8,
+                            categoryPercentage: 0.9
                         }]
                     },
                     options: {
@@ -765,15 +767,34 @@
                                     color: 'var(--secondary-color)'
                                 },
                                 grid: {
-                                    color: 'rgba(255, 255, 255, 0.5)'
+                                    color: 'rgba(255, 255, 255, 0.2)'
                                 }
                             },
                             x: {
+                                offset: true,
                                 ticks: {
-                                    color: 'var(--secondary-color)'
+                                    color: 'var(--secondary-color)',
+                                    maxRotation: 0,
+                                    autoSkip: false,
+                                    callback: function(value, index, ticks) {
+                                        // Skip if no dates
+                                        if (!data.dailyData.dates[index]) return '';
+
+                                        const currentDate = dayjs(data.dailyData.dates[index]);
+                                        const prevDate = index > 0 ? dayjs(data.dailyData.dates[index - 1]) : null;
+
+                                        // Show month label for first date and when month changes
+                                        if (!prevDate || currentDate.month() !== prevDate.month()) {
+                                            return currentDate.format('MMM');
+                                        }
+                                        return '';
+                                    },
+                                    font: {
+                                        weight: 'bold'
+                                    }
                                 },
                                 grid: {
-                                    color: 'rgba(255, 255, 255, 0.5)'
+                                    display: false // Disable vertical grid lines
                                 }
                             }
                         },
@@ -794,7 +815,59 @@
                                 borderWidth: 1
                             }
                         }
-                    }
+                    },
+                    plugins: [{
+                        id: 'monthBackground',
+                        beforeDraw: (chart) => {
+                            const {
+                                ctx,
+                                chartArea,
+                                scales
+                            } = chart;
+                            if (!chartArea) return;
+
+                            let currentMonth = -1;
+                            let isAlternate = false;
+                            let monthStartIndex = 0;
+
+                            data.dailyData.dates.forEach((date, index) => {
+                                const month = dayjs(date).month();
+                                if (month !== currentMonth) {
+                                    // Draw the previous month's background if it was alternate
+                                    if (isAlternate && monthStartIndex < index) {
+                                        const startX = scales.x.getPixelForValue(monthStartIndex);
+                                        const endX = scales.x.getPixelForValue(index - 1);
+
+                                        ctx.fillStyle = 'rgba(74, 144, 226, 0.05)';
+                                        ctx.fillRect(
+                                            startX,
+                                            chartArea.top,
+                                            endX - startX,
+                                            chartArea.bottom - chartArea.top
+                                        );
+                                    }
+
+                                    currentMonth = month;
+                                    isAlternate = !isAlternate;
+                                    monthStartIndex = index;
+                                }
+
+                                // Handle the last month
+                                if (index === data.dailyData.dates.length - 1 && isAlternate) {
+                                    const startX = scales.x.getPixelForValue(monthStartIndex);
+                                    const endX = scales.x.getPixelForValue(index);
+
+                                    ctx.fillStyle = 'rgba(74, 144, 226, 0.05)';
+                                    ctx.fillRect(
+                                        startX,
+                                        chartArea.top,
+                                        endX - startX,
+                                        chartArea.bottom - chartArea.top
+                                    );
+                                }
+                            });
+                        }
+                    }]
                 });
 
                 // Add Font Awesome for icons
