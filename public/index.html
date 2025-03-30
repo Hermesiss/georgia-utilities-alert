@@ -101,6 +101,62 @@
             height: 100%;
         }
         
+        .achievement-card.bronze .card-body {
+            background: linear-gradient(145deg, #B87333, #8B4513);
+            border: 1px solid rgba(205, 127, 50, 0.3);
+            box-shadow: 0 0 15px rgba(205, 127, 50, 0.2);
+        }
+        
+        .achievement-card.silver .card-body {
+            background: linear-gradient(145deg, #A8A8A8, #808080);
+            border: 1px solid rgba(192, 192, 192, 0.3);
+            box-shadow: 0 0 15px rgba(192, 192, 192, 0.2);
+        }
+        
+        .achievement-card.gold .card-body {
+            background: linear-gradient(145deg, #DAA520, #B8860B);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+        
+        .achievement-card.platinum .card-body {
+            background: linear-gradient(145deg, #C0C0C0, #A9A9A9);
+            border: 1px solid rgba(229, 228, 226, 0.3);
+            box-shadow: 0 0 15px rgba(229, 228, 226, 0.2);
+        }
+        
+        .achievement-grade {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .achievement-card.bronze .achievement-grade {
+            background: rgba(205, 127, 50, 0.2);
+            color: #FFD700;
+        }
+        
+        .achievement-card.silver .achievement-grade {
+            background: rgba(192, 192, 192, 0.2);
+            color: #C0C0C0;
+        }
+        
+        .achievement-card.gold .achievement-grade {
+            background: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+        }
+        
+        .achievement-card.platinum .achievement-grade {
+            background: rgba(229, 228, 226, 0.2);
+            color: #E5E4E2;
+        }
+        
         .statsData h6 {
             color: #ffffff;
         }
@@ -215,6 +271,27 @@
             margin-bottom: 0.5rem;
             font-size: 0.9rem;
             opacity: 0.9;
+        }
+        /* Replace with new grade-specific icon styles */
+        
+        .achievement-card.bronze .achievement-icon {
+            background: linear-gradient(145deg, #FFD700, #CD7F32);
+            box-shadow: 0 0 15px rgba(205, 127, 50, 0.3);
+        }
+        
+        .achievement-card.silver .achievement-icon {
+            background: linear-gradient(145deg, #E8E8E8, #C0C0C0);
+            box-shadow: 0 0 15px rgba(192, 192, 192, 0.3);
+        }
+        
+        .achievement-card.gold .achievement-icon {
+            background: linear-gradient(145deg, #FFD700, #DAA520);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .achievement-card.platinum .achievement-icon {
+            background: linear-gradient(145deg, #E5E4E2, #C0C0C0);
+            box-shadow: 0 0 15px rgba(229, 228, 226, 0.3);
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -512,6 +589,33 @@
 
         let chart = null;
 
+        function getAchievementGrade(type, value) {
+            switch (type) {
+                case 'maxDisconnections':
+                    if (value > 3) return 'bronze';
+                    if (value > 2) return 'silver';
+                    if (value > 1) return 'gold';
+                    return 'platinum';
+                case 'maxStreakWith':
+                    if (value > 5) return 'bronze';
+                    if (value > 2) return 'silver';
+                    if (value > 1) return 'gold';
+                    return 'platinum';
+                case 'maxStreakWithout':
+                    if (value <= 20) return 'bronze';
+                    if (value <= 50) return 'silver';
+                    if (value <= 90) return 'gold';
+                    return 'platinum';
+                case 'percentage':
+                    if (value <= 10) return 'platinum';
+                    if (value <= 25) return 'gold';
+                    if (value <= 50) return 'silver';
+                    return 'bronze';
+                default:
+                    return 'bronze';
+            }
+        }
+
         async function loadCityStats(street, city) {
             document.getElementById('results').style.display = 'block';
             document.getElementById('statsLoading').style.display = 'block';
@@ -534,9 +638,10 @@
                     </div>
                     <div class="row mt-4">
                         <div class="col-md-6 mb-3">
-                            <div class="card achievement-card">
+                            <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-icon bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                    <div class="achievement-grade">${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay).toUpperCase()}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-bolt"></i>
                                     </div>
                                     <div>
@@ -548,49 +653,43 @@
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card achievement-card">
+                            <div class="card achievement-card ${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-icon bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWith', data.achievements.maxStreakWithDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-fire"></i>
                                     </div>
                                     <div>
                                         <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWith}</h5>
                                         <p class="card-text mb-0">${data.achievements.maxStreakWithDisconnections} ${translations[currentLanguage].days}</p>
-                                        <div class="progress mt-1" style="height: 4px;">
-                                            <div class="progress-bar bg-danger" style="width: ${Math.min(100, (data.achievements.maxStreakWithDisconnections / 30) * 100)}%"></div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card achievement-card">
+                            <div class="card achievement-card ${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-icon bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                    <div class="achievement-grade">${getAchievementGrade('maxStreakWithout', data.achievements.maxStreakWithoutDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-leaf"></i>
                                     </div>
                                     <div>
                                         <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWithout}</h5>
                                         <p class="card-text mb-0">${data.achievements.maxStreakWithoutDisconnections} ${translations[currentLanguage].days}</p>
-                                        <div class="progress mt-1" style="height: 4px;">
-                                            <div class="progress-bar bg-success" style="width: ${Math.min(100, (data.achievements.maxStreakWithoutDisconnections / 30) * 100)}%"></div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <div class="card achievement-card">
+                            <div class="card achievement-card ${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections)}">
                                 <div class="card-body d-flex align-items-center">
-                                    <div class="achievement-icon bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                    <div class="achievement-grade">${getAchievementGrade('percentage', data.achievements.percentageWithDisconnections).toUpperCase()}</div>
+                                    <div class="achievement-icon text-white rounded-circle d-flex align-items-center justify-content-center me-3">
                                         <i class="fas fa-chart-pie"></i>
                                     </div>
                                     <div>
                                         <h5 class="card-title mb-1">${translations[currentLanguage].percentageWith}</h5>
                                         <p class="card-text mb-0">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
-                                        <div class="progress mt-1" style="height: 4px;">
-                                            <div class="progress-bar bg-warning" style="width: ${data.achievements.percentageWithDisconnections}%"></div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
