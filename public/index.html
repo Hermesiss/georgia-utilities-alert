@@ -10,12 +10,166 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+    <style>
+         :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --background-dark: #1a1c24;
+            --card-bg: #242832;
+            --text-color: #ecf0f1;
+            --border-glow: 0 0 10px rgba(74, 144, 226, 0.3);
+            --hover-glow: 0 0 15px rgba(74, 144, 226, 0.5);
+        }
+        
+        body {
+            background-color: var(--background-dark);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            box-shadow: var(--border-glow);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: var(--hover-glow);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #357abd;
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+            transform: translateY(-1px);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            background: transparent;
+            box-shadow: var(--border-glow);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: var(--hover-glow);
+        }
+        
+        .form-control {
+            background-color: rgba(236, 240, 241, 0.1);
+            border: 1px solid rgba(74, 144, 226, 0.2);
+            color: var(--text-color);
+        }
+        
+        .form-control:focus {
+            background-color: rgba(236, 240, 241, 0.15);
+            border-color: var(--primary-color);
+            color: var(--text-color);
+            box-shadow: var(--border-glow);
+        }
+        
+        .list-group-item {
+            background-color: var(--card-bg);
+            border-color: rgba(74, 144, 226, 0.2);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        
+        .list-group-item:hover {
+            background-color: rgba(74, 144, 226, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .badge {
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+        }
+        
+        .achievement-card {
+            background: linear-gradient(145deg, var(--card-bg), #2a2f3b);
+            border: none;
+            box-shadow: var(--border-glow);
+        }
+        
+        .achievement-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--hover-glow);
+        }
+        
+        .achievement-icon {
+            background: linear-gradient(145deg, var(--primary-color), #357abd);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
+        }
+        
+        .progress {
+            background-color: rgba(236, 240, 241, 0.1);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .progress-bar {
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.4);
+        }
+        
+        h1,
+        h5.card-title {
+            color: var(--text-color);
+            text-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+        }
+        
+        .chart-container {
+            background: rgba(36, 40, 50, 0.8);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: var(--border-glow);
+        }
+        /* Custom scrollbar */
+        
+         ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+         ::-webkit-scrollbar-track {
+            background: var(--background-dark);
+        }
+        
+         ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+         ::-webkit-scrollbar-thumb:hover {
+            background: #357abd;
+        }
+        /* Glowing text effect */
+        
+        .glow-text {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px rgba(74, 144, 226, 0.2);
+            }
+            to {
+                text-shadow: 0 0 10px rgba(74, 144, 226, 0.4);
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Georgia Utilities Alert Statistics</h1>
+            <h1 class="glow-text">Georgia Utilities Alert</h1>
             <div class="btn-group">
                 <button class="btn btn-outline-primary" onclick="setLanguage('ka')">ქართული</button>
                 <button class="btn btn-outline-primary" onclick="setLanguage('en')">English</button>
@@ -406,8 +560,8 @@
                         datasets: [{
                             label: translations[currentLanguage].totalDisconnections,
                             data: data.dailyData.counts,
-                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(74, 144, 226, 0.5)',
+                            borderColor: 'rgba(74, 144, 226, 1)',
                             borderWidth: 1
                         }]
                     },
@@ -417,7 +571,19 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: {
-                                    stepSize: 1
+                                    stepSize: 1,
+                                    color: '#ecf0f1'
+                                },
+                                grid: {
+                                    color: 'rgba(236, 240, 241, 0.1)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#ecf0f1'
+                                },
+                                grid: {
+                                    color: 'rgba(236, 240, 241, 0.1)'
                                 }
                             }
                         },
@@ -430,7 +596,12 @@
                                     title: function(tooltipItems) {
                                         return dayjs(data.dailyData.dates[tooltipItems[0].dataIndex]).format('MMMM D, YYYY');
                                     }
-                                }
+                                },
+                                backgroundColor: 'rgba(36, 40, 50, 0.9)',
+                                titleColor: '#ecf0f1',
+                                bodyColor: '#ecf0f1',
+                                borderColor: 'rgba(74, 144, 226, 0.3)',
+                                borderWidth: 1
                             }
                         }
                     }
@@ -489,12 +660,14 @@
                         margin-bottom: 0.5rem;
                     }
                     .card-text {
+                        color: #ecf0f1;
                         font-size: 1.25rem;
                         font-weight: 700;
                         line-height: 1.2;
                         margin-bottom: 0.25rem;
                     }
                     small.text-muted {
+                        color: #ecf0f1;
                         display: block;
                         white-space: nowrap;
                         overflow: hidden;
