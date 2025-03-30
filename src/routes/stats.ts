@@ -4,8 +4,23 @@ import { OriginalAlert } from "../mongo/originalAlert";
 
 const router = express.Router();
 
+interface CacheEntry {
+    data: any;
+    timestamp: number;
+}
+
+const cache = new Map<string, CacheEntry>();
+const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes in milliseconds
+
 router.get('/street/:street/cities', async (req: Request, res: Response) => {
     const street = req.params.street;
+    const cacheKey = `cities_${street}`;
+    const cached = cache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return res.json(cached.data);
+    }
+
     const oneYearAgo = dayjs().subtract(1, 'year').toDate();
 
     try {
@@ -23,7 +38,9 @@ router.get('/street/:street/cities', async (req: Request, res: Response) => {
             .sort(([,a], [,b]) => b - a)
             .map(([name, count]) => ({ name, count }));
 
-        res.json({ cities });
+        const response = { cities };
+        cache.set(cacheKey, { data: response, timestamp: Date.now() });
+        res.json(response);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch cities' });
     }
@@ -32,6 +49,13 @@ router.get('/street/:street/cities', async (req: Request, res: Response) => {
 router.get('/street/:street/city/:city', async (req: Request, res: Response) => {
     const street = req.params.street;
     const city = req.params.city;
+    const cacheKey = `stats_${street}_${city}`;
+    const cached = cache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return res.json(cached.data);
+    }
+
     const oneYearAgo = dayjs().subtract(1, 'year').toDate();
 
     try {
@@ -107,7 +131,7 @@ router.get('/street/:street/city/:city', async (req: Request, res: Response) => 
         const totalDays = counts.length;
         const percentageWithDisconnections = (daysWithDisconnections / totalDays) * 100;
         
-        res.json({
+        const response = {
             total,
             lastDisconnection,
             dailyData: {
@@ -123,7 +147,10 @@ router.get('/street/:street/city/:city', async (req: Request, res: Response) => 
                 totalDisconnections: total,
                 totalAffectedCustomers
             }
-        });
+        };
+        
+        cache.set(cacheKey, { data: response, timestamp: Date.now() });
+        res.json(response);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch statistics' });
     }

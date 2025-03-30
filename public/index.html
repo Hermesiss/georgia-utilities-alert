@@ -624,17 +624,18 @@
                     currentCity = georgianCity;
                     // Wait for cities to load then select the city
                     setTimeout(async() => {
-                        while (document.getElementById('citiesList').children.length === 0) {
+                        const list = document.getElementById('citiesList');
+                        while (list.children.length === 0) {
                             await new Promise(resolve => setTimeout(resolve, 100));
                         }
                         console.log(`trying to find ${currentCity}`);
-                        const cityElement = Array.from(document.getElementById('citiesList').children)
+                        const cityElement = Array.from(list.children)
                             .find(el => {
                                 console.log(`checking ${el.textContent.trim()}`);
-                                const elementText = el.textContent.trim();
+                                const elementText = el.textContent.trim().toLowerCase();
                                 // Check for both English and Russian versions of the city name
-                                const englishCity = city
-                                const russianCity = transliterateFromGeorgian(currentCity, 'ru');
+                                const englishCity = city.toLowerCase();
+                                const russianCity = transliterateFromGeorgian(currentCity, 'ru').toLowerCase();
                                 return elementText.includes(englishCity) || elementText.includes(russianCity) || elementText.includes(currentCity);
                             });
                         if (cityElement) {
@@ -1130,10 +1131,11 @@
             currentStreet = street.trim();
             currentCity = '';
             updateUrl();
+            const citiesList = document.getElementById('citiesList');
             document.getElementById('cities').style.display = 'block';
             document.getElementById('results').style.display = 'none';
             document.getElementById('citiesLoading').style.display = 'block';
-            document.getElementById('citiesList').innerHTML = '';
+            citiesList.innerHTML = '';
 
             try {
                 // Convert input to Georgian for search
@@ -1145,7 +1147,7 @@
                 document.getElementById('citiesLoading').style.display = 'none';
 
                 if (data.cities.length === 0) {
-                    document.getElementById('citiesList').innerHTML = `<div class="list-group-item">${translations[currentLanguage].noCities}</div>`;
+                    citiesList.innerHTML = `<div class="list-group-item">${translations[currentLanguage].noCities}</div>`;
                     return;
                 }
 
@@ -1154,7 +1156,8 @@
                     item.href = '#';
                     item.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center ${city.name === currentCity ? 'active' : ''}`;
                     // Convert city name to current language
-                    const cityName = currentLanguage !== 'ka' ? transliterateFromGeorgian(city.name) : city.name;
+                    let cityName = currentLanguage !== 'ka' ? transliterateFromGeorgian(city.name) : city.name;
+                    cityName = cityName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                     item.innerHTML = `
                         ${cityName}
                         <span class="badge bg-primary rounded-pill">${city.count}</span>
@@ -1171,7 +1174,7 @@
                         updateUrl();
                         loadCityStats(georgianStreet, city.name);
                     };
-                    document.getElementById('citiesList').appendChild(item);
+                    citiesList.appendChild(item);
                 });
             } catch (error) {
                 console.error("Error searching street", error)
