@@ -922,7 +922,7 @@
                         }
                     }
                 },
-                plugins: !isStatic ? [{
+                plugins: [{
                     id: 'monthBackground',
                     beforeDraw: (chart) => {
                         const {
@@ -971,7 +971,7 @@
                             }
                         });
                     }
-                }] : []
+                }]
             });
         }
 
