@@ -88,10 +88,22 @@ const run = async () => {
 						const total = alerts.length;
 						const lastDisconnection = alerts[0]?.disconnectionDate;
 						
-						// Group alerts by date
+						// Group alerts by date, including all days between disconnection and reconnection
 						const dailyCounts = alerts.reduce((acc, alert) => {
-								const date = dayjs(alert.disconnectionDate).format('YYYY-MM-DD');
-								acc[date] = (acc[date] || 0) + 1;
+								const disconnectionDate = dayjs(alert.disconnectionDate);
+								const reconnectionDate = alert.reconnectionDate ? dayjs(alert.reconnectionDate) : null;
+								
+								// If reconnection date is different from disconnection date, count all days in between
+								if (reconnectionDate && !reconnectionDate.isSame(disconnectionDate, 'day')) {
+										for (let d = disconnectionDate; d.isBefore(reconnectionDate); d = d.add(1, 'day')) {
+												const dateStr = d.format('YYYY-MM-DD');
+												acc[dateStr] = (acc[dateStr] || 0) + 1;
+										}
+								} else {
+										// If no reconnection date or same day, just count the disconnection date
+										const dateStr = disconnectionDate.format('YYYY-MM-DD');
+										acc[dateStr] = (acc[dateStr] || 0) + 1;
+								}
 								return acc;
 						}, {} as Record<string, number>);
 
