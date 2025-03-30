@@ -24,12 +24,23 @@
             </div>
         </div>
 
-        <div id="results" class="mt-4">
+        <div id="cities" class="mt-4" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Select City</h5>
+                    <div id="citiesContent">
+                        <div class="list-group" id="citiesList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="mt-4" style="display: none;">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Statistics</h5>
                     <div id="statsContent">
-                        <p>Enter a street name to see statistics</p>
+                        <p>Select a city to see statistics</p>
                     </div>
                 </div>
             </div>
@@ -37,16 +48,56 @@
     </div>
 
     <script>
+        let currentStreet = '';
+
         async function searchStreet() {
             const street = document.getElementById('streetSearch').value;
             if (!street) return;
 
+            currentStreet = street;
+            document.getElementById('cities').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+
             try {
-                const response = await fetch(`/api/stats/street/${encodeURIComponent(street)}`);
+                const response = await fetch(`/api/stats/street/${encodeURIComponent(street)}/cities`);
+                const data = await response.json();
+
+                const citiesList = document.getElementById('citiesList');
+                citiesList.innerHTML = '';
+
+                if (data.cities.length === 0) {
+                    citiesList.innerHTML = '<div class="list-group-item">No cities found for this street</div>';
+                    return;
+                }
+
+                data.cities.forEach(city => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                    item.innerHTML = `
+                        ${city.name}
+                        <span class="badge bg-primary rounded-pill">${city.count}</span>
+                    `;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        loadCityStats(street, city.name);
+                    };
+                    citiesList.appendChild(item);
+                });
+            } catch (error) {
+                document.getElementById('citiesContent').innerHTML = '<div class="alert alert-danger">Error fetching cities</div>';
+            }
+        }
+
+        async function loadCityStats(street, city) {
+            document.getElementById('results').style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/stats/street/${encodeURIComponent(street)}/city/${encodeURIComponent(city)}`);
                 const data = await response.json();
 
                 let html = `
-                    <h6>Results for "${street}":</h6>
+                    <h6>Results for "${street}" in ${city}:</h6>
                     <ul class="list-group">
                         <li class="list-group-item">Total Disconnections: ${data.total}</li>
                         <li class="list-group-item">Last Disconnection: ${data.lastDisconnection || 'N/A'}</li>
@@ -69,7 +120,7 @@
 
                 document.getElementById('statsContent').innerHTML = html;
             } catch (error) {
-                document.getElementById('statsContent').innerHTML = '<div class="alert alert-danger">Error fetching data</div>';
+                document.getElementById('statsContent').innerHTML = '<div class="alert alert-danger">Error fetching statistics</div>';
             }
         }
     </script>

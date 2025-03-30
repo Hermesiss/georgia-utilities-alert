@@ -47,7 +47,7 @@ const run = async () => {
 				res.sendFile('index.html', { root: 'public' });
 		});
 
-		app.get('/api/stats/street/:street', async (req: Request, res: Response) => {
+		app.get('/api/stats/street/:street/cities', async (req: Request, res: Response) => {
 				const street = req.params.street;
 				const oneYearAgo = dayjs().subtract(1, 'year').toDate();
 
@@ -55,17 +55,41 @@ const run = async () => {
 						const alerts = await OriginalAlert.find({
 								disconnectionArea: { $regex: street, $options: 'i' },
 								createdDate: { $gte: oneYearAgo }
+						});
+
+						// Count cities and sort by frequency
+						const cityCounts = alerts.reduce((acc, alert) => {
+								acc[alert.scName] = (acc[alert.scName] || 0) + 1;
+								return acc;
+						}, {} as Record<string, number>);
+
+						const cities = Object.entries(cityCounts)
+								.sort(([,a], [,b]) => b - a)
+								.map(([name, count]) => ({ name, count }));
+
+						res.json({ cities });
+				} catch (error) {
+						res.status(500).json({ error: 'Failed to fetch cities' });
+				}
+		});
+
+		app.get('/api/stats/street/:street/city/:city', async (req: Request, res: Response) => {
+				const street = req.params.street;
+				const city = req.params.city;
+
+				console.log(street, city)
+				const oneYearAgo = dayjs().subtract(1, 'year').toDate();
+
+				try {
+						const alerts = await OriginalAlert.find({
+								disconnectionArea: { $regex: street, $options: 'i' },
+								scName: city,
+								createdDate: { $gte: oneYearAgo }
 						}).sort({ disconnectionDate: -1 });
 
 						const total = alerts.length;
 						const lastDisconnection = alerts[0]?.disconnectionDate;
 						
-						// Find most common region
-						const regionCounts = alerts.reduce((acc, alert) => {
-								acc[alert.regionName] = (acc[alert.regionName] || 0) + 1;
-								return acc;
-						}, {} as Record<string, number>);
-
 						res.json({
 								total,
 								lastDisconnection,
