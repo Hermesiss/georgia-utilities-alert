@@ -357,10 +357,20 @@
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="glow-text">Georgia Utilities Alert</h1>
-            <div class="btn-group">
+            <div class="btn-group d-none d-md-flex">
                 <button class="btn btn-outline-primary" onclick="setLanguage('ka')">ქართული</button>
                 <button class="btn btn-outline-primary active" onclick="setLanguage('en')">English</button>
                 <button class="btn btn-outline-primary" onclick="setLanguage('ru')">Русский</button>
+            </div>
+            <div class="dropdown d-md-none">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-globe"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                    <li><button class="dropdown-item" onclick="setLanguage('ka')">ქართული</button></li>
+                    <li><button class="dropdown-item" onclick="setLanguage('en')">English</button></li>
+                    <li><button class="dropdown-item" onclick="setLanguage('ru')">Русский</button></li>
+                </ul>
             </div>
         </div>
 
@@ -497,6 +507,10 @@
             if (langButton) {
                 langButton.classList.add('active');
             }
+
+            // Update dropdown button text for mobile
+            const currentLangText = lang === 'ka' ? 'ქართული' : lang === 'ru' ? 'Русский' : 'English';
+            document.querySelector('#languageDropdown').innerHTML = `<i class="fas fa-globe"></i> ${currentLangText}`;
 
             updateUrl();
         }
