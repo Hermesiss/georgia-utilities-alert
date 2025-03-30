@@ -1214,7 +1214,83 @@
             const buttons = statsContent.querySelectorAll('.btn-primary');
             buttons.forEach(button => button.remove());
 
-            console.log("Container", container)
+            // Recreate the chart in the container
+            if (chart) {
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'mt-4';
+                chartContainer.style.height = '300px';
+                chartContainer.style.width = '100%';
+                chartContainer.style.position = 'relative';
+
+                const chartCanvas = document.createElement('canvas');
+                chartCanvas.id = 'tempChart';
+                chartCanvas.style.width = '100%';
+                chartCanvas.style.height = '100%';
+                chartContainer.appendChild(chartCanvas);
+                container.appendChild(chartContainer);
+
+                // Get the original chart data
+                const originalData = chart.data;
+
+                // Create new chart with simplified options
+                const tempChart = new Chart(chartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: originalData.labels,
+                        datasets: [{
+                            label: originalData.datasets[0].label,
+                            data: originalData.datasets[0].data,
+                            backgroundColor: 'rgba(74, 144, 226, 0.5)',
+                            borderColor: 'rgba(74, 144, 226, 1)',
+                            borderWidth: 0,
+                            barPercentage: 1,
+                            categoryPercentage: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    color: '#020202'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.2)'
+                                }
+                            },
+                            x: {
+                                offset: true,
+                                ticks: {
+                                    color: '#020202',
+                                    maxRotation: 0,
+                                    autoSkip: false,
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            }
+                        }
+                    }
+                });
+
+                // Force chart to render
+                tempChart.update('none');
+            }
 
             return container;
         }
@@ -1229,7 +1305,7 @@
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     width: 1200,
-                    height: container.scrollHeight - 450
+                    height: container.scrollHeight + 300
                 });
 
                 // Remove the temporary container
@@ -1284,8 +1360,6 @@
                 alert(translations[currentLanguage].error);
             }
         }
-
-
 
         async function saveStats() {
             try {
