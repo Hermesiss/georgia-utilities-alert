@@ -500,7 +500,10 @@
                     const georgianCity = transliterateToGeorgian(city);
                     currentCity = georgianCity;
                     // Wait for cities to load then select the city
-                    setTimeout(() => {
+                    setTimeout(async() => {
+                        while (document.getElementById('citiesList').children.length === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
                         const cityElement = Array.from(document.getElementById('citiesList').children)
                             .find(el => el.textContent.includes(city));
                         if (cityElement) {
@@ -802,9 +805,9 @@
                             data: data.dailyData.counts,
                             backgroundColor: 'rgba(74, 144, 226, 0.5)',
                             borderColor: 'rgba(74, 144, 226, 1)',
-                            borderWidth: 1,
-                            barPercentage: 0.8,
-                            categoryPercentage: 0.9
+                            borderWidth: 0,
+                            barPercentage: 1,
+                            categoryPercentage: 1
                         }]
                     },
                     options: {
