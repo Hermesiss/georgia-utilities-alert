@@ -20,6 +20,7 @@
             --text-color: #ffffff;
             --border-glow: 0 0 10px rgba(66, 103, 178, 0.3);
             --hover-glow: 0 0 15px rgba(66, 103, 178, 0.5);
+            --bs-heading-color: #ffffff;
         }
         
         body {
@@ -49,7 +50,6 @@
         .btn-primary:hover {
             background-color: #357abd;
             box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
-            transform: translateY(-1px);
         }
         
         .btn-outline-primary {
@@ -87,18 +87,22 @@
         
         .list-group-item:hover {
             background-color: rgba(74, 144, 226, 0.1);
-            transform: translateX(5px);
         }
         
         .badge {
             box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
         }
+        /* Achievement Cards Styles */
         
         .achievement-card {
             transition: transform 0.2s;
             border: none;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             height: 100%;
+        }
+        
+        .statsData h6 {
+            color: #ffffff;
         }
         
         .achievement-card:nth-child(1) .achievement-icon {
@@ -118,7 +122,6 @@
         }
         
         .achievement-card:hover {
-            transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
         
@@ -130,6 +133,10 @@
             background: linear-gradient(145deg, #3557B8, #2C4494);
             border-radius: 8px;
             color: #ffffff;
+        }
+        
+        input::placeholder {
+            color: #94bdc7 !important;
         }
         
         .achievement-icon {
@@ -172,7 +179,7 @@
         }
         
         small.text-muted {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.9) !important;
             display: block;
             white-space: nowrap;
             overflow: hidden;
@@ -210,6 +217,7 @@
             opacity: 0.9;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
@@ -660,99 +668,6 @@
                     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css';
                     document.head.appendChild(link);
                 }
-
-                // Add custom styles for achievement cards
-                const style = document.createElement('style');
-                style.textContent = `
-                    .achievement-card {
-                        transition: transform 0.2s;
-                        border: none;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        height: 100%;
-                    }
-                    .achievement-card:nth-child(1) .achievement-icon {
-                        background: linear-gradient(145deg, #5C7FE6, #4267B2);
-                    }
-                    .achievement-card:nth-child(2) .achievement-icon {
-                        background: linear-gradient(145deg, #FF6B5E, #E74C3C);
-                    }
-                    .achievement-card:nth-child(3) .achievement-icon {
-                        background: linear-gradient(145deg, #2ECC71, #27AE60);
-                    }
-                    .achievement-card:nth-child(4) .achievement-icon {
-                        background: linear-gradient(145deg, #F4D03F, #F1C40F);
-                    }
-                    .achievement-card:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-                    }
-                    .achievement-card .card-body {
-                        padding: 1.25rem;
-                        min-height: 120px;
-                        display: flex;
-                        align-items: center;
-                        background: linear-gradient(145deg, #3557B8, #2C4494);
-                        border-radius: 8px;
-                        color: #ffffff;
-                    }
-                    .achievement-icon {
-                        min-width: 56px;
-                        min-height: 56px;
-                        width: 56px;
-                        height: 56px;
-                        font-size: 28px;
-                        flex-shrink: 0;
-                        box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-                    }
-                    .achievement-icon + div {
-                        min-width: 0;
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                    }
-                    .progress {
-                        background-color: rgba(0,0,0,0.1);
-                        margin-top: 0.5rem;
-                    }
-                    .card-title {
-                        font-size: 0.875rem;
-                        font-weight: 600;
-                        line-height: 1.2;
-                        margin-bottom: 0.5rem;
-                        color: #ffffff;
-                    }
-                    .card-text {
-                        color: #ffffff;
-                        font-size: 1.5rem;
-                        font-weight: 700;
-                        line-height: 1.2;
-                        margin-bottom: 0.25rem;
-                    }
-                    small.text-muted {
-                        color: rgba(255, 255, 255, 0.9);
-                        display: block;
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                    }
-                    @media (min-width: 768px) {
-                        .card-title {
-                            font-size: 1rem;
-                        }
-                        .card-text {
-                            font-size: 1.5rem;
-                        }
-                        .achievement-card .card-body {
-                            min-height: 140px;
-                        }
-                    }
-                    .row > [class*="col-"] {
-                        display: flex;
-                        flex-direction: column;
-                    }
-                `;
-                document.head.appendChild(style);
             } catch (error) {
                 console.error("Error loading city stats", error)
                 document.getElementById('statsLoading').style.display = 'none';
@@ -764,7 +679,7 @@
             const street = document.getElementById('streetSearch').value;
             if (!street) return;
 
-            currentStreet = street;
+            currentStreet = street.trim();
             document.getElementById('cities').style.display = 'block';
             document.getElementById('results').style.display = 'none';
             document.getElementById('citiesLoading').style.display = 'block';
