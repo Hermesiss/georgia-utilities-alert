@@ -340,7 +340,7 @@
             <h1 class="glow-text">Georgia Utilities Alert</h1>
             <div class="btn-group">
                 <button class="btn btn-outline-primary" onclick="setLanguage('ka')">ქართული</button>
-                <button class="btn btn-outline-primary" onclick="setLanguage('en')">English</button>
+                <button class="btn btn-outline-primary active" onclick="setLanguage('en')">English</button>
                 <button class="btn btn-outline-primary" onclick="setLanguage('ru')">Русский</button>
             </div>
         </div>
@@ -398,7 +398,7 @@
             ka: {
                 searchTitle: 'მოიძიეთ ქუჩა',
                 citiesTitle: 'აირჩიეთ ქალაქი',
-                selectedCity: 'აირჩიეთ ქალაქი',
+                selectedCity: 'არჩეული ქალაქი',
                 statsTitle: 'სტატისტიკა',
                 searchPlaceholder: 'ქუჩის სახელი...',
                 search: 'ძებნა',
@@ -412,7 +412,7 @@
                 maxStreakWith: 'მაქსიმალური უწყვეტი გათიშვების დღეები',
                 maxStreakWithout: 'მაქსიმალური უწყვეტი დღეები გათიშვების გარეშე',
                 days: 'დღე',
-                percentageWith: 'წლის პროცენტი გათიშვებით'
+                percentageWith: 'გათიშვებით წლის პროცენტი'
             },
             en: {
                 searchTitle: 'Search by Street',
@@ -461,11 +461,24 @@
             document.getElementById('statsTitle').textContent = translations[lang].statsTitle;
             document.getElementById('streetSearch').placeholder = translations[lang].searchPlaceholder;
             document.querySelector('.btn-primary').textContent = translations[lang].search;
+
+            // Update active state of language buttons
+            document.querySelectorAll('.btn-group .btn-outline-primary').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Find and activate the button for the current language
+            const langButton = Array.from(document.querySelectorAll('.btn-group .btn-outline-primary'))
+                .find(btn => btn.textContent.toLowerCase() === (lang === 'ka' ? 'ქართული' : lang === 'ru' ? 'русский' : 'english').toLowerCase());
+            if (langButton) {
+                langButton.classList.add('active');
+            }
+
             updateUrl();
         }
 
         function updateUrl() {
             const params = new URLSearchParams();
+            const currentParams = new URLSearchParams(window.location.search);
             if (currentLanguage !== 'en') params.set('lang', currentLanguage);
             if (currentStreet) {
                 // Store transliterated English version in URL
@@ -476,6 +489,8 @@
                 // Store transliterated English version in URL
                 const englishCity = transliterateFromGeorgian(currentCity, 'en');
                 params.set('city', englishCity);
+            } else if (currentParams.get('city')) {
+                params.set('city', currentParams.get('city'));
             }
 
             const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
