@@ -17,10 +17,10 @@
             --accent-color: #e74c3c;
             --background-dark: #1B2B65;
             --card-bg: #2C4494;
-            --text-color: #ffffff;
+            --text-color: #161616;
             --border-glow: 0 0 10px rgba(66, 103, 178, 0.3);
             --hover-glow: 0 0 15px rgba(66, 103, 178, 0.5);
-            --bs-heading-color: #ffffff;
+            --bs-heading-color: #5c5c5c;
         }
         
         body {
@@ -30,10 +30,15 @@
         }
         
         .card {
-            background-color: var(--card-bg);
+            background-color: #ffffff;
             border: 1px solid rgba(74, 144, 226, 0.2);
             box-shadow: var(--border-glow);
             transition: all 0.3s ease;
+            color: var(--secondary-color) !important;
+        }
+        
+        .card-title {
+            color: var(--secondary-color) !important;
         }
         
         .card:hover {
@@ -66,22 +71,22 @@
         }
         
         .form-control {
-            background-color: rgba(236, 240, 241, 0.1);
+            background-color: #ffffff;
             border: 1px solid rgba(74, 144, 226, 0.2);
-            color: var(--text-color);
+            color: var(--secondary-color);
         }
         
         .form-control:focus {
-            background-color: rgba(236, 240, 241, 0.15);
+            background-color: #ffffff;
             border-color: var(--primary-color);
-            color: var(--text-color);
+            color: var(--secondary-color);
             box-shadow: var(--border-glow);
         }
         
         .list-group-item {
-            background-color: var(--card-bg);
+            background-color: #ffffff;
             border-color: rgba(74, 144, 226, 0.2);
-            color: var(--text-color);
+            color: var(--secondary-color);
             transition: all 0.3s ease;
         }
         
@@ -183,7 +188,7 @@
         
         .achievement-card .card-body {
             padding: 1.25rem;
-            min-height: 120px;
+            min-height: 140px;
             display: flex;
             align-items: center;
             background: linear-gradient(145deg, #3557B8, #2C4494);
@@ -250,11 +255,12 @@
         }
         
         .card-title {
+            color: var(--secondary-color);
+            text-shadow: none;
             font-size: 0.875rem;
             font-weight: 600;
             line-height: 1.2;
             margin-bottom: 0.5rem;
-            color: #ffffff;
         }
         
         .card-text {
@@ -664,9 +670,6 @@
                         <li class="list-group-item">${translations[currentLanguage].totalDisconnections}: ${data.total}</li>
                         <li class="list-group-item">${translations[currentLanguage].lastDisconnection}: ${data.lastDisconnection || 'N/A'}</li>
                     </ul>
-                    <div class="mt-4">
-                        <canvas id="disconnectionChart"></canvas>
-                    </div>
                     <div class="row mt-4">
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
@@ -726,6 +729,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="mt-4">
+                        <canvas id="disconnectionChart"></canvas>
+                    </div>
                 `;
 
                 document.getElementById('statsData').innerHTML = html;
@@ -756,18 +762,18 @@
                                 beginAtZero: true,
                                 ticks: {
                                     stepSize: 1,
-                                    color: '#ecf0f1'
+                                    color: 'var(--secondary-color)'
                                 },
                                 grid: {
-                                    color: 'rgba(236, 240, 241, 0.1)'
+                                    color: 'rgba(255, 255, 255, 0.5)'
                                 }
                             },
                             x: {
                                 ticks: {
-                                    color: '#ecf0f1'
+                                    color: 'var(--secondary-color)'
                                 },
                                 grid: {
-                                    color: 'rgba(236, 240, 241, 0.1)'
+                                    color: 'rgba(255, 255, 255, 0.5)'
                                 }
                             }
                         },
