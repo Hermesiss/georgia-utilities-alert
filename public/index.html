@@ -349,6 +349,17 @@
             background: linear-gradient(145deg, #E5E4E2, #A9A9A9);
             box-shadow: 0 0 15px rgba(229, 228, 226, 0.3);
         }
+        
+        .list-group-item.active {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+        
+        .list-group-item.active .badge {
+            background-color: #ffffff !important;
+            color: var(--primary-color) !important;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -788,7 +799,6 @@
                 document.getElementById('statsLoading').style.display = 'none';
 
                 let html = `
-                    <h6>${translations[currentLanguage].searchTitle}: "${transliterateFromGeorgian(street)}" ${translations[currentLanguage].citiesTitle.toLowerCase()}: ${transliterateFromGeorgian(city)}</h6>
                     <div class="row mt-4">
                         <div class="col-md-6 mb-3">
                             <div class="card achievement-card ${getAchievementGrade('maxDisconnections', data.achievements.maxDisconnectionsInDay)}">
@@ -1061,7 +1071,7 @@
                 data.cities.forEach(city => {
                     const item = document.createElement('a');
                     item.href = '#';
-                    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                    item.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center ${city.name === currentCity ? 'active' : ''}`;
                     // Convert city name to current language
                     const cityName = transliterateFromGeorgian(city.name);
                     item.innerHTML = `
@@ -1070,6 +1080,12 @@
                     `;
                     item.onclick = (e) => {
                         e.preventDefault();
+                        // Remove active class from all items
+                        document.querySelectorAll('#citiesList .list-group-item').forEach(el => {
+                            el.classList.remove('active');
+                        });
+                        // Add active class to clicked item
+                        item.classList.add('active');
                         currentCity = city.name;
                         updateUrl();
                         loadCityStats(georgianStreet, city.name);
