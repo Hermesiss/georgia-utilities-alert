@@ -456,7 +456,8 @@
                 percentageWith: 'გათიშვებით წლის პროცენტი',
                 totalAffectedCustomers: 'სულ დაზარალებული მომხმარებელი',
                 customers: 'მომხმარებელი',
-                share: 'გაზიარება'
+                share: 'გაზიარება',
+                save: 'შენახვა'
             },
             en: {
                 searchTitle: 'Search by Street',
@@ -478,7 +479,8 @@
                 percentageWith: 'Percentage of Year with Disconnections',
                 totalAffectedCustomers: 'Total Affected Customers',
                 customers: 'customers',
-                share: 'Share'
+                share: 'Share',
+                save: 'Save'
             },
             ru: {
                 searchTitle: 'Поиск по улице',
@@ -500,7 +502,8 @@
                 percentageWith: 'Процент дней в году с отключениями',
                 totalAffectedCustomers: 'Всего пострадавших потребителей',
                 customers: 'потребителей',
-                share: 'Поделиться'
+                share: 'Поделиться',
+                save: 'Сохранить'
             }
         };
 
@@ -945,6 +948,9 @@
                         <canvas id="disconnectionChart"></canvas>
                     </div>
                     <div class="mt-4 text-end">
+                        <button class="btn btn-primary me-2" onclick="saveStats()">
+                            <i class="fas fa-save me-2"></i>${translations[currentLanguage].save}
+                        </button>
                         <button class="btn btn-primary" onclick="shareStats()">
                             <i class="fas fa-share-alt me-2"></i>${translations[currentLanguage].share}
                         </button>
@@ -1195,9 +1201,9 @@
 
                 container.appendChild(statsContent);
 
-                // Remove the share button from the clone
-                const shareButton = statsContent.querySelector('.btn-primary');
-                if (shareButton) shareButton.remove();
+                // Remove the buttons from the clone
+                const buttons = statsContent.querySelectorAll('.btn-primary');
+                buttons.forEach(button => button.remove());
 
                 // Convert the container to canvas
                 const canvas = await html2canvas(container, {
@@ -1257,6 +1263,82 @@
                 }
             } catch (error) {
                 console.error('Error sharing stats:', error);
+                alert(translations[currentLanguage].error);
+            }
+        }
+
+        async function saveStats() {
+            try {
+                // Create a temporary container for the stats
+                const container = document.createElement('div');
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';
+                container.style.background = '#ffffff';
+                container.style.padding = '20px';
+                container.style.width = '1200px';
+                container.style.maxWidth = '1200px';
+                container.style.margin = '0 auto';
+                container.style.fontSize = '16px';
+                document.body.appendChild(container);
+
+                // Clone the stats content
+                const statsContent = document.getElementById('statsData').cloneNode(true);
+
+                // Force desktop-like layout
+                const row = statsContent.querySelector('.row');
+                if (row) {
+                    row.style.display = 'flex';
+                    row.style.flexWrap = 'wrap';
+                    row.style.margin = '0 -15px';
+                }
+
+                // Force card widths to be desktop-like
+                const cards = statsContent.querySelectorAll('.col-md-6');
+                cards.forEach(card => {
+                    card.style.flex = '0 0 50%';
+                    card.style.maxWidth = '50%';
+                    card.style.padding = '0 15px';
+                    card.style.marginBottom = '20px';
+                });
+
+                container.appendChild(statsContent);
+
+                // Remove the buttons from the clone
+                const buttons = statsContent.querySelectorAll('.btn-primary');
+                buttons.forEach(button => button.remove());
+
+                // Convert the container to canvas
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 1200,
+                    height: container.offsetHeight
+                });
+
+                // Remove the temporary container
+                document.body.removeChild(container);
+
+                // Transliterate street and city names to current language
+                const transliteratedStreet = transliterateFromGeorgian(currentStreet, currentLanguage);
+                const transliteratedCity = transliterateFromGeorgian(currentCity, currentLanguage);
+
+                // Capitalize first letter for English and Russian
+                const formattedStreet = currentLanguage === 'ka' ? transliteratedStreet :
+                    transliteratedStreet.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const formattedCity = currentLanguage === 'ka' ? transliteratedCity :
+                    transliteratedCity.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                // Create filename
+                const filename = `stats_${formattedStreet.toLowerCase().replace(/\s+/g, '_')}_${formattedCity.toLowerCase().replace(/\s+/g, '_')}.png`;
+
+                // Download the image
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = filename;
+                link.click();
+            } catch (error) {
+                console.error('Error saving stats:', error);
                 alert(translations[currentLanguage].error);
             }
         }
