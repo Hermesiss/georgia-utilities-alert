@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Georgia Utilities Alert - Statistics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Georgia Utilities Alert Statistics</h1>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Search by Street</h5>
+                <div class="input-group mb-3">
+                    <input type="text" id="streetSearch" class="form-control" placeholder="Enter street name...">
+                    <button class="btn btn-primary" onclick="searchStreet()">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Statistics</h5>
+                    <div id="statsContent">
+                        <p>Enter a street name to see statistics</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function searchStreet() {
+            const street = document.getElementById('streetSearch').value;
+            if (!street) return;
+
+            try {
+                const response = await fetch(`/api/stats/street/${encodeURIComponent(street)}`);
+                const data = await response.json();
+
+                let html = `
+                    <h6>Results for "${street}":</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item">Total Disconnections: ${data.total}</li>
+                        <li class="list-group-item">Last Disconnection: ${data.lastDisconnection || 'N/A'}</li>
+                    </ul>
+                `;
+
+                if (data.recentAlerts && data.recentAlerts.length > 0) {
+                    html += '<h6 class="mt-3">Recent Alerts:</h6><ul class="list-group">';
+                    data.recentAlerts.forEach(alert => {
+                        html += `
+                            <li class="list-group-item">
+                                <strong>${alert.disconnectionDate}</strong><br>
+                                ${alert.taskName}<br>
+                                <small>Region: ${alert.regionName}</small>
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                }
+
+                document.getElementById('statsContent').innerHTML = html;
+            } catch (error) {
+                document.getElementById('statsContent').innerHTML = '<div class="alert alert-danger">Error fetching data</div>';
+            }
+        }
+    </script>
+</body>
+
+</html>

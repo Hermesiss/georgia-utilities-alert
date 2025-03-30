@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import {envError} from "./common/utils";
 import dayjs from "dayjs";
 import {TelegramController} from "./bot";
+import {OriginalAlert} from "./mongo/originalAlert";
 
 const app = express();
 let server: http.Server;
@@ -43,7 +44,36 @@ const run = async () => {
 		app.use(express.static('public'))
 
 		app.get('/', (req: Request, res: Response) => {
-				res.send('Georgia Utilities Alert');
+				res.sendFile('index.html', { root: 'public' });
+		});
+
+		app.get('/api/stats/street/:street', async (req: Request, res: Response) => {
+				const street = req.params.street;
+				const oneYearAgo = dayjs().subtract(1, 'year').toDate();
+
+				try {
+						const alerts = await OriginalAlert.find({
+								disconnectionArea: { $regex: street, $options: 'i' },
+								createdDate: { $gte: oneYearAgo }
+						}).sort({ disconnectionDate: -1 });
+
+						const total = alerts.length;
+						const lastDisconnection = alerts[0]?.disconnectionDate;
+						
+						// Find most common region
+						const regionCounts = alerts.reduce((acc, alert) => {
+								acc[alert.regionName] = (acc[alert.regionName] || 0) + 1;
+								return acc;
+						}, {} as Record<string, number>);
+
+						res.json({
+								total,
+								lastDisconnection,
+								recentAlerts: alerts.slice(0, 5)
+						});
+				} catch (error) {
+						res.status(500).json({ error: 'Failed to fetch statistics' });
+				}
 		});
 
 		app.post('/api/actions/updatePostedAlerts', (req: Request, res: Response) => {
@@ -99,6 +129,7 @@ const run = async () => {
 		})
 
 		server = app.listen(port, () => {
+			console.log(`Server is running on port ${port}`)
 		});
 
 		tgController.run().then()
