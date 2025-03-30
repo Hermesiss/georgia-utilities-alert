@@ -76,8 +76,6 @@ const run = async () => {
 		app.get('/api/stats/street/:street/city/:city', async (req: Request, res: Response) => {
 				const street = req.params.street;
 				const city = req.params.city;
-
-				console.log(street, city)
 				const oneYearAgo = dayjs().subtract(1, 'year').toDate();
 
 				try {
@@ -90,10 +88,32 @@ const run = async () => {
 						const total = alerts.length;
 						const lastDisconnection = alerts[0]?.disconnectionDate;
 						
+						// Group alerts by date
+						const dailyCounts = alerts.reduce((acc, alert) => {
+								const date = dayjs(alert.disconnectionDate).format('YYYY-MM-DD');
+								acc[date] = (acc[date] || 0) + 1;
+								return acc;
+						}, {} as Record<string, number>);
+
+						// Fill in missing dates with zero counts
+						const startDate = dayjs().subtract(1, 'year');
+						const endDate = dayjs();
+						const dates: string[] = [];
+						const counts: number[] = [];
+						
+						for (let d = startDate; d.isBefore(endDate); d = d.add(1, 'day')) {
+								const dateStr = d.format('YYYY-MM-DD');
+								dates.push(dateStr);
+								counts.push(dailyCounts[dateStr] || 0);
+						}
+						
 						res.json({
 								total,
 								lastDisconnection,
-								recentAlerts: alerts.slice(0, 5)
+								dailyData: {
+										dates,
+										counts
+								}
 						});
 				} catch (error) {
 						res.status(500).json({ error: 'Failed to fetch statistics' });
