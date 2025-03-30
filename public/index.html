@@ -628,10 +628,8 @@
                         while (list.children.length === 0) {
                             await new Promise(resolve => setTimeout(resolve, 100));
                         }
-                        console.log(`trying to find ${currentCity}`);
                         const cityElement = Array.from(list.children)
                             .find(el => {
-                                console.log(`checking ${el.textContent.trim()}`);
                                 const elementText = el.textContent.trim().toLowerCase();
                                 // Check for both English and Russian versions of the city name
                                 const englishCity = city.toLowerCase();
@@ -1140,7 +1138,6 @@
             try {
                 // Convert input to Georgian for search
                 const georgianStreet = transliterateToGeorgian(street);
-                console.log("Sending georgian street", georgianStreet)
                 const response = await fetch(`/api/stats/street/${encodeURIComponent(georgianStreet)}/cities`);
                 const data = await response.json();
 
@@ -1195,6 +1192,39 @@
             container.style.margin = '0 auto';
             container.style.fontSize = '16px';
             document.body.appendChild(container);
+
+            // Add title section
+            const titleContainer = document.createElement('div');
+            titleContainer.style.textAlign = 'center';
+            titleContainer.style.marginBottom = '30px';
+            titleContainer.style.paddingBottom = '20px';
+            titleContainer.style.borderBottom = '2px solid #4267B2';
+
+            const title = document.createElement('h1');
+            title.style.color = '#4267B2';
+            title.style.fontSize = '32px';
+            title.style.marginBottom = '10px';
+
+            // Transliterate street and city names to current language
+            const transliteratedStreet = transliterateFromGeorgian(currentStreet, currentLanguage);
+            const transliteratedCity = transliterateFromGeorgian(currentCity, currentLanguage);
+
+            // Capitalize first letter for English and Russian
+            const formattedStreet = currentLanguage === 'ka' ? transliteratedStreet :
+                transliteratedStreet.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            const formattedCity = currentLanguage === 'ka' ? transliteratedCity :
+                transliteratedCity.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+            // Set title based on current language
+            const titleTexts = {
+                ka: `${formattedStreet} ქუჩა, ${formattedCity}`,
+                en: `${formattedStreet} Street, ${formattedCity}`,
+                ru: `Улица ${formattedStreet}, ${formattedCity}`
+            };
+
+            title.textContent = titleTexts[currentLanguage];
+            titleContainer.appendChild(title);
+            container.appendChild(titleContainer);
 
             // Clone the stats content
             const statsContent = document.getElementById('statsData').cloneNode(true);
