@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script src="js/transliteration.js"></script>
+    <script src="js/translations.js"></script>
 </head>
 
 <body>
@@ -96,101 +97,14 @@
         let totalPoints = 0;
         let currentData = null;
 
-        const translations = {
-            ka: {
-                title: 'ყველაზე ცუდი ქუჩის ჩემპიონატი',
-                searchTitle: 'მოიძიეთ ქუჩა',
-                citiesTitle: 'აირჩიეთ ქალაქი',
-                selectedCity: 'არჩეული ქალაქი',
-                statsTitle: 'სტატისტიკა',
-                searchPlaceholder: 'ქუჩის სახელი...',
-                search: 'ძებნა',
-                noCities: 'ამ ქუჩისთვის ქალაქები ვერ მოიძებნა',
-                totalDisconnections: 'სულ გათიშვები',
-                lastDisconnection: 'ბოლო გათიშვა',
-                recentAlerts: 'ბოლო განცხადებები',
-                error: 'შეცდომა მონაცემების მიღებისას',
-                maxDisconnections: 'მაქსიმალური გათიშვები დღეში',
-                disconnections: 'გათიშვა',
-                maxStreakWith: 'მაქსიმალური უწყვეტი გათიშვების დღეები',
-                maxStreakWithout: 'მაქსიმალური უწყვეტი დღეები გათიშვების გარეშე',
-                days: 'დღე',
-                percentageWith: 'გათიშვებით წლის პროცენტი',
-                totalAffectedCustomers: 'სულ დაზარალებული მომხმარებელი',
-                customers: 'მომხმარებელი',
-                share: 'გაზიარება',
-                save: 'შენახვა',
-                totalPoints: 'სულ ქულა',
-                points: 'ქულა',
-                breakdown: 'დეტალები',
-                total: 'სულ'
-            },
-            en: {
-                title: 'Worst Street Championship',
-                searchTitle: 'Search by Street',
-                citiesTitle: 'Select City',
-                selectedCity: 'Selected City',
-                statsTitle: 'Statistics',
-                searchPlaceholder: 'Enter street name...',
-                search: 'Search',
-                noCities: 'No cities found for this street. Please try georgian street name for better results.',
-                totalDisconnections: 'Total Disconnections',
-                lastDisconnection: 'Last Disconnection',
-                recentAlerts: 'Recent Alerts',
-                error: 'Error fetching data',
-                maxDisconnections: 'Max Disconnections in a Day',
-                disconnections: 'disconnections',
-                maxStreakWith: 'Max Days in a Row with Disconnections',
-                maxStreakWithout: 'Max Days in a Row without Disconnections',
-                days: 'days',
-                percentageWith: 'Percentage of Year with Disconnections',
-                totalAffectedCustomers: 'Total Affected Customers',
-                customers: 'customers',
-                share: 'Share',
-                save: 'Save',
-                totalPoints: 'Total Points',
-                points: 'points',
-                breakdown: 'Breakdown',
-                total: 'Total'
-            },
-            ru: {
-                title: 'Чемпионат худших улиц',
-                searchTitle: 'Поиск по улице',
-                citiesTitle: 'Выберите город',
-                statsTitle: 'Статистика',
-                selectedCity: 'Выбранный город',
-                searchPlaceholder: 'Введите название улицы...',
-                search: 'Поиск',
-                noCities: 'Города не найдены для этой улицы. Пожалуйста, попробуйте грузинский вариант названия улицы для лучшего результата.',
-                totalDisconnections: 'Всего отключений',
-                lastDisconnection: 'Последнее отключение',
-                recentAlerts: 'Последние объявления',
-                error: 'Ошибка при получении данных',
-                maxDisconnections: 'Максимум отключений за день',
-                disconnections: 'отключений',
-                maxStreakWith: 'Максимум дней подряд с отключениями',
-                maxStreakWithout: 'Максимум дней подряд без отключений',
-                days: 'дней',
-                percentageWith: 'Процент дней в году с отключениями',
-                totalAffectedCustomers: 'Всего пострадавших потребителей',
-                customers: 'потребителей',
-                share: 'Поделиться',
-                save: 'Сохранить',
-                totalPoints: 'Всего очков',
-                points: 'очков',
-                breakdown: 'Разбивка',
-                total: 'Всего'
-            }
-        };
-
         function setLanguage(lang) {
             currentLanguage = lang;
-            document.querySelector('h1').textContent = translations[lang].title;
-            document.getElementById('searchTitle').textContent = translations[lang].searchTitle;
-            document.getElementById('citiesTitle').textContent = translations[lang].citiesTitle;
-            document.getElementById('statsTitle').textContent = translations[lang].statsTitle;
-            document.getElementById('streetSearch').placeholder = translations[lang].searchPlaceholder;
-            document.querySelector('.btn-primary').textContent = translations[lang].search;
+            document.querySelector('h1').textContent = getTranslation('title', lang);
+            document.getElementById('searchTitle').textContent = getTranslation('searchTitle', lang);
+            document.getElementById('citiesTitle').textContent = getTranslation('citiesTitle', lang);
+            document.getElementById('statsTitle').textContent = getTranslation('statsTitle', lang);
+            document.getElementById('streetSearch').placeholder = getTranslation('searchPlaceholder', lang);
+            document.querySelector('.btn-primary').textContent = getTranslation('search', lang);
 
             // Update active state of language buttons
             document.querySelectorAll('.btn-group .btn-outline-primary').forEach(btn => {
@@ -198,14 +112,13 @@
             });
             // Find and activate the button for the current language
             const langButton = Array.from(document.querySelectorAll('.btn-group .btn-outline-primary'))
-                .find(btn => btn.textContent.toLowerCase() === (lang === 'ka' ? 'ქართული' : lang === 'ru' ? 'русский' : 'english').toLowerCase());
+                .find(btn => btn.textContent.toLowerCase() === getLanguageButtonText(lang).toLowerCase());
             if (langButton) {
                 langButton.classList.add('active');
             }
 
             // Update dropdown button text for mobile
-            const currentLangText = lang === 'ka' ? 'ქართული' : lang === 'ru' ? 'Русский' : 'English';
-            document.querySelector('#languageDropdown').innerHTML = `<i class="fas fa-globe"></i> ${currentLangText}`;
+            document.querySelector('#languageDropdown').innerHTML = `<i class="fas fa-globe"></i> ${getLanguageButtonText(lang)}`;
 
             // Update achievement card translations if they exist
             const achievementCards = document.querySelectorAll('.achievement-card');
@@ -215,44 +128,32 @@
                     const text = card.querySelector('.card-text');
                     const small = card.querySelector('small.text-muted');
 
-                    const includes = (text, translations, key) => {
-                        return text.includes(translations['en'][key]) ||
-                            text.includes(translations['ka'][key]) ||
-                            text.includes(translations['ru'][key]);
-                    }
-
                     // Update title based on achievement type
                     const titleText = title.textContent;
-                    if (includes(titleText, translations, 'maxDisconnections')) {
-                        title.textContent = translations[lang].maxDisconnections;
-                    } else if (includes(titleText, translations, 'maxStreakWith')) {
-                        title.textContent = translations[lang].maxStreakWith;
-                    } else if (includes(titleText, translations, 'maxStreakWithout')) {
-                        title.textContent = translations[lang].maxStreakWithout;
-                    } else if (includes(titleText, translations, 'percentageWith')) {
-                        title.textContent = translations[lang].percentageWith;
-                    } else if (includes(titleText, translations, 'totalDisconnections')) {
-                        title.textContent = translations[lang].totalDisconnections;
-                    } else if (includes(titleText, translations, 'totalAffectedCustomers')) {
-                        title.textContent = translations[lang].totalAffectedCustomers;
+                    if (includesTranslation(titleText, 'maxDisconnections')) {
+                        title.textContent = getTranslation('maxDisconnections', lang);
+                    } else if (includesTranslation(titleText, 'maxStreakWith')) {
+                        title.textContent = getTranslation('maxStreakWith', lang);
+                    } else if (includesTranslation(titleText, 'maxStreakWithout')) {
+                        title.textContent = getTranslation('maxStreakWithout', lang);
+                    } else if (includesTranslation(titleText, 'percentageWith')) {
+                        title.textContent = getTranslation('percentageWith', lang);
+                    } else if (includesTranslation(titleText, 'totalDisconnections')) {
+                        title.textContent = getTranslation('totalDisconnections', lang);
+                    } else if (includesTranslation(titleText, 'totalAffectedCustomers')) {
+                        title.textContent = getTranslation('totalAffectedCustomers', lang);
                     }
 
                     // Update text with translations
                     if (text) {
                         const count = text.textContent.split(' ')[0];
                         const textContent = text.textContent;
-                        if (textContent.includes(translations['en'].disconnections) ||
-                            textContent.includes(translations['ka'].disconnections) ||
-                            textContent.includes(translations['ru'].disconnections)) {
-                            text.textContent = `${count} ${translations[lang].disconnections}`;
-                        } else if (textContent.includes(translations['en'].days) ||
-                            textContent.includes(translations['ka'].days) ||
-                            textContent.includes(translations['ru'].days)) {
-                            text.textContent = `${count} ${translations[lang].days}`;
-                        } else if (textContent.includes(translations['en'].customers) ||
-                            textContent.includes(translations['ka'].customers) ||
-                            textContent.includes(translations['ru'].customers)) {
-                            text.textContent = `${count} ${translations[lang].customers}`;
+                        if (includesTranslation(textContent, 'disconnections')) {
+                            text.textContent = `${count} ${getTranslation('disconnections', lang)}`;
+                        } else if (includesTranslation(textContent, 'days')) {
+                            text.textContent = `${count} ${getTranslation('days', lang)}`;
+                        } else if (includesTranslation(textContent, 'customers')) {
+                            text.textContent = `${count} ${getTranslation('customers', lang)}`;
                         }
                     }
                 });
@@ -397,7 +298,7 @@
                 data: {
                     labels: data.dates.map(date => dayjs(date).format('MMM D')),
                     datasets: [{
-                        label: translations[currentLanguage].totalDisconnections,
+                        label: getTranslation('totalDisconnections', currentLanguage),
                         data: data.counts,
                         backgroundColor: 'rgba(74, 144, 226, 0.5)',
                         borderColor: 'rgba(74, 144, 226, 1)',
@@ -561,9 +462,9 @@
                                         <i class="fas fa-trophy"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalPoints}</h5>
+                                        <h5 class="card-title mb-1">${getTranslation('totalPoints', currentLanguage)}</h5>
                                         <p class="card-text mb-0">
-                                            ${formatNumber(totalPoints)} ${translations[currentLanguage].points}
+                                            ${formatNumber(totalPoints)} ${getTranslation('points', currentLanguage)}
                                             <button class="btn btn-link btn-sm p-0 ms-2" onclick="showPointsBreakdown()" style="color: inherit; text-decoration: none;">
                                                 <i class="fas fa-info-circle fa-lg"></i>
                                             </button>
@@ -580,8 +481,8 @@
                                         <i class="fas fa-bolt"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxDisconnections}</h5>
-                                        <p class="card-text mb-0">${data.achievements.maxDisconnectionsInDay} ${translations[currentLanguage].disconnections}</p>
+                                        <h5 class="card-title mb-1">${getTranslation('maxDisconnections', currentLanguage)}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxDisconnectionsInDay} ${getTranslation('disconnections', currentLanguage)}</p>
                                         <small class="text-muted">${dayjs(data.achievements.maxDisconnectionsDate).format('MMMM D, YYYY')}</small>
                                     </div>
                                 </div>
@@ -595,8 +496,8 @@
                                         <i class="fas fa-fire"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWith}</h5>
-                                        <p class="card-text mb-0">${data.achievements.maxStreakWithDisconnections} ${translations[currentLanguage].days}</p>
+                                        <h5 class="card-title mb-1">${getTranslation('maxStreakWith', currentLanguage)}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxStreakWithDisconnections} ${getTranslation('days', currentLanguage)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -609,8 +510,8 @@
                                         <i class="fas fa-leaf"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].maxStreakWithout}</h5>
-                                        <p class="card-text mb-0">${data.achievements.maxStreakWithoutDisconnections} ${translations[currentLanguage].days}</p>
+                                        <h5 class="card-title mb-1">${getTranslation('maxStreakWithout', currentLanguage)}</h5>
+                                        <p class="card-text mb-0">${data.achievements.maxStreakWithoutDisconnections} ${getTranslation('days', currentLanguage)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -623,7 +524,7 @@
                                         <i class="fas fa-chart-pie"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].percentageWith}</h5>
+                                        <h5 class="card-title mb-1">${getTranslation('percentageWith', currentLanguage)}</h5>
                                         <p class="card-text mb-0">${data.achievements.percentageWithDisconnections.toFixed(1)}%</p>
                                     </div>
                                 </div>
@@ -637,8 +538,8 @@
                                         <i class="fas fa-plug"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalDisconnections}</h5>
-                                        <p class="card-text mb-0">${data.achievements.totalDisconnections} ${translations[currentLanguage].disconnections}</p>
+                                        <h5 class="card-title mb-1">${getTranslation('totalDisconnections', currentLanguage)}</h5>
+                                        <p class="card-text mb-0">${data.achievements.totalDisconnections} ${getTranslation('disconnections', currentLanguage)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -651,8 +552,8 @@
                                         <i class="fas fa-users"></i>
                                     </div>
                                     <div>
-                                        <h5 class="card-title mb-1">${translations[currentLanguage].totalAffectedCustomers}</h5>
-                                        <p class="card-text mb-0">${data.achievements.totalAffectedCustomers} ${translations[currentLanguage].customers}</p>
+                                        <h5 class="card-title mb-1">${getTranslation('totalAffectedCustomers', currentLanguage)}</h5>
+                                        <p class="card-text mb-0">${data.achievements.totalAffectedCustomers} ${getTranslation('customers', currentLanguage)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -667,10 +568,10 @@
                         </a>
                         <div>
                             <button class="btn btn-primary me-1 me-md-2" onclick="saveStats()">
-                                <i class="fas fa-save me-1 me-md-2"></i>${translations[currentLanguage].save}
+                                <i class="fas fa-save me-1 me-md-2"></i>${getTranslation('save', currentLanguage)}
                             </button>
                             <button class="btn btn-primary" onclick="shareStats()">
-                                <i class="fas fa-share-alt me-1 me-md-2"></i>${translations[currentLanguage].share}
+                                <i class="fas fa-share-alt me-1 me-md-2"></i>${getTranslation('share', currentLanguage)}
                             </button>
                         </div>
                     </div>
@@ -692,7 +593,7 @@
             } catch (error) {
                 console.error("Error loading city stats", error)
                 document.getElementById('statsLoading').style.display = 'none';
-                document.getElementById('statsData').innerHTML = `<div class="alert alert-danger">${translations[currentLanguage].error}</div>`;
+                document.getElementById('statsData').innerHTML = `<div class="alert alert-danger">${getTranslation('error', currentLanguage)}</div>`;
             }
         }
 
@@ -718,7 +619,7 @@
                 document.getElementById('citiesLoading').style.display = 'none';
 
                 if (data.cities.length === 0) {
-                    citiesList.innerHTML = `<div class="list-group-item">${translations[currentLanguage].noCities}</div>`;
+                    citiesList.innerHTML = `<div class="list-group-item">${getTranslation('noCities', currentLanguage)}</div>`;
                     return;
                 }
 
@@ -752,7 +653,7 @@
             } catch (error) {
                 console.error("Error searching street", error)
                 document.getElementById('citiesLoading').style.display = 'none';
-                document.getElementById('citiesContent').innerHTML = `<div class="alert alert-danger">${translations[currentLanguage].error}</div>`;
+                document.getElementById('citiesContent').innerHTML = `<div class="alert alert-danger">${getTranslation('error', currentLanguage)}</div>`;
             }
         }
 
@@ -781,7 +682,7 @@
             championshipTitle.style.color = '#4267B2';
             championshipTitle.style.fontSize = '24px';
             championshipTitle.style.marginBottom = '15px';
-            championshipTitle.textContent = translations[currentLanguage].title;
+            championshipTitle.textContent = getTranslation('title', currentLanguage);
             titleContainer.appendChild(championshipTitle);
 
             const title = document.createElement('h1');
@@ -934,7 +835,7 @@
                 }
             } catch (error) {
                 console.error('Error sharing stats:', error);
-                alert(translations[currentLanguage].error);
+                alert(getTranslation('error', currentLanguage));
             }
         }
 
@@ -974,7 +875,7 @@
                 link.click();
             } catch (error) {
                 console.error('Error saving stats:', error);
-                alert(translations[currentLanguage].error);
+                alert(getTranslation('error', currentLanguage));
             }
         }
 
@@ -995,57 +896,57 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">${translations[currentLanguage].totalPoints} - ${translations[currentLanguage].breakdown}</h5>
+                                    <h5 class="modal-title">${getTranslation('totalPoints', currentLanguage)} - ${getTranslation('breakdown', currentLanguage)}</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="list-group">
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 class="mb-1">${translations[currentLanguage].maxDisconnections}</h6>
-                                                <small class="text-muted">${formatNumber(maxDisconnectionsPoints)} ${translations[currentLanguage].points}</small>
+                                                <h6 class="mb-1">${getTranslation('maxDisconnections', currentLanguage)}</h6>
+                                                <small class="text-muted">${formatNumber(maxDisconnectionsPoints)} ${getTranslation('points', currentLanguage)}</small>
                                             </div>
                                             <span class="badge bg-primary rounded-pill">${currentData.achievements.maxDisconnectionsInDay} × 100</span>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 class="mb-1">${translations[currentLanguage].maxStreakWith}</h6>
-                                                <small class="text-muted">${formatNumber(maxStreakWithPoints)} ${translations[currentLanguage].points}</small>
+                                                <h6 class="mb-1">${getTranslation('maxStreakWith', currentLanguage)}</h6>
+                                                <small class="text-muted">${formatNumber(maxStreakWithPoints)} ${getTranslation('points', currentLanguage)}</small>
                                             </div>
                                             <span class="badge bg-primary rounded-pill">${currentData.achievements.maxStreakWithDisconnections} × 50</span>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 class="mb-1">${translations[currentLanguage].maxStreakWithout}</h6>
-                                                <small class="text-muted">${formatNumber(maxStreakWithoutPoints)} ${translations[currentLanguage].points}</small>
+                                                <h6 class="mb-1">${getTranslation('maxStreakWithout', currentLanguage)}</h6>
+                                                <small class="text-muted">${formatNumber(maxStreakWithoutPoints)} ${getTranslation('points', currentLanguage)}</small>
                                             </div>
                                             <span class="badge bg-primary rounded-pill">${365 - currentData.achievements.maxStreakWithoutDisconnections} × 1</span>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 class="mb-1">${translations[currentLanguage].percentageWith}</h6>
-                                                <small class="text-muted">${formatNumber(percentagePoints)} ${translations[currentLanguage].points}</small>
+                                                <h6 class="mb-1">${getTranslation('percentageWith', currentLanguage)}</h6>
+                                                <small class="text-muted">${formatNumber(percentagePoints)} ${getTranslation('points', currentLanguage)}</small>
                                             </div>
                                             <span class="badge bg-primary rounded-pill">${currentData.achievements.percentageWithDisconnections.toFixed(1)}% × 10</span>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 class="mb-1">${translations[currentLanguage].totalDisconnections}</h6>
-                                                <small class="text-muted">${formatNumber(totalDisconnectionsPoints)} ${translations[currentLanguage].points}</small>
+                                                <h6 class="mb-1">${getTranslation('totalDisconnections', currentLanguage)}</h6>
+                                                <small class="text-muted">${formatNumber(totalDisconnectionsPoints)} ${getTranslation('points', currentLanguage)}</small>
                                             </div>
                                             <span class="badge bg-primary rounded-pill">${currentData.achievements.totalDisconnections} × 5</span>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h6 class="mb-1">${translations[currentLanguage].totalAffectedCustomers}</h6>
-                                                <small class="text-muted">${formatNumber(totalAffectedCustomersPoints)} ${translations[currentLanguage].points}</small>
+                                                <h6 class="mb-1">${getTranslation('totalAffectedCustomers', currentLanguage)}</h6>
+                                                <small class="text-muted">${formatNumber(totalAffectedCustomersPoints)} ${getTranslation('points', currentLanguage)}</small>
                                             </div>
                                             <span class="badge bg-primary rounded-pill">${Math.ceil(currentData.achievements.totalAffectedCustomers / 100)} × 100</span>
                                         </div>
                                     </div>
                                     <div class="mt-3 text-center">
-                                        <h5 class="mb-0">${formatNumber(totalPoints)} ${translations[currentLanguage].points}</h5>
-                                        <small class="text-muted">${translations[currentLanguage].total}</small>
+                                        <h5 class="mb-0">${formatNumber(totalPoints)} ${getTranslation('points', currentLanguage)}</h5>
+                                        <small class="text-muted">${getTranslation('total', currentLanguage)}</small>
                                     </div>
                                 </div>
                             </div>
