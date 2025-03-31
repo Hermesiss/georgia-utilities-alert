@@ -1,0 +1,375 @@
+:root {
+    --primary-color: #4267B2;
+    --secondary-color: #2c3e50;
+    --accent-color: #e74c3c;
+    --background-dark: #1B2B65;
+    --card-bg: #2C4494;
+    --text-color: #161616;
+    --border-glow: 0 0 10px rgba(66, 103, 178, 0.3);
+    --hover-glow: 0 0 15px rgba(66, 103, 178, 0.5);
+    --bs-heading-color: #5c5c5c;
+}
+
+body {
+    background-color: var(--background-dark);
+    color: var(--text-color);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.card {
+    background-color: #ffffff;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    box-shadow: var(--border-glow);
+    transition: all 0.3s ease;
+    color: var(--secondary-color) !important;
+}
+
+.card-title {
+    color: var(--secondary-color) !important;
+}
+
+.card:hover {
+    box-shadow: var(--hover-glow);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #357abd;
+    box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: transparent;
+    box-shadow: var(--border-glow);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: var(--hover-glow);
+}
+
+.form-control {
+    background-color: #ffffff;
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    color: var(--secondary-color);
+}
+
+.form-control:focus {
+    background-color: #ffffff;
+    border-color: var(--primary-color);
+    color: var(--secondary-color);
+    box-shadow: var(--border-glow);
+}
+
+.list-group-item {
+    background-color: #ffffff;
+    border-color: rgba(74, 144, 226, 0.2);
+    color: var(--secondary-color);
+    transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+}
+
+.badge {
+    box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+}
+
+
+/* Achievement Cards Styles */
+
+.achievement-card {
+    transition: transform 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.achievement-card.bronze .card-body {
+    background: linear-gradient(145deg, #B87333, #8B4513);
+    border: 1px solid rgba(205, 127, 50, 0.3);
+    box-shadow: 0 0 15px rgba(205, 127, 50, 0.2);
+}
+
+.achievement-card.silver .card-body {
+    background: linear-gradient(145deg, #A8A8A8, #808080);
+    border: 1px solid rgba(192, 192, 192, 0.3);
+    box-shadow: 0 0 15px rgba(192, 192, 192, 0.2);
+}
+
+.achievement-card.gold .card-body {
+    background: linear-gradient(145deg, #DAA520, #B8860B);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+.achievement-card.platinum .card-body {
+    background: linear-gradient(145deg, #8E8E8E, #4A4A4A);
+    border: 1px solid rgba(229, 228, 226, 0.3);
+    box-shadow: 0 0 15px rgba(229, 228, 226, 0.2);
+}
+
+.achievement-card.worst .card-body {
+    background: linear-gradient(145deg, #1b3f5e, #5281af);
+    border: 1px solid rgba(108, 117, 125, 0.3);
+    box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
+}
+
+.achievement-card.worst .achievement-icon {
+    background: linear-gradient(145deg, #6c757d, #495057);
+    box-shadow: 0 0 15px rgba(108, 117, 125, 0.2);
+}
+
+.achievement-card.worst .card-body::before {
+    display: none;
+}
+
+.achievement-grade {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.achievement-card.bronze .achievement-grade {
+    background: rgba(205, 127, 50, 0.2);
+    color: #FFD700;
+}
+
+.achievement-card.silver .achievement-grade {
+    background: rgba(192, 192, 192, 0.2);
+    color: #C0C0C0;
+}
+
+.achievement-card.gold .achievement-grade {
+    background: rgba(255, 215, 0, 0.2);
+    color: #FFD700;
+}
+
+.achievement-card.platinum .achievement-grade {
+    background: rgba(229, 228, 226, 0.2);
+    color: #FFFFFF;
+}
+
+.statsData h6 {
+    color: #ffffff;
+}
+
+.achievement-card:nth-child(1) .achievement-icon {
+    background: linear-gradient(145deg, #5C7FE6, #4267B2);
+}
+
+.achievement-card:nth-child(2) .achievement-icon {
+    background: linear-gradient(145deg, #FF6B5E, #E74C3C);
+}
+
+.achievement-card:nth-child(3) .achievement-icon {
+    background: linear-gradient(145deg, #2ECC71, #27AE60);
+}
+
+.achievement-card:nth-child(4) .achievement-icon {
+    background: linear-gradient(145deg, #F4D03F, #F1C40F);
+}
+
+.achievement-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.achievement-card .card-body {
+    padding: 1.25rem;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(145deg, #3557B8, #2C4494);
+    border-radius: 8px;
+    color: #ffffff !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.achievement-card .card-title {
+    color: #ffffff !important;
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) rotate(45deg);
+    }
+}
+
+.achievement-card .card-body::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient( 45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transform: rotate(45deg);
+    animation: shine 3s infinite;
+}
+
+.achievement-card.silver .card-body::before {
+    animation: shine 2s infinite;
+}
+
+.achievement-card.gold .card-body::before {
+    animation: shine 1.5s infinite;
+}
+
+.achievement-card.platinum .card-body::before {
+    animation: shine 1s infinite;
+}
+
+.achievement-icon {
+    min-width: 56px;
+    min-height: 56px;
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    flex-shrink: 0;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.achievement-icon+div {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.progress {
+    background-color: rgba(0, 0, 0, 0.1);
+    margin-top: 0.5rem;
+}
+
+.card-title {
+    color: var(--secondary-color);
+    text-shadow: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.card-text {
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+small.text-muted {
+    color: rgba(255, 255, 255, 0.9) !important;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (min-width: 768px) {
+    .card-title {
+        font-size: 1rem;
+    }
+    .card-text {
+        font-size: 1.5rem;
+    }
+    .achievement-card .card-body {
+        min-height: 140px;
+    }
+}
+
+.row>[class*="col-"] {
+    display: flex;
+    flex-direction: column;
+}
+
+h1,
+h5,
+.card-title {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.achievement-card h5.card-title {
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+
+/* Replace with new grade-specific icon styles */
+
+.achievement-card.bronze .achievement-icon {
+    background: linear-gradient(145deg, #FFD700, #CD7F32);
+    box-shadow: 0 0 15px rgba(205, 127, 50, 0.3);
+}
+
+.achievement-card.silver .achievement-icon {
+    background: linear-gradient(145deg, #E8E8E8, #C0C0C0);
+    box-shadow: 0 0 15px rgba(192, 192, 192, 0.3);
+}
+
+.achievement-card.gold .achievement-icon {
+    background: linear-gradient(145deg, #FFD700, #DAA520);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.achievement-card.platinum .achievement-icon {
+    background: linear-gradient(145deg, #E5E4E2, #A9A9A9);
+    box-shadow: 0 0 15px rgba(229, 228, 226, 0.3);
+}
+
+.list-group-item.active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+
+.list-group-item.active .badge {
+    background-color: #ffffff !important;
+    color: var(--primary-color) !important;
+}
+
+
+/* Modal styles */
+
+.modal-content {
+    background-color: #ffffff;
+    color: var(--secondary-color);
+}
+
+.modal-content .list-group-item {
+    background-color: #ffffff;
+    color: var(--secondary-color);
+}
+
+.modal-content .text-muted {
+    color: #6c757d !important;
+}
+
+.modal-content h5,
+.modal-content h6 {
+    color: var(--secondary-color);
+}
