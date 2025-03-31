@@ -1,5 +1,13 @@
 // Transliteration functions for Georgian language
 function transliterateToGeorgian(text) {
+    console.log(`Transliterating to Georgian: ${text}`);
+    // First try to find in street dictionary
+    if (window.streetDictionaryVariantToGe && window.streetDictionaryVariantToGe[text]) {
+        console.log(`Found in street dictionary: ${window.streetDictionaryVariantToGe[text]}`);
+        return window.streetDictionaryVariantToGe[text];
+    }
+    console.log(`Not found in street dictionary`);
+
     // Detect input language
     const hasCyrillic = /[\u0400-\u04FF]/.test(text);
     const hasGeorgian = /[\u10A0-\u10FF]/.test(text);
@@ -103,6 +111,11 @@ function transliterateToGeorgian(text) {
 }
 
 function transliterateFromGeorgian(text, lang = 'en') {
+    // First try to find in street dictionary
+    if (window.streetDictionaryGeToVariants && window.streetDictionaryGeToVariants[text]) {
+        return window.streetDictionaryGeToVariants[text][lang === 'ru' ? 0 : 1];
+    }
+
     const mapping = lang === 'ru' ? {
         'ძ': 'дз',
         'ჯ': 'дж',
