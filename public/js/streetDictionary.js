@@ -13,10 +13,7 @@ const streetDictionaryGeToVariants = {
     'გოგოლ': ['Гоголя', 'Gogol'],
     'მაიაკოვსკ': ['Маяковского', 'Mayakovsky'],
     'ბარათაშვილ': ['Бараташвили', 'Baratashvili'],
-    'დავით აღმაშენებლ': ['Давит Агмашенебели', 'Davit Aghmashenebeli'],
-    'ცერეტელ': ['Церетели', 'Tsereteli'],
     'ჩონკაძ': ['Чонкадзе', 'Chonkadze'],
-    'აბაშიძ': ['Абашидзе', 'Abashidze'],
     'გრიბოედოვ': ['Грибоедова', 'Griboedov'],
     'ფიროსმან': ['Пиросмани', 'Pirosmani'],
     'ტაბრიზ': ['Тавриз', 'Tavriz'],
@@ -60,7 +57,6 @@ const streetDictionaryGeToVariants = {
     'თაყაიშვილ': ['Такаишвили', 'Takaishvili'],
     'დავით აღმაშენებლ': ['Давит Агмашенебели', 'Davit Aghmashenebeli'],
     'ცერეტელ': ['Церетели', 'Tsereteli'],
-    'ჩონკაძ': ['Чонкадзе', 'Chonkadze'],
     'აბაშიძ': ['Абашидзе', 'Abashidze'],
     'ლეონიძე': ['Леонидзе', 'Leonidze'],
 };
