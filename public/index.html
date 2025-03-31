@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="styles.css">
     <script src="js/transliteration.js"></script>
     <script src="js/translations.js"></script>
+    <script src="js/streetDictionary.js"></script>
 </head>
 
 <body>
@@ -42,7 +43,7 @@
             <div class="card-body">
                 <h5 class="card-title" id="searchTitle">Search by Street</h5>
                 <div class="input-group mb-3">
-                    <input type="text" id="streetSearch" class="form-control" placeholder="Enter street name...">
+                    <input type="text" id="streetSearch" class="form-control" placeholder="Enter street name..." autocomplete="off">
                     <button class="btn btn-primary" onclick="searchStreet()">Search</button>
                 </div>
             </div>
@@ -96,6 +97,8 @@
         let totalAffectedCustomersPoints = 0;
         let totalPoints = 0;
         let currentData = null;
+        let autocompleteTimeout = null;
+        let autocompleteList = null;
 
         function setLanguage(lang) {
             currentLanguage = lang;
@@ -960,6 +963,79 @@
             const modalInstance = new bootstrap.Modal(modal);
             modalInstance.show();
         };
+
+        // Add autocomplete functionality
+        document.getElementById('streetSearch').addEventListener('input', function(e) {
+            const input = e.target.value.trim();
+            if (!input) {
+                if (autocompleteList) {
+                    autocompleteList.remove();
+                    autocompleteList = null;
+                }
+                return;
+            }
+
+            // Clear previous timeout
+            if (autocompleteTimeout) {
+                clearTimeout(autocompleteTimeout);
+            }
+
+            // Set new timeout to avoid too many updates
+            autocompleteTimeout = setTimeout(() => {
+                console.log(`Input: ${input}`);
+                const results = autocomplete(input);
+                console.log(`Results: ${results}`);
+                if (!results) return;
+
+                // Remove existing autocomplete list if any
+                if (autocompleteList) {
+                    autocompleteList.remove();
+                }
+
+                // Create new autocomplete list
+                autocompleteList = document.createElement('div');
+                autocompleteList.className = 'list-group position-absolute w-100 z-3';
+                autocompleteList.style.maxHeight = '200px';
+                autocompleteList.style.overflowY = 'auto';
+                autocompleteList.style.border = '1px solid #ddd';
+                autocompleteList.style.borderRadius = '4px';
+                autocompleteList.style.backgroundColor = 'white';
+                autocompleteList.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                autocompleteList.style.top = '100%'; // Position below the input
+                autocompleteList.style.marginTop = '4px'; // Add some spacing
+
+                // Add results to list
+                results.split(', ').forEach(result => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = result;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        e.target.closest('.input-group').querySelector('input').value = result;
+                        if (autocompleteList) {
+                            autocompleteList.remove();
+                            autocompleteList = null;
+                        }
+                        searchStreet();
+                    };
+                    autocompleteList.appendChild(item);
+                });
+
+                // Position the list below the input
+                const inputGroup = e.target.closest('.input-group');
+                inputGroup.style.position = 'relative';
+                inputGroup.appendChild(autocompleteList);
+            }, 100);
+        });
+
+        // Close autocomplete list when clicking outside
+        document.addEventListener('click', function(e) {
+            if (autocompleteList && !e.target.closest('.input-group')) {
+                autocompleteList.remove();
+                autocompleteList = null;
+            }
+        });
 
         // Set initial language and load from URL
         loadFromUrl();
