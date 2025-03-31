@@ -44,6 +44,9 @@
                 <h5 class="card-title" id="searchTitle">Search by Street</h5>
                 <div class="input-group mb-3">
                     <input type="text" id="streetSearch" class="form-control" placeholder="Enter street name..." autocomplete="off">
+                    <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                        <i class="fas fa-times"></i>
+                    </button>
                     <button class="btn btn-primary" onclick="searchStreet()">Search</button>
                 </div>
             </div>
@@ -171,7 +174,8 @@
             if (currentLanguage !== 'en') params.set('lang', currentLanguage);
             if (currentStreet) {
                 // Store transliterated English version in URL
-                const englishStreet = transliterateFromGeorgian(currentStreet, 'en');
+                const georgianStreet = transliterateToGeorgian(currentStreet);
+                const englishStreet = transliterateFromGeorgian(georgianStreet, 'en');
                 params.set('street', englishStreet);
             }
             if (currentCity) {
@@ -982,9 +986,7 @@
 
             // Set new timeout to avoid too many updates
             autocompleteTimeout = setTimeout(() => {
-                console.log(`Input: ${input}`);
                 const results = autocomplete(input);
-                console.log(`Results: ${results}`);
                 if (!results) return;
 
                 // Remove existing autocomplete list if any
@@ -1029,6 +1031,14 @@
             }, 100);
         });
 
+        // Add Enter key handler for search
+        document.getElementById('streetSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchStreet();
+            }
+        });
+
         // Close autocomplete list when clicking outside
         document.addEventListener('click', function(e) {
             if (autocompleteList && !e.target.closest('.input-group')) {
@@ -1036,6 +1046,20 @@
                 autocompleteList = null;
             }
         });
+
+        // Add clear search function
+        function clearSearch() {
+            document.getElementById('streetSearch').value = '';
+            if (autocompleteList) {
+                autocompleteList.remove();
+                autocompleteList = null;
+            }
+            document.getElementById('cities').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            currentStreet = '';
+            currentCity = '';
+            updateUrl();
+        }
 
         // Set initial language and load from URL
         loadFromUrl();
