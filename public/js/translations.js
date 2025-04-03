@@ -1,6 +1,6 @@
 const translations = {
     ka: {
-        title: 'ყველაზე ცუდი ქუჩის ჩემპიონატი',
+        title: 'ელექტროენერგიის გათიშვების ჩემპიონატი',
         searchTitle: 'მოიძიეთ ქუჩა',
         citiesTitle: 'აირჩიეთ ქალაქი',
         selectedCity: 'არჩეული ქალაქი',
@@ -28,7 +28,7 @@ const translations = {
         total: 'სულ'
     },
     en: {
-        title: 'Worst Street Championship',
+        title: 'Power Outage Championship',
         searchTitle: 'Search by Street',
         citiesTitle: 'Select City',
         selectedCity: 'Selected City',
@@ -56,7 +56,7 @@ const translations = {
         total: 'Total'
     },
     ru: {
-        title: 'Чемпионат худших улиц',
+        title: 'Чемпионат по отключениям электроэнергии',
         searchTitle: 'Поиск по улице',
         citiesTitle: 'Выберите город',
         statsTitle: 'Статистика',
