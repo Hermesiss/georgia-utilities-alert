@@ -244,7 +244,7 @@ export class Alert {
   reconnectionDate?: string;
   dif?: string;
   taskType: string;
-
+  supposedCity: string;
   createdDate?: Date
   deletedDate?: Date
 
@@ -285,7 +285,7 @@ export class Alert {
     res.taskType = original.taskType
     res.createdDate = original.createdDate
     res.deletedDate = original.deletedDate
-
+    res.supposedCity = original.supposedCity
     if (init)
       await res.init()
 
@@ -479,7 +479,7 @@ export class Alert {
     getLine("taskNote");
     getLine("taskType");
     getLine("regionName");
-
+    getLine("supposedCity");
     //dif and scEffectedCustomers are constantly changing and are useless for now
     //(getLine("dif"));
     //(getLine("scEffectedCustomers"));

@@ -39,3 +39,6 @@ dist/**/*
 
 *.xlsx
 /project.zip
+
+# Cache directory for DuckDB translations
+cache/

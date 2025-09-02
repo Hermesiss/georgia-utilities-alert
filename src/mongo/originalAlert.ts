@@ -1,4 +1,4 @@
-import {Schema, model, connection, Model, Types} from "mongoose";
+import { Schema, model, connection, Model, Types } from "mongoose";
 
 export interface IOriginalAlert {
   taskId: number;
@@ -12,6 +12,7 @@ export interface IOriginalAlert {
   reconnectionDate?: string;
   dif?: string;
   taskType: string;
+  supposedCity: string;
 
   posts: IPosts[];
   createdDate?: Date;
@@ -29,38 +30,42 @@ type OriginalAlertDocumentProps = {
   names: Types.DocumentArray<IPosts>;
 };
 
-type OriginalAlertType = Model<IOriginalAlert, {}, OriginalAlertDocumentProps>
+type OriginalAlertType = Model<IOriginalAlert, {}, OriginalAlertDocumentProps>;
 
 const originalAlertSchema = new Schema<IOriginalAlert, OriginalAlertType>({
-  taskId: {type: Number, required: true, index: true},
-  taskName: {type: String, required: false, default: ""},
-  taskNote: {type: String, required: false},
-  scEffectedCustomers: {type: String, required: false},
-  disconnectionArea: {type: String, required: false, default: ""},
-  regionName: {type: String, required: true},
-  scName: {type: String, required: false, default: ""},
-  disconnectionDate: {type: String, required: true},
-  reconnectionDate: {type: String, required: true},
-  dif: {type: String, required: false},
-  taskType: {type: String, required: true},
-  posts: [new Schema<IPosts>({
-    channel: {type: String, required: true},
-    messageId: {type: Number, required: true},
-    hasPhoto: {type: Boolean, required: true, default: false},
-  })],
-  createdDate: {type: Date, required: false},
-  deletedDate: {type: Date, required: false},
-})
+  taskId: { type: Number, required: true, index: true },
+  taskName: { type: String, required: false, default: "" },
+  taskNote: { type: String, required: false },
+  scEffectedCustomers: { type: String, required: false },
+  disconnectionArea: { type: String, required: false, default: "" },
+  regionName: { type: String, required: true },
+  scName: { type: String, required: false, default: "" },
+  disconnectionDate: { type: String, required: true },
+  reconnectionDate: { type: String, required: true },
+  dif: { type: String, required: false },
+  taskType: { type: String, required: true },
+  supposedCity: { type: String, required: false },
+  posts: [
+    new Schema<IPosts>({
+      channel: { type: String, required: true },
+      messageId: { type: Number, required: true },
+      hasPhoto: { type: Boolean, required: true, default: false }
+    })
+  ],
+  createdDate: { type: Date, required: false },
+  deletedDate: { type: Date, required: false }
+});
 
+export const OriginalAlert = model<IOriginalAlert, OriginalAlertType>(
+  "OriginalAlert",
+  originalAlertSchema
+);
 
-export const OriginalAlert = model<IOriginalAlert, OriginalAlertType>('OriginalAlert', originalAlertSchema);
-
-export const getLinkFromPost = (post: IPosts) => `https://t.me/${post.channel.replace('@', '')}/${post.messageId}`
+export const getLinkFromPost = (post: IPosts) =>
+  `https://t.me/${post.channel.replace("@", "")}/${post.messageId}`;
 
 //TODO move somewhere else
 connection.on("error", console.error.bind(console, "connection error: "));
-connection.once("open", function () {
+connection.once("open", function() {
   console.log("Connected successfully");
 });
-
-
