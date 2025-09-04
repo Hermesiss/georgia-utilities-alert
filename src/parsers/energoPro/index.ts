@@ -165,7 +165,6 @@ export class EnergoProParser {
         let cityData: Array<Alert>;
         try {
           cityData = await this.fetchAlertsForCity(city.cityNameGe);
-          console.log(cityData)
         } catch (e) {
           this.alertsFetching = false
           const errorString = `Error fetching alerts for ${city.cityName}: ${e}`;
@@ -205,19 +204,16 @@ export class EnergoProParser {
         let original: HydratedDocument<IOriginalAlert> | null
           = await OriginalAlert.findOne({taskId: alertData.taskId}).exec();
         if (!original) {
-          console.log(`==== NEW ALERT ${alertData.taskId} ${alertData.scName}, city ${alertData.citiesList}`)
           //this is new alert
           diff.newAlert = alertData
           alertData.createdDate = new Date()
           original = new OriginalAlert({...alertData})
           await original.save()
         } else if (original.posts.length == 0) {
-          console.log(`==== ALERT ${alertData.taskId} ${alertData.scName} has no posts`)
           //alert without posts somehow
           diff.newAlert = alertData
         } else {
           //alert already exists...
-          console.log(`==== ALERT ${alertData.taskId} ${alertData.scName} already exists`)
           diff.oldAlert = await Alert.fromOriginal(original, false)
           diff.diffs = Alert.getDiff(diff.oldAlert, alertData)
           if (diff.diffs.length > 0) {

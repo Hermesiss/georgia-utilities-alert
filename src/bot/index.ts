@@ -358,10 +358,8 @@ export class TelegramController {
 						if (changedAlerts.length == 0) {
 								await this.sendToOwner("No new alerts " + dayjs().format('YYYY-MM-DD HH:mm'),)
 						} else {
-							console.log(`==== CHANGED ALERTS ${changedAlerts.length}`)
 								for (let changedAlert of changedAlerts) {
 										let text: string | null = null
-										console.log(`==== CHANGED ALERT ${changedAlert.translatedAlert.scName} city ${changedAlert.translatedAlert.citiesList}`)
 										if (changedAlert.error !== null) {
 												//don't post anything if error
 												errors.push(changedAlert.error)

@@ -1,4 +1,4 @@
-import {MatcherStreet} from "./matcher";
+import { MatcherStreet } from "./matcher";
 
 export interface GeoJsonData {
   type: string;
@@ -7,13 +7,14 @@ export interface GeoJsonData {
   features: (FeaturesEntity)[];
 }
 
-export const MapPlaceholderLink = "https://via.placeholder.com/640x640.png?text=Map+Unavailable"
+export const MapPlaceholderLink =
+  "https://pandasale.ru/image/cache/no_image-700x700.jpg";
 
 export interface StreetFinderResult {
-  input: string
-  match: string
-  rating: number
-  street: MatcherStreet
+  input: string;
+  match: string;
+  rating: number;
+  street: MatcherStreet;
 }
 
 export interface Crs {
@@ -69,14 +70,14 @@ export interface FeatureProperties {
 
 export interface Geometry {
   type: "LineString";
-  coordinates: number[] [];
+  coordinates: number[][];
 
-  rating?: number
+  rating?: number;
 }
 
 export interface SavedStreet {
-  name: string | null | undefined
-  en: string
-  ru: string | null | undefined
+  name: string | null | undefined;
+  en: string;
+  ru: string | null | undefined;
   geometry: Geometry;
 }
