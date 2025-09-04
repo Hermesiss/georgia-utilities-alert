@@ -314,10 +314,6 @@ export const getAllMatches = (rawStreet: string, cities: string[] | null): Array
   }
 
   const sorted = results.sort((a, b) => b.similarity.similarity - a.similarity.similarity)
-  const sliced = sorted.slice(0, 10).map((x) => {
-    return {name: x.street.name, similarity: x.similarity.toString()}
-  })
-  console.log("SLICED", sliced)
   return sorted
 }
 

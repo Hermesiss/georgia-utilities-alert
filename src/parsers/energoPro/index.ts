@@ -4,7 +4,6 @@ import {Alert, AlertDiff, AlertsRoot, CityChannel} from "./types";
 import {TwoWayMap} from "../../common/twoWayMap";
 import {IOriginalAlert, OriginalAlert} from "../../mongo/originalAlert";
 import {HydratedDocument} from "mongoose";
-import * as readline from 'readline'
 import dayjs, {Dayjs} from 'dayjs'
 
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
@@ -135,6 +134,7 @@ export class EnergoProParser {
     result.taskNote = this.getUniqueProp<Alert, string>(alerts, "taskNote").join("\n")
     result.disconnectionDate = alerts[0].disconnectionDate
     result.reconnectionDate = alerts[0].reconnectionDate
+    result.supposedCity = this.getUniqueProp<Alert, string>(alerts, "supposedCity").join(", ")
     result.disconnectionArea = this.getUniqueProp<Alert, string>(alerts, "disconnectionArea").join(",")
     result.taskName = this.getUniqueProp<Alert, string>(alerts, "taskName").join(". ")
 
@@ -176,6 +176,7 @@ export class EnergoProParser {
 
         console.log(`Alerts for ${city.cityName}: ${cityData.length} alerts`)
         for (let alert of cityData) {
+          alert.supposedCity = city.cityName ?? city.cityNameGe
           dataDict.add(alert)
         }
       }
@@ -195,14 +196,13 @@ export class EnergoProParser {
         filteredData.push(merged)
       }
 
-      const fetchAlertsText = "Fetch alerts: ";
-      readline.cursorTo(process.stdout, fetchAlertsText.length);
+      console.log(`==== Fetch alerts:  ${filteredData.length} alerts to fetch`)
       for (let i = 0; i < filteredData.length; i++) {
         let diff = new AlertDiff();
         const alertData = filteredData[i]
 
         let original: HydratedDocument<IOriginalAlert> | null
-          = await OriginalAlert.findOne({taskId: alertData.taskId}).exec()
+          = await OriginalAlert.findOne({taskId: alertData.taskId}).exec();
         if (!original) {
           //this is new alert
           diff.newAlert = alertData
