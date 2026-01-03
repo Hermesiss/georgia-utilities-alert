@@ -17,6 +17,11 @@ RUN apk add --no-cache \
 COPY package*.json ./
 COPY tsconfig.json ./
 
+# Configure npm for better network reliability
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
+
 # Install dependencies (ignore scripts since src not copied yet)
 RUN npm ci --ignore-scripts
 
@@ -53,6 +58,11 @@ RUN apk add --no-cache \
 
 # Copy package files
 COPY package*.json ./
+
+# Configure npm for better network reliability
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
 
 # Install production dependencies
 RUN npm ci --omit=dev --ignore-scripts
