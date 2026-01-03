@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: georgia-utilities-alert
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=${TZ:-Asia/Tbilisi}
+    volumes:
+      - ./cache:/app/cache
+    ports:
+      - "8000:8000"
+

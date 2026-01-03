@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: georgia-utilities-alert
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=${TZ:-Asia/Tbilisi}
+    volumes:
+      - ./cache:/app/cache
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.geoalert.rule=Host(`geoalert.trismegistus.tech`)"
+      - "traefik.http.routers.geoalert.entrypoints=websecure"
+      - "traefik.http.routers.geoalert.tls.certresolver=letsencrypt"
+      - "traefik.http.services.geoalert.loadbalancer.server.port=8000"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: proxy
+
