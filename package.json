@@ -15,7 +15,9 @@
     "dev:stats:start": "node dist/batumiElectricity/stats.js",
     "dev:stats:build-and-start": "npm run build && npm run dev:stats:start",
     "dev:matcher:start": "node dist/map/matcher.js",
-    "dev:matcher:build-and-start": "npm run build && npm run dev:matcher:start"
+    "dev:matcher:build-and-start": "npm run build && npm run dev:matcher:start",
+    "year-results:batumi": "node dist/mongo/yearResultsBatumi.js",
+    "year-results:batumi:build-and-start": "npm run build && npm run year-results:batumi"
   },
   "keywords": [],
   "author": "hermesiss",
